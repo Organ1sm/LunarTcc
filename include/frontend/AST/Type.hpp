@@ -31,8 +31,10 @@ class Type
 
     Type() = default;
     Type(VariantKind vk) : Ty(vk) {}
+
     Type(Type &&)                 = default;
     Type &operator=(Type &&)      = default;
+
     Type(const Type &)            = default;
     Type &operator=(const Type &) = default;
 
