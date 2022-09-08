@@ -31,24 +31,21 @@ class Token
         SemiColon,       // ';'
 
         // Opeartors
-        Plus,                 // '+'
-        Minus,                // '-'
-        Mul,                  // '*'
-        Div,                  // '/'
-        Or,                   // '|'
-        And,                  // '&'
-        Xor,                  // '^'
-        Less,                 // '<'
-        Greater,              // '>'
-        Assign,               // '='
-        Dot,                  // '.'
-        Mod,                  // '%'
-        Tilde,                // '~'
-        Not,                  // '!'
-        Cond,                 // '?'
-        Sharp,                // '#'
-        Newline,              // '\n'
-        DoubleSharp = 128,    // '##'
+        Plus,       // '+'
+        Minus,      // '-'
+        Mul,        // '*'
+        Div,        // '/'
+        Or,         // '|'
+        And,        // '&'
+        Xor,        // '^'
+        Less,       // '<'
+        Greater,    // '>'
+        Assign,     // '='
+        Dot,        // '.'
+        Mod,        // '%'
+        Tilde,      // '~'
+        Not,        // '!'
+        Cond,       // '?'
 
         // Multichar Operators
         Ptr,             // ->
@@ -121,30 +118,6 @@ class Token
         Noreturn,        // _Noreturn
         StaticAssert,    // _Static_assert
         ThreadLocal,     // _Thread_local
-
-        Typedef,
-        Extern,
-        Static,
-        Auto,
-        Register,
-
-        // KEYWORD END
-
-        Constant,
-        StringLiteral,
-        I_CONSTANT,
-        C_CONSTANT,
-        F_CONSTANT,
-        Literal,
-
-        // For the parser, a identifier is a typedef name or user defined type
-        PostfixInc,
-        PostfixDec,
-        PrefixInc,
-        PrefixDec,
-        Addr,     // '&'
-        Deref,    // '*'
-        Cast,
     };
 
     Token() : Kind(Invalid) {}
@@ -158,10 +131,20 @@ class Token
     std::string GetString() { return std::string(StringValue); }
     TokenKind GetKind() { return Kind; }
 
+    std::size_t GetLine() { return Line; }
+    std::size_t GetColumn() { return Column; }
+
+    std::string ToString();
+
+    static std::string ToString(TokenKind tk);
+
   private:
     TokenKind Kind;
     std::string_view StringValue;
     std::size_t Line;
     std::size_t Column;
+
+  public:
+    static const std::unordered_map<TokenKind, std::string> Token2Str;
 };
 #endif

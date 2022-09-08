@@ -9,20 +9,8 @@
 #include <memory>
 
 #include "frontend/Lexer/Token.hpp"
-#include "frontend/Lexer/Type.hpp"
-static void PrintImpl(const char *str, unsigned tab = 0, bool newline = false)
-{
-    for (int i = 0; i < tab; i++)
-        std::cout << " ";
-    std::cout << str;
-
-    if (newline)
-        std::cout << std::endl;
-}
-
-static void Print(const char *str, unsigned tab = 0) { PrintImpl(str, tab); }
-
-static void PrintLn(const char *str, unsigned tab = 0) { PrintImpl(str, tab, true); }
+#include "frontend/AST/Type.hpp"
+#include "Utils/ErrorLogger.hpp"
 
 class Node
 {
@@ -39,12 +27,17 @@ class Statement : public Node
 class Expression : public Node
 {
   public:
-    Type GetType() { return Ty; }
-    void SetType(Type t) { Ty = t; }
+    Expression() = default;
+    Expression(ComplexType t) : ResultType(std::move(t)) {}
+    Expression(Type::VariantKind vk) : ResultType(vk) {}
+
+    ComplexType GetResultType() { return ResultType; }
+    void SetResultType(ComplexType t) { ResultType = t; }
+
     void ASTDump(unsigned int tab = 0) override { PrintLn("Expression", tab); }
 
   protected:
-    Type Ty;
+    ComplexType ResultType;
 };
 
 class VariableDeclaration : public Statement
@@ -53,12 +46,20 @@ class VariableDeclaration : public Statement
     std::string &GetName() { return Name; }
     void SetName(std::string &name) { Name = name; }
 
+    ArrayType GetType() { return Ty; }
+    void SetType(ArrayType t) { Ty = t; }
+
+    VariableDeclaration(std::string &Name, Type Ty, std::vector<unsigned> Dim)
+        : Name(Name), Ty(Ty, std::move(Dim))
+    {}
+    VariableDeclaration(std::string &Name, ArrayType Ty) : Name(Name), Ty(Ty) {}
+
   private:
     std::string Name;
     ArrayType Ty;
 };
 
-class CompoundStatment : public Statement
+class CompoundStatement : public Statement
 {
     using DeclVec = std::vector<std::unique_ptr<VariableDeclaration>>;
     using StmtVec = std::vector<std::unique_ptr<Statement>>;
@@ -73,25 +74,21 @@ class CompoundStatment : public Statement
 
     StmtVec &GetStatement() { return Statements; }
     void SetStatements(StmtVec &s) { Statements = std::move(s); }
-    void AddStatements(std::unique_ptr<Statement> &s) { Statements.push_back(std::move(s)); }
+    void AddStatements(std::unique_ptr<Statement> &s)
+    {
+        Statements.push_back(std::move(s));
+    }
 
-    CompoundStatment()                                    = delete;
-    CompoundStatment(const CompoundStatment &)            = delete;
-    CompoundStatment &operator=(const CompoundStatment &) = delete;
-    CompoundStatment(CompoundStatment &&)                 = default;
+    CompoundStatement()                                     = delete;
+    CompoundStatement(const CompoundStatement &)            = delete;
+    CompoundStatement &operator=(const CompoundStatement &) = delete;
+    CompoundStatement(CompoundStatement &&)                 = default;
 
-    CompoundStatment(DeclVec &Decls, StmtVec &Stats)
+    CompoundStatement(DeclVec &Decls, StmtVec &Stats)
         : Declarations(std::move(Decls)), Statements(std::move(Stats))
     {}
 
-    void ASTDump(unsigned int tab = 0) override
-    {
-        PrintLn("CompoundStatement", tab);
-        for (auto &d : Declarations)
-            d->ASTDump(tab + 2);
-        for (auto &s : Statements)
-            s->ASTDump(tab + 2);
-    }
+    void ASTDump(unsigned int tab = 0) override;
 
   private:
     DeclVec Declarations;
@@ -103,11 +100,7 @@ class ExpressionStatement : public Statement
   public:
     std::unique_ptr<Expression> &GetExpression() { return Expr; }
     void SetExpression(std::unique_ptr<Expression> e) { Expr = std::move(e); }
-    void ASTDump(unsigned int tab = 0) override
-    {
-        PrintLn("ExpressionStatement", tab);
-        Expr->ASTDump(tab + 2);
-    }
+    void ASTDump(unsigned int tab = 0) override;
 
   private:
     std::unique_ptr<Expression> Expr;
@@ -125,13 +118,7 @@ class IfStatement : public Statement
     std::unique_ptr<Statement> &GetElseBody() { return ElseBody; }
     void SetElseBody(std::unique_ptr<Statement> eB) { ElseBody = std::move(eB); }
 
-    void ASTDump(unsigned int tab = 0) override
-    {
-        PrintLn("IfStatement", tab);
-        Condition->ASTDump(tab + 2);
-        IfBody->ASTDump(tab + 2);
-        ElseBody->ASTDump(tab + 2);
-    }
+    void ASTDump(unsigned int tab = 0) override;
 
   private:
     std::unique_ptr<Expression> Condition;
@@ -148,12 +135,7 @@ class WhileStatement : public Statement
     std::unique_ptr<Statement> &GetBody() { return Body; }
     void SetBody(std::unique_ptr<Statement> b) { Body = std::move(b); }
 
-    void ASTDump(unsigned int tab = 0) override
-    {
-        PrintLn("WhileStatement", tab);
-        Condition->ASTDump(tab + 2);
-        Body->ASTDump(tab + 2);
-    }
+    void ASTDump(unsigned int tab = 0) override;
 
   private:
     std::unique_ptr<Expression> Condition;
@@ -175,12 +157,7 @@ class ReturnStatement : public Statement
     ReturnStatement() = default;
     ReturnStatement(std::unique_ptr<Expression> e) : Value(std::move(e)) {}
 
-    void ASTDump(unsigned int tab = 0) override
-    {
-        PrintLn("ReturnStatement", tab);
-        if (Value)
-            Value.value()->ASTDump(tab + 2);
-    }
+    void ASTDump(unsigned int tab = 0) override;
 
   private:
     std::optional<std::unique_ptr<Expression>> Value;
@@ -196,15 +173,7 @@ class FunctionParameterDeclaration : public Statement
     Type GetType() { return Ty; }
     void SetType(Type t) { Ty = t; }
 
-    void ASTDump(unsigned int tab = 0) override
-    {
-        auto TypeStr = "'" + Ty.ToString() + "' ";
-        auto NameStr = "'" + Name + "'";
-
-        Print("FunctionParameterDeclaration", tab);
-        Print(TypeStr.c_str());
-        PrintLn(NameStr.c_str());
-    }
+    void ASTDump(unsigned int tab = 0) override;
 
   private:
     std::string Name;
@@ -226,51 +195,28 @@ class FunctionDeclaration : public Statement
     void SetArguments(ParamVec &a) { Arguments = std::move(a); }
     void SetArguments(ParamVec &&a) { Arguments = std::move(a); }
 
-    std::unique_ptr<CompoundStatment> &GetBody() { return Body; }
-    void SetBody(std::unique_ptr<CompoundStatment> &cs) { Body = std::move(cs); }
+    std::unique_ptr<CompoundStatement> &GetBody() { return Body; }
+    void SetBody(std::unique_ptr<CompoundStatement> &cs) { Body = std::move(cs); }
 
-    void CaclArgumentTypes()
-    {
-        for (auto &Argument : Arguments)
-        {
-            auto t = Argument->GetType().GetTypeVariant();
-            Type.GetArgumentTypes().push_back(t);
-        }
-
-        // if there are no arguments then set it to void
-        if (Arguments.empty())
-            Type.GetArgumentTypes().push_back(Type::Void);
-    }
+    void CalcArgumentTypes();
 
     FunctionDeclaration() = delete;
     FunctionDeclaration(FunctionType FT,
                         std::string Name,
                         ParamVec &Args,
-                        std::unique_ptr<CompoundStatment> &Body)
+                        std::unique_ptr<CompoundStatement> &Body)
         : Type(FT), Name(Name), Arguments(std::move(Args)), Body(std::move(Body))
     {
-        CaclArgumentTypes();
+        CalcArgumentTypes();
     }
 
-    void ASTDump(unsigned int tab = 0) override
-    {
-        auto TypeStr = "'" + Type.ToString() + "' ";
-        auto NameStr = "'" + Name + "'";
-        Print("FunctionDeclaration", tab);
-        Print(TypeStr.c_str());
-        PrintLn(NameStr.c_str());
-
-        for (auto &Argument : Arguments)
-            Argument->ASTDump(tab + 2);
-
-        Body->ASTDump(tab + 2);
-    }
+    void ASTDump(unsigned int tab = 0) override;
 
   private:
     FunctionType Type;
     std::string Name;
     ParamVec Arguments;
-    std::unique_ptr<CompoundStatment> Body;
+    std::unique_ptr<CompoundStatement> Body;
 };
 
 class BinaryExpression : public Expression
@@ -292,40 +238,12 @@ class BinaryExpression : public Expression
         LogicalAnd
     };
 
-    BinaryOperation GetOperationKind()
-    {
-        switch (Operation.GetKind())
-        {
-            case Token::Assign:
-                return Assign;
-            case Token::Plus:
-                return Add;
-            case Token::Minus:
-                return Sub;
-            case Token::Mul:
-                return Mul;
-            case Token::Div:
-                return Div;
-            case Token::Equal:
-                return Equal;
-            case Token::Less:
-                return Less;
-            case Token::Greater:
-                return Greater;
-            case Token::NotEqual:
-                return NotEqual;
-            case Token::LogicalAnd:
-                return LogicalAnd;
-            default:
-                assert(false && "Invalid binary Operator kind.");
-                break;
-        }
-    }
+    BinaryOperation GetOperationKind();
 
     Token GetOperation() { return Operation; }
     Token SetOperation(Token op) { Operation = op; }
 
-    ExprPtr &GettLeftExpr() { return Lhs; }
+    ExprPtr &GetLeftExpr() { return Lhs; }
     void SetLeftExpr(ExprPtr &e) { Lhs = std::move(e); }
 
     ExprPtr &GetRightExpr() { return Rhs; }
@@ -334,19 +252,9 @@ class BinaryExpression : public Expression
     bool IsCondition() { return GetOperationKind() >= Equal; }
 
     BinaryExpression() = default;
-    BinaryExpression(ExprPtr Left, Token Op, ExprPtr Right)
-        : Lhs(std::move(Left)), Operation(Op), Rhs(std::move(Right))
-    {}
+    BinaryExpression(ExprPtr Left, Token Op, ExprPtr Right);
 
-    void ASTDump(unsigned int tab = 0) override
-    {
-        Print("BinaryExpression ", tab);
-
-        auto OpStr = "'" + Operation.GetString() + "'";
-        PrintLn(OpStr.c_str());
-        Lhs->ASTDump(tab + 2);
-        Rhs->ASTDump(tab + 2);
-    }
+    void ASTDump(unsigned int tab = 0) override;
 
   private:
     Token Operation;
@@ -354,6 +262,141 @@ class BinaryExpression : public Expression
     std::unique_ptr<Expression> Rhs;
 };
 
+class CallExpression : public Expression
+{
+    using ExprVec = std::vector<std::unique_ptr<Expression>>;
+
+  public:
+    std::string &GetName() { return Name; }
+    void SetName(std::string &n) { Name = n; }
+
+    ExprVec &GetArguments() { return Arguments; }
+    void SetArguments(ExprVec &A) { Arguments = std::move(A); }
+
+    CallExpression(const std::string &Name, ExprVec &Args, ComplexType T)
+        : Name(Name), Arguments(std::move(Args)), Expression(std::move(T))
+    {}
+
+    void ASTDump(unsigned int tab = 0) override;
+
+  private:
+    std::string Name;
+    ExprVec Arguments;
+};
+
+class ReferenceExpression : public Expression
+{
+  public:
+    std::string &GetIdentifier() { return Identifier; }
+    void SetIdentifier(std::string &id) { Identifier = id; }
+
+    ReferenceExpression(Token t) { Identifier = t.GetString(); }
+
+    void ASTDump(unsigned int tab = 0) override;
+
+  private:
+    std::string Identifier;
+};
+
+class IntegerLiteralExpression : public Expression
+{
+  public:
+    unsigned GetValue() { return Value; }
+    void SetValue(unsigned v) { Value = v; }
+
+    IntegerLiteralExpression(unsigned v) : Value(v)
+    {
+        SetResultType(ComplexType(Type::Int));
+    }
+    IntegerLiteralExpression() = delete;
+
+    void ASTDump(unsigned int tab = 0) override;
+
+  private:
+    unsigned Value;
+};
+
+class FloatLiteralExpression : public Expression
+{
+  public:
+    double GetValue() { return Value; }
+    void SetValue(double v) { Value = v; }
+
+    FloatLiteralExpression() = delete;
+    FloatLiteralExpression(double v) : Value(v)
+    {
+        SetResultType(ComplexType(Type::Double));
+    }
+
+    void ASTDump(unsigned int tab = 0) override;
+
+  private:
+    double Value;
+};
+
+class ArrayExpression : public Expression
+{
+    using ExprVec = std::vector<std::unique_ptr<Expression>>;
+
+  public:
+    Token &GetIdentifier() { return Identifier; }
+    void SetIdentifier(Token &id) { Identifier = id; };
+
+    ExprVec &GetIndexExpression() { return IndexExpression; }
+    void SetIndexExpression(ExprVec &e) { IndexExpression = std::move(e); }
+
+    ArrayExpression(const Token &Id, ExprVec &IEs, ComplexType Ct = ComplexType())
+        : Identifier(Id), IndexExpression(std::move(IEs))
+    {
+        ResultType = Ct;
+    }
+
+    void ASTDump(unsigned int tab = 0) override;
+
+  private:
+    Token Identifier;
+    ExprVec IndexExpression;
+};
+
+class ImplicitCastExpression : public Expression
+{
+  public:
+    ImplicitCastExpression(std::unique_ptr<Expression> e, Type::VariantKind rt)
+        : CastableExpression(std::move(e)), Expression(rt)
+    {}
+
+    Type GetSourceType() { return CastableExpression->GetResultType(); }
+    std::unique_ptr<Expression> &GetCastableExpression() { return CastableExpression; }
+
+    void ASTDump(unsigned int tab = 0) override;
+
+  private:
+    std::unique_ptr<Expression> CastableExpression;
+};
+
+class TranslationUnit : public Statement
+{
+  public:
+    std::vector<std::unique_ptr<Statement>> &GetDeclarations() { return Declarations; }
+    void SetDeclarations(std::vector<std::unique_ptr<Statement>> s)
+    {
+        Declarations = std::move(s);
+    }
+    void AddDeclaration(std::unique_ptr<Statement> s)
+    {
+        Declarations.push_back(std::move(s));
+    }
+
+    TranslationUnit() = default;
+    TranslationUnit(std::vector<std::unique_ptr<Statement>> s)
+        : Declarations(std::move(s))
+    {}
+
+    void ASTDump(unsigned int tab = 0) override;
+
+  private:
+    std::vector<std::unique_ptr<Statement>> Declarations;
+};
 
 
 

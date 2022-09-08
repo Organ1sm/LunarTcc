@@ -19,6 +19,8 @@ Lexer::Lexer(std::vector<std::string> &s)
     TokenBuffer = std::vector<Token>();
     LineIndex   = 0;
     ColumnIndex = 0;
+
+    LookAhead(1);
 }
 
 void Lexer::ConsumeCurrentToken()
@@ -33,7 +35,8 @@ int Lexer::GetNextChar()
         EatNextChar();
 
     if (LineIndex >= Source.size()
-        || (LineIndex == Source.size() - 1 && (ColumnIndex == Source[LineIndex].length())))
+        || (LineIndex == Source.size() - 1
+            && (ColumnIndex == Source[LineIndex].length())))
         return EOF;
 
     return Source[LineIndex][ColumnIndex];
@@ -122,8 +125,9 @@ std::optional<Token> Lexer::LexIdentifier()
 
 std::optional<Token> Lexer::LexKeyWord()
 {
-    std::size_t WordEnd = Source[LineIndex].substr(ColumnIndex).find_first_of("\t\n\v\f\r ");
-    auto Word           = Source[LineIndex].substr(ColumnIndex, WordEnd);
+    std::size_t WordEnd =
+        Source[LineIndex].substr(ColumnIndex).find_first_of("\t\n\v\f\r ");
+    auto Word = Source[LineIndex].substr(ColumnIndex, WordEnd);
 
     if (!KeyWords.count(Word))
         return std::nullopt;
@@ -134,7 +138,8 @@ std::optional<Token> Lexer::LexKeyWord()
     for (int i = Word.length(); i > 0; i--)
         EatNextChar();
 
-    std::string_view StringValue {&Source[StartLineIndex][StartColumnIndex], Word.length()};
+    std::string_view StringValue {&Source[StartLineIndex][StartColumnIndex],
+                                  Word.length()};
     return Token(KeyWords[Word], StringValue, StartLineIndex, StartColumnIndex);
 }
 
@@ -146,7 +151,7 @@ std::optional<Token> Lexer::LexSymbol()
     switch (GetNextChar())
     {
         case ',':
-            TokenKind = Token::Colon;
+            TokenKind = Token::Comma;
             break;
         case '+':
             TokenKind = Token::Plus;

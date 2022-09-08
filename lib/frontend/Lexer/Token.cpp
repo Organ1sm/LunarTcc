@@ -11,17 +11,6 @@ std::string Token::ToString()
     return Result;
 }
 
-const std::unordered_map<std::string, Token::TokenKind> Token::KeyWord2Token = {
-    {"if",     If    },
-    {"else",   Else  },
-    {"for",    For   },
-    {"while",  While },
-    {"return", Return},
-    {"int",    Int   },
-    {"double", Double},
-    {"void",   Void  },
-};
-
 const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {EndOfFile,    "End of file"},
     {Invalid,      "Invalid"    },
@@ -62,10 +51,9 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Int,          "int"        },
     {Double,       "double"     },
     {Void,         "void"       },
- //{ FUNC_NAME, "__func__" },
 };
 
-static std::string ToString(Token::TokenKind tk)
+std::string Token::ToString(Token::TokenKind tk)
 {
     auto &Token2Str = Token::Token2Str;
     auto search     = Token2Str.find(tk);

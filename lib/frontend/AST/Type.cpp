@@ -27,8 +27,8 @@ std::string ArrayType::ToString() const
 {
     auto TypeStr = Type::ToString(Ty);
 
-    for (int i = 0; i < Dimensions.size(); i++)
-        TypeStr += "[" + std::to_string(Dimensions[i]) + "]";
+    for (auto Dimension : Dimensions)
+        TypeStr += "[" + std::to_string(Dimension) + "]";
 
     return TypeStr;
 }
@@ -75,8 +75,8 @@ std::string ComplexType::ToString() const
     {
         auto TyStr = Type::ToString(Ty);
 
-        for (int i = 0; i < Dimensions.size(); i++)
-            TyStr += "[" + std::to_string(Dimensions[i]) + "]";
+        for (auto Dimension : Dimensions)
+            TyStr += "[" + std::to_string(Dimension) + "]";
         return TyStr;
     }
     else
@@ -85,14 +85,107 @@ std::string ComplexType::ToString() const
     }
 }
 
-ComplexType::ComplexType(Type t, const std::vector<unsigned int> &d)
+ComplexType::ComplexType(Type t, std::vector<unsigned int> d)
 {
     if (d.size() == 0)
         ComplexType(t);
     else
     {
         Kind       = Array;
-        Dimensions = d;
+        Dimensions = std::move(d);
     }
     Ty = t.GetTypeVariant();
+}
+
+ComplexType::ComplexType(Type t, std::vector<VariantKind> a)
+{
+    Ty            = t.GetTypeVariant();
+    Kind          = Function;
+    ArgumentTypes = std::move(a);
+}
+
+bool operator==(const ComplexType &lhs, const ComplexType &rhs)
+{
+    bool result = lhs.Kind == rhs.Kind && lhs.Ty == rhs.Ty;
+
+    if (!result)
+        return false;
+
+    switch (lhs.Kind)
+    {
+        case ComplexType::Function:
+            result = result && (lhs.ArgumentTypes == rhs.ArgumentTypes);
+            break;
+        case ComplexType::Array:
+            result = result && (lhs.Dimensions == rhs.Dimensions);
+            break;
+        default:
+            break;
+    }
+    return result;
+}
+
+ComplexType::ComplexType(ComplexType &&ct)
+{
+    Ty   = ct.Ty;
+    Kind = ct.Kind;
+
+    if (ct.Kind == Array)
+        Dimensions = std::move(ct.Dimensions);
+    else if (ct.Kind == Function)
+        ArgumentTypes = std::move(ct.ArgumentTypes);
+}
+
+ComplexType &ComplexType::operator=(ComplexType &&ct)
+{
+    Ty   = ct.Ty;
+    Kind = ct.Kind;
+
+    if (ct.Kind == Array)
+        Dimensions = std::move(ct.Dimensions);
+    else if (ct.Kind == Function)
+        ArgumentTypes = std::move(ct.ArgumentTypes);
+}
+
+ComplexType::ComplexType(const ComplexType &ct)
+{
+    Ty   = ct.Ty;
+    Kind = ct.Kind;
+
+    if (ct.Kind == Array)
+        Dimensions = ct.Dimensions;
+    else if (ct.Kind == Function)
+        ArgumentTypes = ct.ArgumentTypes;
+}
+
+ComplexType &ComplexType::operator=(const ComplexType &ct)
+{
+    Ty   = ct.Ty;
+    Kind = ct.Kind;
+
+    if (ct.Kind == Array)
+        Dimensions = ct.Dimensions;
+    else if (ct.Kind == Function)
+        ArgumentTypes = ct.ArgumentTypes;
+}
+
+bool operator==(const ValueType &lhs, const ValueType &rhs)
+{
+    bool result = (lhs.Kind == rhs.Kind);
+
+    if (!result)
+        return false;
+
+    switch (lhs.Kind)
+    {
+        case ValueType::Integer:
+            result = result && (lhs.IntVal == rhs.IntVal);
+            break;
+        case ValueType::Float:
+            result = result && (lhs.FloatVal == rhs.FloatVal);
+            break;
+        default:
+            break;
+    }
+    return result;
 }

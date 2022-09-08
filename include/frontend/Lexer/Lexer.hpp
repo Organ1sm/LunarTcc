@@ -27,6 +27,9 @@ class Lexer
     bool Is(Token::TokenKind tk);
     bool IsNot(Token::TokenKind tk);
 
+    std::vector<std::string> &GetSource() { return Source; }
+    unsigned GetLine() { return LineIndex + 1; }
+
     Token Lex();
 
     Lexer(std::vector<std::string> &s);

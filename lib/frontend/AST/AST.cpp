@@ -107,10 +107,12 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
 
 void BinaryExpression::ASTDump(unsigned int tab)
 {
-    Print("BinaryExpression ", tab);
+    auto Str = "'" + ResultType.ToString() + "' ";
+    Str += "'" + Operation.GetString() + "'";
 
-    auto OpStr = "'" + Operation.GetString() + "'";
-    PrintLn(OpStr.c_str());
+    Print("BinaryExpression ", tab);
+    PrintLn(Str.c_str());
+
     Lhs->ASTDump(tab + 2);
     Rhs->ASTDump(tab + 2);
 }
@@ -122,16 +124,17 @@ BinaryExpression::BinaryExpression(BinaryExpression::ExprPtr L,
     Operation = Op;
     Rhs       = std::move(R);
 
-    Ty = ComplexType(Type::GetStrongestType(Lhs->GetType().GetTypeVariant(),
-                                            Rhs->GetType().GetTypeVariant()));
+    ResultType = ComplexType(Type::GetStrongestType(
+        Lhs->GetResultType().GetTypeVariant(), Rhs->GetResultType().GetTypeVariant()));
 }
 
 void CallExpression::ASTDump(unsigned int tab)
 {
-    auto NameStr = "'" + Name + "'";
+    auto Str = "'" + ResultType.ToString() + "' ";
+    Str += "'" + Name + "'";
 
     Print("CallExpression", tab);
-    PrintLn(NameStr.c_str());
+    PrintLn(Str.c_str());
 
     for (auto &Argument : Arguments)
         Argument->ASTDump(tab + 2);
@@ -139,17 +142,18 @@ void CallExpression::ASTDump(unsigned int tab)
 
 void ReferenceExpression::ASTDump(unsigned int tab)
 {
-    Print("ReferenceExpression", tab);
+    auto Str = "'" + ResultType.ToString() + "' ";
+    Str += "'" + Identifier + "' ";
 
-    auto IdStr = "'" + Identifier + "'";
-    PrintLn(IdStr.c_str());
+    Print("ReferenceExpression", tab);
+    PrintLn(Str.c_str());
 }
 
 void IntegerLiteralExpression::ASTDump(unsigned int tab)
 {
     Print("IntegerLiteralExpression ", tab);
 
-    auto TyStr = "'" + Ty.ToString() + "' ";
+    auto TyStr = "'" + ResultType.ToString() + "' ";
     Print(TyStr.c_str());
 
     auto ValStr = "'" + std::to_string(Value) + "'";
@@ -160,7 +164,7 @@ void FloatLiteralExpression::ASTDump(unsigned int tab)
 {
     Print("FloatLiteralExpression", tab);
 
-    auto TyStr = "'" + Ty.ToString() + "' ";
+    auto TyStr = "'" + ResultType.ToString() + "' ";
     Print(TyStr.c_str());
 
     auto ValueStr = "'" + std::to_string(Value) + "'";
@@ -169,10 +173,12 @@ void FloatLiteralExpression::ASTDump(unsigned int tab)
 
 void ArrayExpression::ASTDump(unsigned int tab)
 {
-    Print("ArrayExpression", tab);
+    auto Str = "'" + ResultType.ToString() + "' ";
+    Str += "'" + Identifier.GetString() + "'";
 
-    auto IdStr = "'" + Identifier.GetString() + "'";
-    PrintLn(IdStr.c_str());
+    Print("ArrayExpression", tab);
+    PrintLn(Str.c_str());
+
     for (auto &i : IndexExpression)
         i->ASTDump(tab + 2);
 }
@@ -182,4 +188,14 @@ void TranslationUnit::ASTDump(unsigned int tab)
     PrintLn("TranslationUnit", tab);
     for (auto &Declaration : Declarations)
         Declaration->ASTDump(tab + 2);
+}
+
+void ImplicitCastExpression::ASTDump(unsigned int tab)
+{
+    auto Str = "'" + ResultType.ToString() + "'";
+
+    Print("ImplicitCastExpression ", tab);
+    PrintLn(Str.c_str());
+
+    CastableExpression->ASTDump(tab + 2);
 }

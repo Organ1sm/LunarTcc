@@ -1,5 +1,5 @@
 //
-// Created by yw.
+// Created by Organ1sm.
 //
 
 #ifndef LUNARTCC_SYMBOLTABLE_HPP
@@ -7,6 +7,7 @@
 
 #include "frontend/AST/Type.hpp"
 #include <cassert>
+#include <optional>
 
 
 class SymbolTableStack
@@ -26,6 +27,7 @@ class SymbolTableStack
 
     void InsertEntry(const Entry &e);
     bool Contains(Entry e);
+    std::optional<Entry > Contains(const std::string &sym);
     bool ContainsInCurrentScope(Entry e);
 
   private:
