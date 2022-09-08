@@ -1,0 +1,120 @@
+Language: Cpp
+
+AccessModifierOffset: -2
+
+AlignAfterOpenBracket: Align
+AlignArrayOfStructures: Left
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveBitFields: Consecutive
+AlignConsecutiveDeclarations: false
+AlignConsecutiveMacros: AcrossComments
+AlignEscapedNewlines: Left
+AlignOperands: Align
+AlignTrailingComments: true
+
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: All
+AllowShortLoopsOnASingleLine: false
+
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: true
+
+BinPackArguments: true
+BinPackParameters: false
+BitFieldColonSpacing: Both
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: true
+  AfterEnum: false
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: false
+  BeforeWhile: true
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeConceptDeclarations: true
+BreakBeforeTernaryOperators: false
+BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
+BreakStringLiterals: false
+ColumnLimit: 90
+
+CompactNamespaces: false
+
+ConstructorInitializerIndentWidth: 4
+
+ContinuationIndentWidth: 4
+
+Cpp11BracedListStyle: true
+
+DerivePointerAlignment: false
+
+EmptyLineAfterAccessModifier: Never
+EmptyLineBeforeAccessModifier: LogicalBlock
+
+FixNamespaceComments: true
+
+IndentCaseBlocks: true
+IndentCaseLabels: true
+IndentExternBlock: AfterExternBlock
+IndentGotoLabels: true
+IndentPPDirectives: BeforeHash
+IndentWidth: 4
+IndentWrappedFunctionNames: true
+
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+LambdaBodyIndentation: Signature
+
+MaxEmptyLinesToKeep: 8
+
+NamespaceIndentation: All
+
+PointerAlignment: Right
+
+ReflowComments: true
+
+SortIncludes: false
+
+SortUsingDeclarations: true
+
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
+
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCpp11BracedList: true
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceInEmptyBlock: false
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 4
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+Standard: c++17
+TabWidth: 4
+UseTab: Never
