@@ -30,7 +30,7 @@ bool getFileContent(const std::string& fileName, std::vector<std::string> &VecOf
 
 int main()
 {
-    std::string FilePath = "./test.txt";
+    std::string FilePath = "../tests/test.c";
 
     bool DumpTokens = true;
     bool DumpAst    = true;

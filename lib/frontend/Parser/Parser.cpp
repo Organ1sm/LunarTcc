@@ -55,6 +55,16 @@ void static EmitErrorWithLineInfoAndAffectedLine(const std::string &msg, Lexer &
               << std::endl;
 }
 
+void static EmitErrorWithLineInfoAndAffectedLine(const std::string &msg,
+                                                 Lexer &L,
+                                                 Token &T)
+{
+    std::cout << ":" << T.GetLine() + 1 << ":" << T.GetColumn() + 1 << ": error: " << msg
+              << std::endl
+              << "\t\t" << L.GetSource()[T.GetLine()] << std::endl
+              << std::endl;
+}
+
 Token Parser::Expect(Token::TokenKind TKind)
 {
     auto t = Lex();
@@ -561,7 +571,7 @@ std::unique_ptr<Expression>
             && !dynamic_cast<ArrayExpression *>(LeftExpression.get()))
         {
             EmitErrorWithLineInfoAndAffectedLine(
-                "lvalue required as left operand of assignment", lexer);
+                "lvalue required as left operand of assignment", lexer, BinaryOperator);
         }
 
         int NextTokenPrec = GetBinOpPrecedence(GetCurrentTokenKind());
@@ -588,15 +598,11 @@ std::unique_ptr<Expression>
             if (BinaryOperator.GetKind() == Token::Assign)
             {
                 if (!Type::IsImplicitlyCastable(RightType, LeftType))
-                    EmitErrorWithLineInfoAndAffectedLine("Type mismatch", lexer);
+                    EmitErrorWithLineInfoAndAffectedLine("Type mismatch", lexer,
+                                                         BinaryOperator);
                 else
                     RightExpression = std::make_unique<ImplicitCastExpression>(
                         std::move(RightExpression), LeftType);
-            }
-            /// mod operation
-            else if (BinaryOperator.GetKind() == Token::Mod)
-            {
-                // TODO
             }
             /// Otherwise cast the one with lower conversion rank to higher one .
             else
@@ -612,6 +618,13 @@ std::unique_ptr<Expression>
                     RightExpression = std::make_unique<ImplicitCastExpression>(
                         std::move(RightExpression), DesiredType);
             }
+        }
+        /// mod operation
+        else if (BinaryOperator.GetKind() == Token::Mod)
+        {
+            if (LeftType != Type::Int || RightType != Type::Int)
+                EmitErrorWithLineInfoAndAffectedLine(
+                    "Mod Operator can only operator on integers", lexer, BinaryOperator);
         }
 
         LeftExpression = std::make_unique<BinaryExpression>(
