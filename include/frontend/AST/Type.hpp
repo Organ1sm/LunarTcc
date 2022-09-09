@@ -73,7 +73,7 @@ class FunctionType : public Type
     FunctionType(Type t) : Type(t) {}
     FunctionType(Type t, std::vector<VariantKind> a) : Type(t), ArgumentTypes(a) {}
 
-    FunctionType(FunctionType &&)            = delete;
+    FunctionType(FunctionType &&)            = default;
     FunctionType &operator=(FunctionType &&) = delete;
 
     FunctionType(const FunctionType &)            = default;

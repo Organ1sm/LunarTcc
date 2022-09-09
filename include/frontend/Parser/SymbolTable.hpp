@@ -26,8 +26,9 @@ class SymbolTableStack
     Table &GetTopTable() { return SymTabStack.back(); }
 
     void InsertEntry(const Entry &e);
+    void InsertGlobalEntry(const Entry &e);
     bool Contains(Entry e);
-    std::optional<Entry > Contains(const std::string &sym);
+    std::optional<Entry> Contains(const std::string &sym);
     bool ContainsInCurrentScope(Entry e);
 
   private:

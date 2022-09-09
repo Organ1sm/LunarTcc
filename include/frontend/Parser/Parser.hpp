@@ -28,7 +28,7 @@ class Parser
 
     std::unique_ptr<Node> ParseTranslationUnit();
     std::unique_ptr<Node> ParseExternalDeclaration();
-    std::unique_ptr<Node> ParseFunctionDeclaration();
+    std::unique_ptr<FunctionDeclaration> ParseFunctionDeclaration(const Type &ReturnType, const Token &Name);
     std::unique_ptr<VariableDeclaration> ParseVariableDeclaration();
     std::unique_ptr<FunctionParameterDeclaration> ParseParameterDeclaration();
     std::vector<std::unique_ptr<FunctionParameterDeclaration>> ParseParameterList();
@@ -48,12 +48,14 @@ class Parser
     std::unique_ptr<Expression> ParsePrimaryExpression();
     std::unique_ptr<Expression> ParseIdentifierExpression();
     std::unique_ptr<Expression> ParseConstantExpression();
-    std::unique_ptr<Expression> ParseBinaryExpressionRHS(int Precedence,
-                                                         std::unique_ptr<Expression> LeftExpression);
+    std::unique_ptr<Expression>
+        ParseBinaryExpressionRHS(int Precedence,
+                                 std::unique_ptr<Expression> LeftExpression);
 
     void InsertToSymbolTable(const std::string &SymbolName,
                              ComplexType SymType,
-                             ValueType SymValue = ValueType());
+                             const bool ToGlobal = false,
+                             ValueType SymValue  = ValueType());
 
 
   private:

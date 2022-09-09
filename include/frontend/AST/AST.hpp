@@ -185,8 +185,8 @@ class FunctionDeclaration : public Statement
     using ParamVec = std::vector<std::unique_ptr<FunctionParameterDeclaration>>;
 
   public:
-    FunctionType GetType() { return Type; }
-    void SetType(FunctionType ft) { Type = ft; }
+    FunctionType GetType() { return FuncType; }
+    void SetType(FunctionType ft) { FuncType = ft; }
 
     std::string &GetName() { return Name; }
     void SetName(std::string &s) { Name = s; }
@@ -198,22 +198,20 @@ class FunctionDeclaration : public Statement
     std::unique_ptr<CompoundStatement> &GetBody() { return Body; }
     void SetBody(std::unique_ptr<CompoundStatement> &cs) { Body = std::move(cs); }
 
-    void CalcArgumentTypes();
+    static FunctionType CreateType(const Type &t, const ParamVec &params);
 
     FunctionDeclaration() = delete;
     FunctionDeclaration(FunctionType FT,
                         std::string Name,
                         ParamVec &Args,
                         std::unique_ptr<CompoundStatement> &Body)
-        : Type(FT), Name(Name), Arguments(std::move(Args)), Body(std::move(Body))
-    {
-        CalcArgumentTypes();
-    }
+        : FuncType(FT), Name(Name), Arguments(std::move(Args)), Body(std::move(Body))
+    {}
 
     void ASTDump(unsigned int tab = 0) override;
 
   private:
-    FunctionType Type;
+    FunctionType FuncType;
     std::string Name;
     ParamVec Arguments;
     std::unique_ptr<CompoundStatement> Body;

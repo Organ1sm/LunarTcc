@@ -25,6 +25,11 @@ void SymbolTableStack::InsertEntry(const SymbolTableStack::Entry &e)
     SymTabStack[idx].push_back(e);
 }
 
+void SymbolTableStack::InsertGlobalEntry(const SymbolTableStack::Entry &e)
+{
+    SymTabStack[0].push_back(e);
+}
+
 bool SymbolTableStack::Contains(SymbolTableStack::Entry e)
 {
     for (int i = Size() - 1; i >= 0; i--)

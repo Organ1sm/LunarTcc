@@ -72,13 +72,13 @@ class Token
         Ellipsis,        // ...
 
         // Keyword
-        // Type qualifier
+        // FuncType qualifier
         Const,
         Restrict,
         Volatile,
         Atomic,
 
-        // Type specifier
+        // FuncType specifier
         For,
         While,
         Do,
@@ -128,13 +128,13 @@ class Token
         : Kind(tk), StringValue(sv), Line(line), Column(col)
     {}
 
-    std::string GetString() { return std::string(StringValue); }
-    TokenKind GetKind() { return Kind; }
+    std::string GetString() const { return std::string(StringValue); }
+    TokenKind GetKind() const { return Kind; }
 
-    std::size_t GetLine() { return Line; }
-    std::size_t GetColumn() { return Column; }
+    std::size_t GetLine() const { return Line; }
+    std::size_t GetColumn() const { return Column; }
 
-    std::string ToString();
+    std::string ToString() const;
 
     static std::string ToString(TokenKind tk);
 

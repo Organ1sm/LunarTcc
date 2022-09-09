@@ -1,7 +1,7 @@
 #include "frontend/Lexer/Token.hpp"
 #include <cassert>
 
-std::string Token::ToString()
+std::string Token::ToString() const
 {
     std::string Result;
     Result += "\"" + std::string(StringValue) + "\", ";

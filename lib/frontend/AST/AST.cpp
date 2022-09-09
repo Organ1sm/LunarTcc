@@ -46,22 +46,9 @@ void FunctionParameterDeclaration::ASTDump(unsigned int tab)
     PrintLn(NameStr.c_str());
 }
 
-void FunctionDeclaration::CalcArgumentTypes()
-{
-    for (auto &Argument : Arguments)
-    {
-        auto t = Argument->GetType().GetTypeVariant();
-        Type.GetArgumentTypes().push_back(t);
-    }
-
-    // if there are no arguments then set it to void
-    if (Arguments.empty())
-        Type.GetArgumentTypes().push_back(Type::Void);
-}
-
 void FunctionDeclaration::ASTDump(unsigned int tab)
 {
-    auto TypeStr = "'" + Type.ToString() + "' ";
+    auto TypeStr = "'" + FuncType.ToString() + "' ";
     auto NameStr = "'" + Name + "'";
     Print("FunctionDeclaration", tab);
     Print(TypeStr.c_str());
@@ -71,6 +58,22 @@ void FunctionDeclaration::ASTDump(unsigned int tab)
         Argument->ASTDump(tab + 2);
 
     Body->ASTDump(tab + 2);
+}
+FunctionType FunctionDeclaration::CreateType(const Type &t,
+                                             const FunctionDeclaration::ParamVec &params)
+{
+    FunctionType funcType(t);
+    for (auto &Argument : params)
+    {
+        auto type = Argument->GetType().GetTypeVariant();
+        funcType.GetArgumentTypes().push_back(type);
+    }
+
+    // if there are no arguments then set it to void
+    if (params.empty())
+        funcType.GetArgumentTypes().push_back(Type::Void);
+
+    return funcType;
 }
 
 BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
