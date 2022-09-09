@@ -22,6 +22,10 @@ std::string Type::ToString(const Type::VariantKind vk)
             break;
     }
 }
+bool Type::IsImplicitlyCastable(const Type::VariantKind from, const Type::VariantKind to)
+{
+    return (from == Int && to == Double) || (from == Double && to == Int);
+}
 
 std::string ArrayType::ToString() const
 {

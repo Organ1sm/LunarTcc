@@ -418,7 +418,7 @@ std::unique_ptr<Expression> Parser::ParseIdentifierExpression()
         if (SymEntry != std::nullopt)
         {
             auto Type = std::get<1>(SymEntry.value());
-            RE->SetType(Type);
+            RE->SetResultType(Type);
         }
         else
         {
@@ -565,9 +565,54 @@ std::unique_ptr<Expression>
         }
 
         int NextTokenPrec = GetBinOpPrecedence(GetCurrentTokenKind());
+
+        // ?
+        int Associviaty = 1;    // left associative
+        if (BinaryOperator.GetKind() == Token::Assign)
+        {
+            Associviaty = 0;    // right associative
+            NextTokenPrec++;
+        }
+
         if (TokenPrec < NextTokenPrec)
-            RightExpression =
-                ParseBinaryExpressionRHS(TokenPrec + 1, std::move(RightExpression));
+            RightExpression = ParseBinaryExpressionRHS(TokenPrec + Associviaty,
+                                                       std::move(RightExpression));
+
+        // Implicit Cast Insertion if needed.
+        auto LeftType  = LeftExpression->GetResultType().GetTypeVariant();
+        auto RightType = RightExpression->GetResultType().GetTypeVariant();
+
+        if (LeftType != RightType)
+        {
+            /// if an assignment, then try to cast the RHS to type of LHS.
+            if (BinaryOperator.GetKind() == Token::Assign)
+            {
+                if (!Type::IsImplicitlyCastable(RightType, LeftType))
+                    EmitErrorWithLineInfoAndAffectedLine("Type mismatch", lexer);
+                else
+                    RightExpression = std::make_unique<ImplicitCastExpression>(
+                        std::move(RightExpression), LeftType);
+            }
+            /// mod operation
+            else if (BinaryOperator.GetKind() == Token::Mod)
+            {
+                // TODO
+            }
+            /// Otherwise cast the one with lower conversion rank to higher one .
+            else
+            {
+                auto DesiredType =
+                    Type::GetStrongestType(LeftType, RightType).GetTypeVariant();
+
+                // if LHS needs the conversion.
+                if (LeftType != DesiredType)
+                    LeftExpression = std::make_unique<ImplicitCastExpression>(
+                        std::move(LeftExpression), DesiredType);
+                else
+                    RightExpression = std::make_unique<ImplicitCastExpression>(
+                        std::move(RightExpression), DesiredType);
+            }
+        }
 
         LeftExpression = std::make_unique<BinaryExpression>(
             std::move(LeftExpression), BinaryOperator, std::move(RightExpression));
