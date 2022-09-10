@@ -92,6 +92,10 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
             return Div;
         case Token::Mod:
             return Mod;
+        case Token::And:
+            return And;
+        case Token::Not:
+            return Not;
         case Token::Equal:
             return Equal;
         case Token::Less:
@@ -127,8 +131,12 @@ BinaryExpression::BinaryExpression(BinaryExpression::ExprPtr L,
     Operation = Op;
     Rhs       = std::move(R);
 
-    ResultType = ComplexType(Type::GetStrongestType(
-        Lhs->GetResultType().GetTypeVariant(), Rhs->GetResultType().GetTypeVariant()));
+    if (IsCondition())
+        ResultType = ComplexType(Type::Int);
+    else
+        ResultType =
+            ComplexType(Type::GetStrongestType(Lhs->GetResultType().GetTypeVariant(),
+                                               Rhs->GetResultType().GetTypeVariant()));
 }
 
 void CallExpression::ASTDump(unsigned int tab)

@@ -229,6 +229,8 @@ class BinaryExpression : public Expression
         Mul,
         Div,
         Mod,
+        And,
+        Not,
         Equal,
         Less,
         Greater,
@@ -247,7 +249,7 @@ class BinaryExpression : public Expression
     ExprPtr &GetRightExpr() { return Rhs; }
     void SetRightExpr(ExprPtr &e) { Rhs = std::move(e); }
 
-    bool IsCondition() { return GetOperationKind() >= Equal; }
+    bool IsCondition() { return GetOperationKind() >= Not; }
 
     BinaryExpression() = default;
     BinaryExpression(ExprPtr Left, Token Op, ExprPtr Right);
