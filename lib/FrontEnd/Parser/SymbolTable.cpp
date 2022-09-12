@@ -2,7 +2,7 @@
 // Created by Organ1sm.
 //
 
-#include "frontend/Parser/SymbolTable.hpp"
+#include "FrontEnd/Parser/SymbolTable.hpp"
 
 void SymbolTableStack::PushSymbolTable(SymbolTableStack::Table t)
 {

@@ -1,4 +1,4 @@
-#include "frontend/Parser/Parser.hpp"
+#include "FrontEnd/Parser/Parser.hpp"
 
 static bool IsTypeSpecifier(Token::TokenKind tk)
 {
@@ -315,6 +315,7 @@ std::unique_ptr<WhileStatement> Parser::ParseWhileStatement()
 }
 
 // <ReturnStatement> ::= return <Expression>? ';'
+// TODO: we need Explicit type conversioins here as well
 std::unique_ptr<ReturnStatement> Parser::ParseReturnStatement()
 {
     Expect(Token::Return);

@@ -60,6 +60,7 @@ class ArrayType : public Type
     std::vector<unsigned> &GetDimensions() { return Dimensions; }
     void SetDimensions(std::vector<unsigned> d) { Dimensions = std::move(d); }
 
+    bool IsArray() { return !Dimensions.empty(); }
     std::string ToString() const override;
 
   private:

@@ -1,4 +1,11 @@
-#include "frontend/AST/AST.hpp"
+#include "FrontEnd/AST/AST.hpp"
+
+
+Value *Node::IRCodegen(IRFactory *IRF)
+{
+    assert(!"Must be a child node type");
+    return nullptr;
+}
 
 void CompoundStatement::ASTDump(unsigned int tab)
 {
@@ -123,6 +130,7 @@ void BinaryExpression::ASTDump(unsigned int tab)
     Lhs->ASTDump(tab + 2);
     Rhs->ASTDump(tab + 2);
 }
+
 BinaryExpression::BinaryExpression(BinaryExpression::ExprPtr L,
                                    Token Op,
                                    BinaryExpression::ExprPtr R)

@@ -1,13 +1,12 @@
 #ifndef LUNARTCC_LEXER_H
 #define LUNARTCC_LEXER_H
 
-#include "Token.hpp"
+#include "FrontEnd/Lexer/Token.hpp"
 #include <cassert>
 #include <vector>
 #include <string>
 #include <unordered_map>
 #include <optional>
-
 
 class Lexer
 {
@@ -23,11 +22,14 @@ class Lexer
     std::optional<Token> LexSymbol();
 
     Token LookAhead(unsigned n);
+
     Token GetCurrentToken() { return LookAhead(1); }
+
     bool Is(Token::TokenKind tk);
     bool IsNot(Token::TokenKind tk);
 
     std::vector<std::string> &GetSource() { return Source; }
+
     unsigned GetLine() { return LineIndex + 1; }
 
     Token Lex();

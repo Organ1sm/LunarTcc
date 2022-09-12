@@ -96,7 +96,6 @@ ReflowComments: true
 SortIncludes: false
 
 SortUsingDeclarations: true
-
 SpaceAfterCStyleCast: false
 SpaceAfterTemplateKeyword: true
 

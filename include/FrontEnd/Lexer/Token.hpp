@@ -5,7 +5,6 @@
 #include <string>
 #include <unordered_map>
 
-
 class Token
 {
   public:
@@ -129,9 +128,11 @@ class Token
     {}
 
     std::string GetString() const { return std::string(StringValue); }
+
     TokenKind GetKind() const { return Kind; }
 
     std::size_t GetLine() const { return Line; }
+
     std::size_t GetColumn() const { return Column; }
 
     std::string ToString() const;

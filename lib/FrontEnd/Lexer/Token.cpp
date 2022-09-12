@@ -1,4 +1,4 @@
-#include "frontend/Lexer/Token.hpp"
+#include "FrontEnd/Lexer/Token.hpp"
 #include <cassert>
 
 std::string Token::ToString() const

@@ -4,11 +4,11 @@
 #include <cassert>
 #include <stack>
 #include <memory>
-#include "frontend/AST/AST.hpp"
-#include "frontend/Lexer/Lexer.hpp"
-#include "frontend/AST/Type.hpp"
-#include "frontend/Parser/SymbolTable.hpp"
-
+#include "FrontEnd/AST/AST.hpp"
+#include "FrontEnd/Lexer/Lexer.hpp"
+#include "FrontEnd/AST/Type.hpp"
+#include "FrontEnd/Parser/SymbolTable.hpp"
+#include "MiddleEnd/IR/IRFactory.hpp"
 
 class Parser
 {
@@ -16,7 +16,7 @@ class Parser
     std::unique_ptr<Node> Parse();
 
     Parser() = delete;
-    Parser(std::vector<std::string> &s) : lexer(s) {}
+    Parser(std::vector<std::string> &s, IRFactory *irf) : lexer(s), IRF(irf) {}
 
     Token Lex() { return lexer.Lex(); }
     Token Expect(Token::TokenKind Token);
@@ -28,7 +28,8 @@ class Parser
 
     std::unique_ptr<Node> ParseTranslationUnit();
     std::unique_ptr<Node> ParseExternalDeclaration();
-    std::unique_ptr<FunctionDeclaration> ParseFunctionDeclaration(const Type &ReturnType, const Token &Name);
+    std::unique_ptr<FunctionDeclaration> ParseFunctionDeclaration(const Type &ReturnType,
+                                                                  const Token &Name);
     std::unique_ptr<VariableDeclaration> ParseVariableDeclaration();
     std::unique_ptr<FunctionParameterDeclaration> ParseParameterDeclaration();
     std::vector<std::unique_ptr<FunctionParameterDeclaration>> ParseParameterList();
@@ -61,6 +62,7 @@ class Parser
   private:
     Lexer lexer;
     SymbolTableStack SymTabStack;
+    IRFactory *IRF;
 };
 
 
