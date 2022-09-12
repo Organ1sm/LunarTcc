@@ -5,10 +5,9 @@
 #ifndef LUNARTCC_SYMBOLTABLE_HPP
 #define LUNARTCC_SYMBOLTABLE_HPP
 
-#include "frontend/AST/Type.hpp"
+#include "FrontEnd/AST/Type.hpp"
 #include <cassert>
 #include <optional>
-
 
 class SymbolTableStack
 {
@@ -23,6 +22,7 @@ class SymbolTableStack
     Table PopSymbolTable();
 
     std::size_t Size() { return SymTabStack.size(); }
+
     Table &GetTopTable() { return SymTabStack.back(); }
 
     void InsertEntry(const Entry &e);

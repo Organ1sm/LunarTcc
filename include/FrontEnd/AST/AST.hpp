@@ -8,14 +8,19 @@
 #include <list>
 #include <memory>
 
-#include "frontend/Lexer/Token.hpp"
-#include "frontend/AST/Type.hpp"
+#include "FrontEnd/Lexer/Token.hpp"
+#include "FrontEnd/AST/Type.hpp"
 #include "Utils/ErrorLogger.hpp"
+#include "MiddleEnd/IR/IRFactory.hpp"
+#include "MiddleEnd/IR/Value.hpp"
 
 class Node
 {
   public:
     virtual void ASTDump(unsigned tab = 0) { PrintLn("Node"); }
+    virtual ~Node() {}
+
+    virtual Value *IRCodegen(IRFactory *IRF);
 };
 
 class Statement : public Node
@@ -52,6 +57,7 @@ class VariableDeclaration : public Statement
     VariableDeclaration(std::string &Name, Type Ty, std::vector<unsigned> Dim)
         : Name(Name), Ty(Ty, std::move(Dim))
     {}
+
     VariableDeclaration(std::string &Name, ArrayType Ty) : Name(Name), Ty(Ty) {}
 
   private:
@@ -142,7 +148,6 @@ class WhileStatement : public Statement
     std::unique_ptr<Statement> Body;
 };
 
-
 class ReturnStatement : public Statement
 {
   public:
@@ -162,7 +167,6 @@ class ReturnStatement : public Statement
   private:
     std::optional<std::unique_ptr<Expression>> Value;
 };
-
 
 class FunctionParameterDeclaration : public Statement
 {
@@ -241,7 +245,7 @@ class BinaryExpression : public Expression
     BinaryOperation GetOperationKind();
 
     Token GetOperation() { return Operation; }
-    Token SetOperation(Token op) { Operation = op; }
+    void SetOperation(Token op) { Operation = op; }
 
     ExprPtr &GetLeftExpr() { return Lhs; }
     void SetLeftExpr(ExprPtr &e) { Lhs = std::move(e); }
@@ -304,11 +308,11 @@ class IntegerLiteralExpression : public Expression
     unsigned GetValue() { return Value; }
     void SetValue(unsigned v) { Value = v; }
 
+    IntegerLiteralExpression() = delete;
     IntegerLiteralExpression(unsigned v) : Value(v)
     {
         SetResultType(ComplexType(Type::Int));
     }
-    IntegerLiteralExpression() = delete;
 
     void ASTDump(unsigned int tab = 0) override;
 

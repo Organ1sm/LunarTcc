@@ -2,8 +2,8 @@
 // Created by Organ1sm.
 //
 
-#include "frontend/AST/Type.hpp"
-
+#include "FrontEnd/AST/Type.hpp"
+#include "middleend/IR/IRType.hpp"
 
 std::string Type::ToString(const Type::VariantKind vk)
 {
@@ -22,6 +22,7 @@ std::string Type::ToString(const Type::VariantKind vk)
             break;
     }
 }
+
 bool Type::IsImplicitlyCastable(const Type::VariantKind from, const Type::VariantKind to)
 {
     return (from == Int && to == Double) || (from == Double && to == Int);

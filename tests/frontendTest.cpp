@@ -3,11 +3,13 @@
 //
 #include <iostream>
 #include <fstream>
-#include "frontend/Lexer/Lexer.hpp"
-#include "frontend/Parser/Parser.hpp"
+#include "FrontEnd/Lexer/Lexer.hpp"
+#include "FrontEnd/Parser/Parser.hpp"
+#include "MiddleEnd/IR/IRFactory.hpp"
+#include "MiddleEnd/IR/Module.hpp"
 
 
-bool getFileContent(const std::string& fileName, std::vector<std::string> &VecOfStrs)
+bool getFileContent(const std::string &fileName, std::vector<std::string> &VecOfStrs)
 {
     std::ifstream in(fileName.c_str());
 
@@ -34,6 +36,7 @@ int main()
 
     bool DumpTokens = true;
     bool DumpAst    = true;
+    bool DumpIR     = true;
 
     std::vector<std::string> src;
     getFileContent(FilePath, src);
@@ -50,11 +53,15 @@ int main()
         }
     }
 
-
-    Parser parser(src);
+    Module IRModule;
+    IRFactory IRF(IRModule);
+    Parser parser(src, &IRF);
     auto AST = parser.Parse();
     if (DumpAst)
         AST->ASTDump();
+
+    if (DumpIR)
+        AST->IRCodegen(&IRF), IRModule.Print();
 
     return 0;
 }
