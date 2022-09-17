@@ -1,8 +1,8 @@
 //
 // Created by Organ1sm.
 //
-#include "middleend/IR/Value.hpp"
 #include <iostream>
+#include "middleend/IR/Value.hpp"
 
 std::string Constant::ValueString() const
 {

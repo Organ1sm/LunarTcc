@@ -8,6 +8,8 @@
 #include "FrontEnd/AST/Type.hpp"
 #include <cassert>
 #include <optional>
+#include <tuple>
+#include <variant>
 
 class SymbolTableStack
 {

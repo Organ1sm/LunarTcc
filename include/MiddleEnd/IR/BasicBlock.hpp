@@ -5,6 +5,7 @@
 #ifndef LUNARTCC_BASICBLOCK_HPP
 #define LUNARTCC_BASICBLOCK_HPP
 
+#include <memory>
 #include "MiddleEnd/IR/Value.hpp"
 #include "MiddleEnd/IR/Instruction.hpp"
 

@@ -11,7 +11,7 @@ void SymbolTableStack::PushSymbolTable(SymbolTableStack::Table t)
 
 SymbolTableStack::Table SymbolTableStack::PopSymbolTable()
 {
-    assert(SymTabStack.size() > 0 && "Popping item from emtpy stack.");
+    assert(!SymTabStack.empty() && "Popping item from emtpy stack.");
 
     Table t = SymTabStack[SymTabStack.size() - 1];
     SymTabStack.pop_back();

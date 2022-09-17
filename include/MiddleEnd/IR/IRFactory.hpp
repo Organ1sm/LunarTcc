@@ -5,15 +5,15 @@
 #ifndef LUNARTCC_IRFACTORY_HPP
 #define LUNARTCC_IRFACTORY_HPP
 
-#include "MiddleEnd/IR/Instruction.hpp"
 #include <memory>
 #include <map>
+#include "MiddleEnd/IR/Instruction.hpp"
+#include "MiddleEnd/IR/Function.hpp"
+#include "MiddleEnd/IR/BasicBlock.hpp"
+#include "MiddleEnd/IR/Module.hpp"
 
 class Constant;
-class Module;
-class Function;
 class Value;
-class BasicBlock;
 
 class IRFactory
 {
