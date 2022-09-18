@@ -2,6 +2,7 @@
 #include "MiddleEnd/IR/BasicBlock.hpp"
 #include "MiddleEnd/IR/IRType.hpp"
 #include "MiddleEnd/IR/Instruction.hpp"
+#include "MiddleEnd/IR/Value.hpp"
 #include <cassert>
 #include <memory>
 
@@ -15,7 +16,7 @@ Value *Node::IRCodegen(IRFactory *IRF)
     return nullptr;
 }
 
-static IRType GetTypeFromVK(Type::VariantKind VK)
+static IRType GetIRTypeFromVK(Type::VariantKind VK)
 {
     switch (VK)
     {
@@ -200,8 +201,94 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
     return nullptr;
 }
 
-Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF) {}
+Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF)
+{
+    IRType ParamType = GetIRTypeFromVK(Ty.GetTypeVariant());
+    auto SA          = IRF->CreateSA(Name, ParamType);
+    IRF->AddToSymbolTable(Name, SA);
 
+    auto Param = std::make_unique<FunctionParameter>(FunctionParameter(Name, ParamType));
+
+    auto ST = IRF->CreateStore(Param.get(), SA);
+    IRF->Insert(std::move(Param));
+
+    return nullptr;
+}
+
+Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
+{
+    auto VarType = GetIRTypeFromVK(AType.GetTypeVariant());
+
+    // If an array type, then change type to reflect this.
+    if (AType.IsArray())
+    {
+        unsigned ElementNumber = 1;
+
+        for (auto Dim : AType.GetDimensions())
+            ElementNumber *= Dim;
+
+        VarType.SetNumberOfElements(ElementNumber);
+    }
+
+    // If we are in global scope, then its a global variable declaration
+    if (IRF->IsGlobalScope())
+        return IRF->CreateGlobalVar(Name, VarType);
+
+    /// Othewise we are in a localscope of a function.
+    /// Allocate space on stack and update the local symbol Table.
+    auto SA = IRF->CreateSA(Name, VarType);
+    IRF->AddToSymbolTable(Name, SA);
+
+
+    return SA;
+}
+
+Value *CallExpression::IRCodegen(IRFactory *IRF)
+{
+    std::vector<Value *> Args;
+
+    for (auto &Arg : Arguments)
+        Args.push_back(Arg->IRCodegen(IRF));
+
+    auto ReturnType = GetResultType().GetFunctionType().GetReturnType();
+
+    IRType ReturnIRType;
+
+    switch (ReturnType)
+    {
+        case Type::Int:
+            ReturnIRType = IRType(IRType::SInt);
+            break;
+        case Type::Double:
+            ReturnIRType = IRType(IRType::FP, 64);
+            break;
+        default:
+            break;
+    }
+
+    return IRF->CreateCall(Name, Args, ReturnIRType);
+}
+
+Value *ReferenceExpression::IRCodegen(IRFactory *IRF)
+{
+    auto Local = IRF->GetSymbolValue(Identifier);
+
+    if (Local)
+    {
+        if (GetLValueness())
+            return Local;
+        else
+            return IRF->CreateLoad(Local->GetType(), Local);
+    }
+
+    auto GV = IRF->GetGlobalVar(Identifier);
+
+    // If Lvalue, then return as a ptr to the global value.
+    if (GetLValueness())
+        return GV;
+
+    return IRF->CreateLoad(GV->GetType(), GV);
+}
 
 
 //=--------------------------------------------------------------------------=//
