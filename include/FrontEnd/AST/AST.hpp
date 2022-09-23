@@ -62,6 +62,7 @@ class VariableDeclaration : public Statement
     VariableDeclaration(std::string &Name, ArrayType Ty) : Name(Name), AType(Ty) {}
 
     void ASTDump(unsigned int tab = 0) override;
+    
     Value *IRCodegen(IRFactory *IRF) override;
 
   private:

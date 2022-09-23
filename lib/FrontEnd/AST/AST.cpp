@@ -230,7 +230,7 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
         VarType.SetNumberOfElements(ElementNumber);
     }
 
-    // If we are in global scope, then its a global variable declaration
+    // If we are in global scope, then its a global variable Declaration
     if (IRF->IsGlobalScope())
         return IRF->CreateGlobalVar(Name, VarType);
 
@@ -290,10 +290,220 @@ Value *ReferenceExpression::IRCodegen(IRFactory *IRF)
     return IRF->CreateLoad(GV->GetType(), GV);
 }
 
+/// If used as RValue:
+/// # calc Index expression.
+///  mul  $finalIndex, $Index, sizeof(Array[0])
+///  load $rv, [$arr + $finalIndex]
+
+/// If used as LValue:
+/// # generate Index:
+///  mul $offset, $Index, sizeof(Array[0])
+///  store [$arrayBase + $offset], $R
+Value *ArrayExpression::IRCodegen(IRFactory *IRF)
+{
+    // FIXME: for now just assume only 1 dimensional arrays
+    auto Index         = IndexExpression[0]->IRCodegen(IRF);
+    auto ArrayBaseType = Index->GetType().GetBaseType();
+
+    auto SizeofArrayType = IRF->GetConstant(ArrayBaseType.GetByteSize());
+    auto FinalIndex      = IRF->CreateMul(Index, SizeofArrayType);
+
+
+    auto Id = Identifier.GetString();
+    // return a pointer to the lvalue.
+    if (GetLValueness())
+    {
+        auto LocalValue  = IRF->GetSymbolValue(Id);
+        auto GlobalValue = IRF->GetGlobalVar(Id);
+
+        auto PtrToElement =
+            IRF->CreateAdd(LocalValue ? LocalValue : GlobalValue, FinalIndex);
+
+        PtrToElement->GetType().SetToPointerKind();
+
+        return PtrToElement;
+    }
+
+
+    // return the rvalue.
+    auto Element = IRF->CreateLoad(ArrayBaseType, IRF->GetSymbolValue(Id), FinalIndex);
+
+    return Element;
+}
+
+Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
+{
+    auto SourceTypeVariant = CastableExpression->GetResultType().GetTypeVariant();
+    auto DestTypeVariant   = GetResultType().GetTypeVariant();
+    auto Val               = CastableExpression->IRCodegen(IRF);
+
+    if (SourceTypeVariant == Type::Int && DestTypeVariant == Type::Double)
+        return IRF->CreateIntToFloat(Val, 32);
+    else if (SourceTypeVariant == Type::Double && DestTypeVariant == Type::Int)
+        return IRF->CreateFloatToInt(Val, 64);
+    else
+        assert(!"Invalid conversion.");
+
+
+    return nullptr;
+}
+
+Value *IntegerLiteralExpression::IRCodegen(IRFactory *IRF)
+{
+    return IRF->GetConstant(IntValue);
+}
+
+Value *FloatLiteralExpression::IRCodegen(IRFactory *IRF)
+{
+    return IRF->GetConstant(FPValue);
+}
+
+Value *BinaryExpression::IRCodegen(IRFactory *IRF)
+{
+    if (GetOperationKind() == LogicalAnd)
+    {
+        // goal IR:
+        //    # L generated here
+        //    sa $result
+        //    cmp.eq $c1, $L, 0
+        //    br $c1, <false>
+        // <test_R>
+        //    # R generated here
+        //    cmp.eq $c2, $R, 0
+        //    br $c2, <false>
+        // <true>
+        //    str [$result], 1
+        //    j <end>
+        // <false>
+        //    str [$result], 0
+        // <end>
+        const auto FuncPtr = IRF->GetCurrentFunction();
+        auto TestRhsBB     = std::make_unique<BasicBlock>("test_RHS", FuncPtr);
+        auto TrueBB        = std::make_unique<BasicBlock>("ture", FuncPtr);
+        auto FalseBB       = std::make_unique<BasicBlock>("false", FuncPtr);
+        auto FinalBB       = std::make_unique<BasicBlock>("final", FuncPtr);
+
+
+        auto L = Lhs->IRCodegen(IRF);
+
+        // LHS test
+        auto Result = IRF->CreateSA("result", IRType::CreateBool());
+
+        // if L was a compare instruction then just revert its relation
+        if (auto LCMP = dynamic_cast<CompareInstruction *>(L); LCMP != nullptr)
+        {
+            LCMP->InvertRelation();
+            IRF->CreateBranch(L, FalseBB.get());
+        }
+        else
+        {
+            auto LHSTest =
+                IRF->CreateCmp(CompareInstruction::EQ, L, IRF->GetConstant((uint64_t)0));
+            IRF->CreateBranch(LHSTest, FalseBB.get());
+        }
+
+        // RHS test
+        IRF->InsertBB(std::move(TestRhsBB));
+        auto R = Rhs->IRCodegen(IRF);
+
+        // If R was a compare instruction then just its relation.
+        if (auto RCMP = dynamic_cast<CompareInstruction *>(R); RCMP != nullptr)
+        {
+            RCMP->InvertRelation();
+            IRF->CreateBranch(R, FalseBB.get());
+        }
+        else
+        {
+            auto RHSTest =
+                IRF->CreateCmp(CompareInstruction::EQ, R, IRF->GetConstant((uint64_t)0));
+            IRF->CreateBranch(RHSTest, FalseBB.get());
+        }
+
+        // True
+        IRF->InsertBB(std::move(TrueBB));
+        IRF->CreateStore(IRF->GetConstant((uint64_t)1), Result);
+        IRF->CreateJump(FinalBB.get());
+
+        // False
+        IRF->InsertBB(std::move(FalseBB));
+        IRF->CreateStore(IRF->GetConstant((uint64_t)1), Result);
+        IRF->CreateJump(FinalBB.get());
+
+
+        return Result;
+    }
+
+    if (GetOperationKind() == Assign)
+    {
+        auto R = Rhs->IRCodegen(IRF);
+        auto L = Lhs->IRCodegen(IRF);
+
+        if (L == nullptr || R == nullptr)
+            return nullptr;
+
+        IRF->CreateStore(R, L);
+        return R;
+    }
+
+    auto L = Lhs->IRCodegen(IRF);
+    auto R = Rhs->IRCodegen(IRF);
+
+    if (L == nullptr || R == nullptr)
+        return nullptr;
+    switch (GetOperationKind())
+    {
+        case Add:
+            return IRF->CreateAdd(L, R);
+        case Sub:
+            return IRF->CreateSub(L, R);
+        case Mul:
+            return IRF->CreateMul(L, R);
+        case Div:
+            return IRF->CreateDiv(L, R);
+        case Mod:
+            return IRF->CreateMod(L, R);
+        case And:
+            return IRF->CreateAnd(L, R);
+        case Equal:
+            return IRF->CreateCmp(CompareInstruction::EQ, L, R);
+        case Less:
+            return IRF->CreateCmp(CompareInstruction::LT, L, R);
+        case Greater:
+            return IRF->CreateCmp(CompareInstruction::GT, L, R);
+        case NotEqual:
+            return IRF->CreateCmp(CompareInstruction::NE, L, R);
+        default:
+            assert(!"Unhandled binary instruction type");
+            break;
+    }
+}
+
+
+Value *TranslationUnit::IRCodegen(IRFactory *IRF)
+{
+    for (auto &Declaration : Declarations)
+    {
+        IRF->SetGlobalScope();
+        if (auto Decl = Declaration->IRCodegen(IRF); Decl != nullptr)
+            IRF->AddGlobalVariable(Decl);
+    }
+
+    return nullptr;
+}
 
 //=--------------------------------------------------------------------------=//
 //=------------------------- AST ASTDump functions --------------------------=//
 //=--------------------------------------------------------------------------=//
+
+void VariableDeclaration::ASTDump(unsigned tab)
+{
+    auto TypeStr = "'" + AType.ToString() + "' ";
+    auto NameStr = "'" + Name + "'";
+
+    Print("VariableDeclaration", tab);
+    Print(TypeStr.c_str());
+    PrintLn(NameStr.c_str());
+}
 
 void CompoundStatement::ASTDump(unsigned int tab)
 {

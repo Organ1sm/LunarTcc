@@ -42,7 +42,7 @@ int main()
     getFileContent(FilePath, src);
 
     if (DumpTokens)
-    {
+    {front
         Lexer lexer(src);
         auto t = lexer.Lex();
 
