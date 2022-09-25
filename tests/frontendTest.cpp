@@ -42,7 +42,7 @@ int main()
     getFileContent(FilePath, src);
 
     if (DumpTokens)
-    {front
+    {
         Lexer lexer(src);
         auto t = lexer.Lex();
 
@@ -53,6 +53,7 @@ int main()
         }
     }
 
+    getFileContent(FilePath, src);
     Module IRModule;
     IRFactory IRF(IRModule);
     Parser parser(src, &IRF);

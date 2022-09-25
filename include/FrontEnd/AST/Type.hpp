@@ -101,7 +101,6 @@ class ComplexType : public Type
     ComplexType(Type t) : ComplexType(t.GetTypeVariant()) {}
 
     ComplexType(ComplexType &&ct);
-    ComplexType &operator=(ComplexType &&ct);
 
     ComplexType(const ComplexType &ct);
     ComplexType &operator=(const ComplexType &ct);

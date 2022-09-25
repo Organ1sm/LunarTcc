@@ -12,6 +12,7 @@ int bar ()
 	int arr[10];
 
 
+    bar();
 	real = 0.0;
 	if (g == 0)
 		real = foo(1, 2.0);
