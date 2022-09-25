@@ -5,6 +5,8 @@
 #ifndef LUNARTCC_VALUE_HPP
 #define LUNARTCC_VALUE_HPP
 
+
+#include <variant>
 #include "MiddleEnd/IR/IRType.hpp"
 
 class Value

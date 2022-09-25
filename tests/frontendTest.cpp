@@ -53,6 +53,7 @@ int main()
         }
     }
 
+    getFileContent(FilePath, src);
     Module IRModule;
     IRFactory IRF(IRModule);
     Parser parser(src, &IRF);

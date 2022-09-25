@@ -3,9 +3,6 @@
 //
 #include "MiddleEnd/IR/Value.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
-#include "MiddleEnd/IR/Function.hpp"
-#include "MiddleEnd/IR/BasicBlock.hpp"
-#include "MiddleEnd/IR/Module.hpp"
 
 BinaryInstruction *
     IRFactory::CreateBinaryInstruction(Instruction::InstructionKind K, Value *L, Value *R)

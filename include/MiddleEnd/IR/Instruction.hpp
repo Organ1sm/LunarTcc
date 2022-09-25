@@ -108,8 +108,8 @@ class CompareInstruction : public Instruction
 
     const char *GetRelationString() const;
     void InvertRelation();
-    void Print() const override;
 
+    void Print() const override;
 
   private:
     CompareRelation Relation;
@@ -152,7 +152,6 @@ class JumpInstruction : public Instruction
     void SetTargetBB(BasicBlock *T) { Target = T; }
 
     void Print() const override;
-
 
   private:
     BasicBlock *Target;

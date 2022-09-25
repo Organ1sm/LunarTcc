@@ -2,8 +2,8 @@
 // Created by Organ1sm.
 //
 
-#include "MiddleEnd/IR/BasicBlock.hpp"
 #include <iostream>
+#include "MiddleEnd/IR/BasicBlock.hpp"
 
 Instruction *BasicBlock::Insert(std::unique_ptr<Instruction> Ins)
 {

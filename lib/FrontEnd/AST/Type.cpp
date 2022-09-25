@@ -93,7 +93,10 @@ std::string ComplexType::ToString() const
 ComplexType::ComplexType(Type t, std::vector<unsigned int> d)
 {
     if (d.size() == 0)
-        ComplexType(t);
+    {
+        Kind = Simple;
+        Ty = t.GetTypeVariant();
+    }
     else
     {
         Kind       = Array;
@@ -141,17 +144,6 @@ ComplexType::ComplexType(ComplexType &&ct)
         ArgumentTypes = std::move(ct.ArgumentTypes);
 }
 
-ComplexType &ComplexType::operator=(ComplexType &&ct)
-{
-    Ty   = ct.Ty;
-    Kind = ct.Kind;
-
-    if (ct.Kind == Array)
-        Dimensions = std::move(ct.Dimensions);
-    else if (ct.Kind == Function)
-        ArgumentTypes = std::move(ct.ArgumentTypes);
-}
-
 ComplexType::ComplexType(const ComplexType &ct)
 {
     Ty   = ct.Ty;
@@ -172,6 +164,8 @@ ComplexType &ComplexType::operator=(const ComplexType &ct)
         Dimensions = ct.Dimensions;
     else if (ct.Kind == Function)
         ArgumentTypes = ct.ArgumentTypes;
+
+    return *this;
 }
 
 bool operator==(const ValueType &lhs, const ValueType &rhs)

@@ -2,9 +2,9 @@
 // Created by Organ1sm.
 //
 
+#include <iostream>
 #include "MiddleEnd/IR/Instruction.hpp"
 #include "MiddleEnd/IR/BasicBlock.hpp"
-#include <iostream>
 
 std::string Instruction::AsString(Instruction::InstructionKind IK)
 {
