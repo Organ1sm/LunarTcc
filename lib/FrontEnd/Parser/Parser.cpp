@@ -95,7 +95,34 @@ unsigned Parser::ParseIntegerConstant()
     return Result;
 }
 
-double Parser::ParseRealConstant() { return 0; }
+double Parser::ParseRealConstant()
+{
+    Token T          = Expect(Token::Real);
+    auto TokenStr    = T.GetString();
+    double WholePart = 0.0;
+
+    for (auto c : TokenStr)
+    {
+        if (c == '.')
+            break;
+
+        WholePart *= 10;
+        WholePart += (c - '0');
+    }
+
+    double FractionalPart = 0.0;
+    unsigned Divider      = 1;
+
+    for (auto c : TokenStr.substr(TokenStr.find('.') + 1))
+    {
+        FractionalPart += (c - '0');
+        Divider *= 10;
+    }
+
+    FractionalPart /= Divider;
+
+    return WholePart + FractionalPart;
+}
 
 std::unique_ptr<Node> Parser::ParseTranslationUnit() { return std::unique_ptr<Node>(); }
 
@@ -271,7 +298,7 @@ std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration()
 std::unique_ptr<Statement> Parser::ParseStatement()
 {
     if (lexer.Is(Token::If))
-        return ParseStatement();
+        return ParseIfStatement();
     if (lexer.Is(Token::While))
         return ParseWhileStatement();
     if (lexer.Is(Token::LeftBrace))
@@ -541,6 +568,8 @@ std::unique_ptr<Expression> Parser::ParseIdentifierExpression()
 
         return std::make_unique<ArrayExpression>(Id, IndexExpressions, Type);
     }
+
+    return nullptr;
 }
 
 std::unique_ptr<Expression> Parser::ParseConstantExpression()
@@ -573,6 +602,20 @@ std::unique_ptr<Expression>
         {
             EmitError("lvalue required as left operand of assignment", lexer,
                       BinaryOperator);
+        }
+
+        /// If it's an Assign BinaryOperator and the left hand side is an ArrayExpression
+        /// or ReferenceExpression, then it's an LValue.
+        /// This can reduces one time load instruction generate for global Variable.
+
+        /// Fixme: Should be solved in a better ways. Seems like LLVM using
+        /// ImplicitCastExpression for this purpose as well.
+        if (BinaryOperator.GetKind() == Token::Assign)
+        {
+            if (auto LE = dynamic_cast<ArrayExpression *>(LeftExpression.get()))
+                LE->SetLValueness(true);
+            else if (auto LE = dynamic_cast<ReferenceExpression *>(LeftExpression.get()))
+                LE->SetLValueness(true);
         }
 
         int NextTokenPrec = GetBinOpPrecedence(GetCurrentTokenKind());

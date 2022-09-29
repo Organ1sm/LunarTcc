@@ -1,7 +1,7 @@
 //
 // Created by Organ1sm.
 //
-#include "middleend/IR/IRType.hpp"
+#include "MiddleEnd/IR/IRType.hpp"
 
 std::string IRType::AsString() const
 {

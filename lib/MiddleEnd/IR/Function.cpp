@@ -67,7 +67,7 @@ void Function::Print() const
     std::cout << ")";
 
     if (!ReturnType.IsVoid())
-        std::cout << "->" << ReturnType.AsString();
+        std::cout << " -> " << ReturnType.AsString() << " ";
 
     std::cout << ":" << std::endl;
 

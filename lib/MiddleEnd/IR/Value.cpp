@@ -2,7 +2,7 @@
 // Created by Organ1sm.
 //
 #include <iostream>
-#include "middleend/IR/Value.hpp"
+#include "MiddleEnd/IR/Value.hpp"
 
 std::string Constant::ValueString() const
 {

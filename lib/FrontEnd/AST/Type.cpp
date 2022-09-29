@@ -3,7 +3,7 @@
 //
 
 #include "FrontEnd/AST/Type.hpp"
-#include "middleend/IR/IRType.hpp"
+#include "MiddleEnd/IR/IRType.hpp"
 
 std::string Type::ToString(const Type::VariantKind vk)
 {
@@ -49,11 +49,14 @@ std::string FunctionType::ToString() const
     for (int i = 0; i < ArgSize; i++)
     {
         TypeStr += Type::ToString(ArgumentTypes[i]);
+        if (i == ArgSize - 1)
+            break;
+
         TypeStr += ", ";
     }
 
     if (ArgSize != 0)
-        TypeStr += " )";
+        TypeStr += ")";
 
     return TypeStr;
 }
@@ -95,7 +98,7 @@ ComplexType::ComplexType(Type t, std::vector<unsigned int> d)
     if (d.size() == 0)
     {
         Kind = Simple;
-        Ty = t.GetTypeVariant();
+        Ty   = t.GetTypeVariant();
     }
     else
     {

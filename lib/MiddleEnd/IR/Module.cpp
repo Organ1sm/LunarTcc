@@ -56,7 +56,7 @@ Value *Module::GetGlobalVar(const std::string &Name) const
 {
     for (auto &GV : GlobalVars)
     {
-        if (GV->ValueString() == Name)
+        if (GV->ValueString().substr(1) == Name)
             return GV.get();
     }
 

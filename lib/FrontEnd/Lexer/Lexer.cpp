@@ -1,4 +1,4 @@
-#include "frontend/Lexer/Lexer.hpp"
+#include "FrontEnd/Lexer/Lexer.hpp"
 #include <cassert>
 
 std::unordered_map<std::string, Token::TokenKind> Lexer::KeyWords =
@@ -46,7 +46,7 @@ int Lexer::GetNextNthCharOnSameLine(unsigned int n)
 {
     if (LineIndex >= Source.size() || (ColumnIndex + n >= Source[LineIndex].length()))
         return EOF;
-    return Source[LineIndex][ColumnIndex];
+    return Source[LineIndex][ColumnIndex + n];
 }
 
 void Lexer::EatNextChar()

@@ -10,6 +10,7 @@ BinaryInstruction *
     auto Inst = std::make_unique<BinaryInstruction>(K, L, R, GetCurrentBB());
     Inst->SetId(ID++);
     auto InstPtr = Inst.get();
+    Insert(std::move(Inst));
 
     return InstPtr;
 }
@@ -89,6 +90,8 @@ CallInstruction *
     if (!Type.IsVoid())
         Inst->SetId(ID++);
 
+    Insert(std::move(Inst));
+
     return InstPtr;
 }
 
@@ -108,7 +111,8 @@ StackAllocationInstruction *IRFactory::CreateSA(std::string Indentifier, IRType 
                                                              CurrentModule.GetBB(0));
     auto InstPtr = Inst.get();
 
-    Insert(std::move(Inst));
+    Inst->SetId(ID++);
+    CurrentModule.GetBB(0)->Insert(std::move(Inst));
 
     return InstPtr;
 }
@@ -201,7 +205,7 @@ bool IRFactory::IsGlobalValue(Value *V) const { return CurrentModule.IsGlobalVar
 
 bool IRFactory::IsGlobalScope() const { return GlobalScope; }
 
-bool IRFactory::SetGlobalScope(const bool v) { GlobalScope = v; }
+void IRFactory::SetGlobalScope(const bool v) { GlobalScope = v; }
 
 BasicBlock *IRFactory::CreateBasicBlock() { return CurrentModule.CreateBasicBlock(); }
 
