@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-add_executable(Test frontendTest.cpp
+add_executable(LunarTcc frontendTest.cpp
                ../lib/FrontEnd/Lexer/Lexer.cpp
                ../lib/FrontEnd/Lexer/Token.cpp
                ../lib/FrontEnd/Parser/Parser.cpp
