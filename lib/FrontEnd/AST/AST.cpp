@@ -500,14 +500,14 @@ void VariableDeclaration::ASTDump(unsigned tab)
     auto TypeStr = "'" + AType.ToString() + "' ";
     auto NameStr = "'" + Name + "'";
 
-    Print("VariableDeclaration", tab);
+    Print("VariableDeclaration ", tab);
     Print(TypeStr.c_str());
     PrintLn(NameStr.c_str());
 }
 
 void CompoundStatement::ASTDump(unsigned int tab)
 {
-    PrintLn("CompoundStatement", tab);
+    PrintLn("CompoundStatement ", tab);
     for (auto &d : Declarations)
         d->ASTDump(tab + 2);
     for (auto &s : Statements)
@@ -516,13 +516,13 @@ void CompoundStatement::ASTDump(unsigned int tab)
 
 void ExpressionStatement::ASTDump(unsigned int tab)
 {
-    PrintLn("ExpressionStatement", tab);
+    PrintLn("ExpressionStatement ", tab);
     Expr->ASTDump(tab + 2);
 }
 
 void IfStatement::ASTDump(unsigned int tab)
 {
-    PrintLn("IfStatement", tab);
+    PrintLn("IfStatement ", tab);
     Condition->ASTDump(tab + 2);
     IfBody->ASTDump(tab + 2);
     ElseBody->ASTDump(tab + 2);
@@ -530,14 +530,14 @@ void IfStatement::ASTDump(unsigned int tab)
 
 void WhileStatement::ASTDump(unsigned int tab)
 {
-    PrintLn("WhileStatement", tab);
+    PrintLn("WhileStatement ", tab);
     Condition->ASTDump(tab + 2);
     Body->ASTDump(tab + 2);
 }
 
 void ReturnStatement::ASTDump(unsigned int tab)
 {
-    PrintLn("ReturnStatement", tab);
+    PrintLn("ReturnStatement ", tab);
     if (ReturnValue)
         ReturnValue.value()->ASTDump(tab + 2);
 }
@@ -547,7 +547,7 @@ void FunctionParameterDeclaration::ASTDump(unsigned int tab)
     auto TypeStr = "'" + Ty.ToString() + "' ";
     auto NameStr = "'" + Name + "'";
 
-    Print("FunctionParameterDeclaration", tab);
+    Print("FunctionParameterDeclaration ", tab);
     Print(TypeStr.c_str());
     PrintLn(NameStr.c_str());
 }
@@ -556,7 +556,8 @@ void FunctionDeclaration::ASTDump(unsigned int tab)
 {
     auto TypeStr = "'" + FuncType.ToString() + "' ";
     auto NameStr = "'" + Name + "'";
-    Print("FunctionDeclaration", tab);
+
+    Print("FunctionDeclaration ", tab);
     Print(TypeStr.c_str());
     PrintLn(NameStr.c_str());
 
@@ -651,7 +652,7 @@ void CallExpression::ASTDump(unsigned int tab)
     auto Str = "'" + ResultType.ToString() + "' ";
     Str += "'" + Name + "'";
 
-    Print("CallExpression", tab);
+    Print("CallExpression ", tab);
     PrintLn(Str.c_str());
 
     for (auto &Argument : Arguments)
@@ -663,7 +664,7 @@ void ReferenceExpression::ASTDump(unsigned int tab)
     auto Str = "'" + ResultType.ToString() + "' ";
     Str += "'" + Identifier + "' ";
 
-    Print("ReferenceExpression", tab);
+    Print("ReferenceExpression ", tab);
     PrintLn(Str.c_str());
 }
 
@@ -680,7 +681,7 @@ void IntegerLiteralExpression::ASTDump(unsigned int tab)
 
 void FloatLiteralExpression::ASTDump(unsigned int tab)
 {
-    Print("FloatLiteralExpression", tab);
+    Print("FloatLiteralExpression ", tab);
 
     auto TyStr = "'" + ResultType.ToString() + "' ";
     Print(TyStr.c_str());
@@ -694,7 +695,7 @@ void ArrayExpression::ASTDump(unsigned int tab)
     auto Str = "'" + ResultType.ToString() + "' ";
     Str += "'" + Identifier.GetString() + "'";
 
-    Print("ArrayExpression", tab);
+    Print("ArrayExpression ", tab);
     PrintLn(Str.c_str());
 
     for (auto &i : IndexExpression)

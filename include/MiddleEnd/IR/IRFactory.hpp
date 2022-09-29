@@ -62,7 +62,7 @@ class IRFactory
     Value *GetGlobalVar(const std::string &Identifier);
 
     bool IsGlobalValue(Value *V) const;
-    bool SetGlobalScope(const bool v = true);
+    void SetGlobalScope(const bool v = true);
     bool IsGlobalScope() const;
 
     BasicBlock *CreateBasicBlock();

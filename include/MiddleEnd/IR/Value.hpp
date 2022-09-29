@@ -63,7 +63,7 @@ class FunctionParameter : public Value
 {
   public:
     FunctionParameter() = delete;
-    FunctionParameter(std::string &Name, IRType T) : Value(Value::Param, T) {}
+    FunctionParameter(std::string &Name, IRType T) : Value(Value::Param, T) , Name(Name){}
 
     std::string ValueString() const override { return "$" + Name; }
 
@@ -77,7 +77,7 @@ class GlobalVariable : public Value
     GlobalVariable() = delete;
     GlobalVariable(std::string Name, IRType T) : Value(Value::GlobalVar, T), Name(Name) {}
 
-    std::string ValueString() const override { return "$" + Name; }
+    std::string ValueString() const override { return "@" + Name; }
     void Print() const;
 
   private:
