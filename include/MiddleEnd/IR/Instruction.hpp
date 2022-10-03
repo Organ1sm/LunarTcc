@@ -47,8 +47,9 @@ class Instruction : public Value
         : InstKind(K), Parent(P), Value(V)
     {}
 
-    bool IsStackAllocation() const { return InstKind == StackAlloc; }
+    InstructionKind GetInstructionKind() { return InstKind; }
 
+    bool IsStackAllocation() const { return InstKind == StackAlloc; }
     bool IsTerminator() const { return BasicBlockTerminator; }
 
     virtual void Print() const { assert(!"Cannot print base class."); }
@@ -65,6 +66,9 @@ class BinaryInstruction : public Instruction
     BinaryInstruction(InstructionKind IK, Value *L, Value *R, BasicBlock *P)
         : Instruction(IK, P, L->GetType()), LHS(L), RHS(R)
     {}
+
+    Value *GetLHS() { return LHS; }
+    Value *GetRHS() { return RHS; }
 
     void Print() const override;
 
@@ -93,7 +97,8 @@ class UnaryInstruction : public Instruction
 class CompareInstruction : public Instruction
 {
   public:
-    enum CompareRelation {
+    enum CompareRelation : unsigned {
+        Invalid,
         EQ,
         NE,
         LT,
@@ -109,10 +114,14 @@ class CompareInstruction : public Instruction
     const char *GetRelationString() const;
     void InvertRelation();
 
+    Value *GetLHS() { return LHS; }
+    Value *GetRHS() { return RHS; }
+    unsigned GetRelation() { return Relation; }
+
     void Print() const override;
 
   private:
-    CompareRelation Relation;
+    CompareRelation Relation {Invalid};
     Value *LHS;
     Value *RHS;
 };
@@ -151,6 +160,8 @@ class JumpInstruction : public Instruction
 
     void SetTargetBB(BasicBlock *T) { Target = T; }
 
+    std::string &GetTargetLabelName();
+
     void Print() const override;
 
   private:
@@ -164,6 +175,12 @@ class BranchInstruction : public Instruction
         : Instruction(InstructionKind::Branch, P, IRType(IRType::None)), Condition(C),
           TrueTarget(True), FalseTarget(False)
     {}
+
+    Value *GetCondition() { return Condition; }
+    bool HasFalseLabel() { return FalseTarget != nullptr; }
+
+    std::string &GetTrueLabelName();
+    std::string &GetFalseLabelName();
 
     void Print() const override;
 
@@ -181,6 +198,8 @@ class ReturnInstruction : public Instruction
     {
         BasicBlockTerminator = true;
     }
+
+    Value *GetRetVal() const { return ReturnVal; }
 
     void Print() const override;
 
@@ -208,6 +227,9 @@ class StoreInstruction : public Instruction
         : Instruction(InstructionKind::Store, P, IRType::None), Source(S), Destination(D)
     {}
 
+    Value *GetMemoryLocation() { return Destination; }
+    Value *GetSavedValue() { return Source; }
+
     void Print() const override;
 
   private:
@@ -215,7 +237,7 @@ class StoreInstruction : public Instruction
     Value *Destination;
 };
 
-class LoadInstruction : public  Instruction
+class LoadInstruction : public Instruction
 {
   public:
     LoadInstruction(IRType T, Value *S, Value *O, BasicBlock *P)
@@ -225,6 +247,8 @@ class LoadInstruction : public  Instruction
     LoadInstruction(IRType T, Value *S, BasicBlock *P)
         : Instruction(InstructionKind::Load, P, T), Source(S), Offset(nullptr)
     {}
+
+    Value *GetMemoryLocation() { return Source; }
 
     void Print() const override;
 

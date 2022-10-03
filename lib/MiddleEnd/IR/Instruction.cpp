@@ -6,6 +6,15 @@
 #include "MiddleEnd/IR/Instruction.hpp"
 #include "MiddleEnd/IR/BasicBlock.hpp"
 
+std::string &JumpInstruction::GetTargetLabelName() { return Target->GetName(); }
+
+std::string &BranchInstruction::GetTrueLabelName() { return TrueTarget->GetName(); }
+
+std::string &BranchInstruction::GetFalseLabelName() { return FalseTarget->GetName(); }
+
+//=--------------------------------------------------------------------------=//
+//=------------------------- Print functions --------------------------=//
+//=--------------------------------------------------------------------------=//
 std::string Instruction::AsString(Instruction::InstructionKind IK)
 {
     switch (IK)
