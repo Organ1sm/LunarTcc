@@ -26,9 +26,11 @@ class TargetABI
     RegList &GetCalleeSavedRegisters() { return CalleeSavedRegisters; }
     void SetCalleeSavedRegisters(RegList CalleeSaved)
     {
-        CallerSavedRegisters = CalleeSaved;
+        CalleeSavedRegisters = CalleeSaved;
     }
-    
+
+    RegList &GetReturnRegisters() { return ReturnRegisters; }
+    void SetReturnRegisters(RegList ReturnRegs) { ReturnRegisters = ReturnRegs; }
 
   protected:
     unsigned StackAlignment;

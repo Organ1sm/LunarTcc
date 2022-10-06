@@ -8,6 +8,7 @@ class MachineInstruction;
 /// for the target.
 class TargetInstructionLegalizer
 {
+  public:
     TargetInstructionLegalizer() {}
     virtual ~TargetInstructionLegalizer() {}
 

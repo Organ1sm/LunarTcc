@@ -5,7 +5,6 @@
 #include "BackEnd/TargetInstructionLegalizer.hpp"
 
 
-
 class MachineBasicBlock;
 
 class MachineInstruction
@@ -60,7 +59,7 @@ class MachineInstruction
 
     std::size_t GetOperandsNumber() const { return Operands.size(); }
 
-    MachineOperand *GetOpcode(std::size_t Index) { return &Operands[Index]; }
+    MachineOperand *GetOperand(std::size_t Index) { return &Operands[Index]; }
     OperandList &GetOperands() { return Operands; }
 
     void AddOperand(MachineOperand MO) { Operands.push_back(MO); }

@@ -27,6 +27,8 @@ class Function
     BasicBlock *GetCurrentBB();
     BasicBlock *GetBB(const std::size_t Index);
 
+    std::string &GetName() { return Name; }
+
     BasicBlockList &GetBasicBlocks() { return BasicBlocks; }
     ParameterList &GetParameters() { return Parameters; }
 

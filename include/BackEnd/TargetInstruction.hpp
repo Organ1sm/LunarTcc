@@ -7,6 +7,7 @@
 
 class TargetInstruction
 {
+  public:
     enum Attributes : unsigned {
         Load   = 1,
         Store  = 1 << 1,

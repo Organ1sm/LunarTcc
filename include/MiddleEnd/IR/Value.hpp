@@ -35,6 +35,8 @@ class Value
     unsigned GetID() const { return UniqueId; }
     void SetId(unsigned i) { UniqueId = i; }
 
+    unsigned GetBitWidth() const { return ValueType.GetBitSize(); }
+
     bool IsConstant() const { return Kind == Const; }
     bool IsRegister() const { return Kind == Register; }
     bool IsParameter() const { return Kind == Param; }
