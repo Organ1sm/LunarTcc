@@ -8,6 +8,7 @@ class TargetMachine;
 
 class InstructionSelection
 {
+  public:
     InstructionSelection(MachineIRModule *Input, TargetMachine *Target)
         : MIRM(Input), TM(Target)
     {}

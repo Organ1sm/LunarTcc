@@ -11,10 +11,12 @@ class LowLevelType
     };
 
     LowLevelType() {}
-    LowLevelType(unsigned Ty) : Type(Type) {}
+    LowLevelType(unsigned Ty) : Type(Ty) {}
 
     void SetBitWidth(unsigned BW) { this->BitWidth = BW; }
     unsigned GetBitWidth() { return this->BitWidth; }
+
+    bool IsInteger() const { return Type == Integer; }
 
     static LowLevelType CreateInt(unsigned BW)
     {

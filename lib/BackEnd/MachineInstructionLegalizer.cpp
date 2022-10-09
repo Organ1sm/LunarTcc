@@ -1,3 +1,4 @@
+#include "BackEnd/TargetInstructionLegalizer.hpp"
 #include "BackEnd/MachineInstructionLegalizer.hpp"
 #include "BackEnd/MachineBasicBlock.hpp"
 
@@ -5,22 +6,23 @@
 void MachineInstructionLegalizer::Run()
 {
     auto Legalizer = TM->GetLegalizer();
+
     if (Legalizer == nullptr)
         return;
 
     for (auto &Func : MIRM->GetFunctions())
     {
-        auto BBS = Func.GetBasicBlocks();
-        for (std::size_t BBIndex = 0; BBIndex < BBS.size(); BBIndex++)
-        {
-            auto Instrs = BBS[BBIndex].GetInstructions();
-            for (std::size_t InstrIndex = 0; InstrIndex < Instrs.size(); InstrIndex++)
+        for (size_t BBIndex = 0; BBIndex < Func.GetBasicBlocks().size(); BBIndex++)
+            for (size_t InstrIndex = 0;
+                 InstrIndex < Func.GetBasicBlocks()[BBIndex].GetInstructions().size();
+                 InstrIndex++)
             {
-                auto *MI = &Instrs[InstrIndex];
+                auto *MI = &Func.GetBasicBlocks()[BBIndex].GetInstructions()[InstrIndex];
 
-                // if the instruction is not legal on the target
+                // If the instruction is not legal on the target
                 if (!Legalizer->Check(MI))
                 {
+                    // but if it is expandable to hopefully legal ones, then do it
                     if (Legalizer->IsExpandable(MI))
                     {
                         Legalizer->Expand(MI);
@@ -33,6 +35,5 @@ void MachineInstructionLegalizer::Run()
                     }
                 }
             }
-        }
     }
 }

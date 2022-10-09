@@ -108,7 +108,8 @@ class CompareInstruction : public Instruction
     };
 
     CompareInstruction(Value *L, Value *R, CompareRelation REL, BasicBlock *P)
-        : Instruction(InstructionKind::Cmp, P, IRType(IRType::SInt, 1)), LHS(L), RHS(R)
+        : Instruction(InstructionKind::Cmp, P, IRType(IRType::SInt, 1)), LHS(L), RHS(R),
+          Relation(REL)
     {}
 
     const char *GetRelationString() const;

@@ -1,5 +1,6 @@
 #include "BackEnd/MachineFunction.hpp"
 #include "BackEnd/MachineBasicBlock.hpp"
+
 unsigned MachineFunction::GetNextAvailableVirtualRegister()
 {
     // If the next virtual register was computed already once, then just

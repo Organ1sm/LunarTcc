@@ -3,10 +3,20 @@
 //
 #include <iostream>
 #include <fstream>
+#include <memory>
+#include "BackEnd/MachineIRModule.hpp"
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include "FrontEnd/Parser/Parser.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
 #include "MiddleEnd/IR/Module.hpp"
+#include "BackEnd/AssemblyEmitter.hpp"
+#include "BackEnd/IRtoLLIR.hpp"
+#include "BackEnd/TargetMachine.hpp"
+#include "BackEnd/InstructionSelection.hpp"
+#include "BackEnd/MachineInstructionLegalizer.hpp"
+#include "BackEnd/PrologueEpilogInsertion.hpp"
+#include "BackEnd/RegisterAllocator.hpp"
+#include "BackEnd/TargetArchs/AArch64/AArch64TargetMachine.hpp"
 
 
 bool getFileContent(const std::string &fileName, std::vector<std::string> &VecOfStrs)
@@ -34,9 +44,10 @@ int main(int argc, char *argv[])
 {
     std::string FilePath = "../tests/test.c";
 
-    bool DumpTokens = false;
-    bool DumpAst    = false;
-    bool DumpIR     = false;
+    bool DumpTokens        = false;
+    bool DumpAst           = false;
+    bool DumpIR            = false;
+    std::string TargetArch = "aarch64";
 
     for (auto i = 1; i < argc; ++i)
     {
@@ -52,15 +63,25 @@ int main(int argc, char *argv[])
                 DumpTokens = true;
                 continue;
             }
-            if (!option.compare("dump-ast"))
+            else if (!option.compare("dump-ast"))
             {
                 DumpAst = true;
                 continue;
             }
-            if (!option.compare("dump-ir"))
+            else if (!option.compare("dump-ir"))
             {
                 DumpIR = true;
                 continue;
+            }
+            else if (!option.compare(0, 5, "arch="))
+            {
+                TargetArch = std::string(&argv[i][6]);
+                continue;
+            }
+            else
+            {
+                std::cerr << "Error: Unknown argument '" << argv[i] << "'" << std::endl;
+                return -1;
             }
         }
     }
@@ -88,14 +109,37 @@ int main(int argc, char *argv[])
     Parser parser(src, &IRF);
 
     auto AST = parser.Parse();
+    AST->IRCodegen(&IRF);
+
     if (DumpAst)
         AST->ASTDump();
 
     if (DumpIR)
-    {
-        AST->IRCodegen(&IRF);
         IRModule.Print();
-    }
+
+    MachineIRModule LLIRModule;
+    IRtoLLIR I2LLIR(IRModule, &LLIRModule);
+    I2LLIR.GenerateLLIRFromIR();
+
+    std::unique_ptr<TargetMachine> TM;
+
+    TM = std::make_unique<AArch64::AArch64TargetMachine>();
+    
+    MachineInstructionLegalizer Legalizer(&LLIRModule, TM.get());
+    Legalizer.Run();
+
+    InstructionSelection IS(&LLIRModule, TM.get());
+    IS.InstrSelect();
+
+    RegisterAllocator RA(&LLIRModule, TM.get());
+    RA.RunRA();
+
+    PrologueEpilogInsertion PEI(&LLIRModule, TM.get());
+    PEI.Run();
+
+    AssemblyEmitter AE(&LLIRModule, TM.get());
+    AE.GenerateAssembly();
+        
 
     return 0;
 }

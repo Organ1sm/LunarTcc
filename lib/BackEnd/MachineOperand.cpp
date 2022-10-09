@@ -22,7 +22,7 @@ MachineOperand MachineOperand::CreateVirtualRegister(uint64_t Reg)
 {
     MachineOperand MO;
     MO.SetTypeToVirtualRegister();
-    MO.SetValue(Reg);
+    MO.SetReg(Reg);
 
     return MO;
 }

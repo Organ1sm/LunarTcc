@@ -1,4 +1,5 @@
 #include "BackEnd/RegisterAllocator.hpp"
+#include "BackEnd/MachineInstruction.hpp"
 #include "BackEnd/MachineFunction.hpp"
 #include "BackEnd/MachineOperand.hpp"
 #include "BackEnd/Support.hpp"
@@ -83,7 +84,7 @@ void RegisterAllocator::RunRA()
                         assert(RegisterPool.size() > 0 && "Ran out of registers");
 
                         // if not allocated yet
-                        if (AllocatedRegisters.count(Operand.GetReg()))
+                        if (AllocatedRegisters.count(Operand.GetReg()) == 0)
                         {
                             // then allocate yet.
                             auto Reg                             = RegisterPool[0];
@@ -126,6 +127,10 @@ void RegisterAllocator::RunRA()
 
                 for (auto &Operand : Instr.GetOperands())
                 {
+                    // Only consider load and stores.
+                    if (!Operand.IsStackAccess())
+                        continue;
+
                     MachineOperand FrameRegister;
                     MachineOperand Offset;
 
@@ -133,7 +138,6 @@ void RegisterAllocator::RunRA()
                     // TODO: Add FP register handing if target support it.
                     FrameRegister.SetTypeToRegister();
                     FrameRegister.SetReg(TM->GetRegInfo()->GetStackRegister());
-
 
                     Offset.SetTypeToIntImm();
                     Offset.SetValue(

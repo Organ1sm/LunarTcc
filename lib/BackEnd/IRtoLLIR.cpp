@@ -78,6 +78,7 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
             MemLoc.SetTypeToMemAddr();
 
         MemLoc.SetValue(AddressReg);
+
         ResultMI.AddOperand(MemLoc);
         ResultMI.AddOperand(GetMachineOperandFromValue(I->GetSavedValue()));
     }
@@ -95,6 +96,7 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
             MemLoc.SetTypeToMemAddr();
 
         MemLoc.SetValue(AddressReg);
+
         ResultMI.AddOperand(GetMachineOperandFromValue((Value *)I));
         ResultMI.AddOperand(MemLoc);
     }
@@ -113,6 +115,7 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
                 break;
             }
         }
+
         ResultMI.AddOperand(Label);
     }
     // Branch Instruction : Br op label1 label2
@@ -136,7 +139,7 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
         ResultMI.AddOperand(TrueLabel);
 
         if (I->HasFalseLabel())
-            ResultMI.AddOperand(FalseLabel);
+            ResultMI.AddOperand(TrueLabel); // Fixme: There should be false-lable?
     }
     // Compare Instruction: cmp relation br1, br2
     else if (auto I = dynamic_cast<CompareInstruction *>(Instr); I != nullptr)
@@ -205,8 +208,8 @@ void IRtoLLIR::GenerateLLIRFromIR()
             MBBs.push_back(MachineBasicBlock {BB.get()->GetName(), MFunction});
 
         // Assign the basic block to the new function
-        auto &MFuncMBBs = MBBs;
         MFunction->SetBasicBlocks(std::move(MBBs));
+        auto &MFuncMBBs = MFunction->GetBasicBlocks();
 
 
         unsigned BBCounter = 0;

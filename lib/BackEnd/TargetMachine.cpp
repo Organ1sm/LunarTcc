@@ -33,4 +33,6 @@ bool TargetMachine::SelectInstruction(MachineInstruction *MI)
             assert(!"Unimplemented.");
             break;
     }
+
+    return false;
 }

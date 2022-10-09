@@ -37,7 +37,7 @@ class IRType
     bool IsSInt() const { return Kind == SInt; }
     bool IsUInt() const { return Kind == UInt; }
     bool IsInvalid() const { return Kind == Invalid; }
-    bool IsInt() const { return IsInt() || IsUInt(); }
+    bool IsInt() const { return IsSInt() || IsUInt(); }
 
     void SetNumberOfElements(unsigned N) { NumberOfElements = N; }
     std::size_t GetBitSize() const { return BitWidth; }

@@ -15,28 +15,28 @@ class MachineInstruction
     enum OperationCode : unsigned {
         // Arithmetic and Logical
         And = 1 << 16,    // 65536
-        Or,
-        Add,
-        Sub,
-        Mul,
-        Div,
-        Mod,
-        Cmp,
+        Or,               // 65537
+        Add,              // 65538
+        Sub,              // 65539
+        Mul,              // 65540
+        Div,              // 65541
+        Mod,              // 65542
+        Cmp,              // 65543
 
         // Conversions
-        FloatToInt,
-        IntToFloat,
+        FloatToInt,    // 65544
+        IntToFloat,    // 65545
 
         // Control Flow Operations
-        Call,
-        Jump,
-        Branch,
-        Ret,
+        Call,      // 65546
+        Jump,      // 65547
+        Branch,    // 65548
+        Ret,       // 65549
 
         // Memory Access
-        Load,
-        Store,
-        StackAlloc
+        Load,         // 65550
+        Store,        // 65551
+        StackAlloc    // 65552
     };
 
     enum CmpRelation {

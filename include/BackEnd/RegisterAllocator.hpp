@@ -6,6 +6,7 @@
 
 class RegisterAllocator
 {
+  public:
     RegisterAllocator(MachineIRModule *Module, TargetMachine *TM) : MIRM(Module), TM(TM)
     {}
 
