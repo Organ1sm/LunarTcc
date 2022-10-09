@@ -13,6 +13,8 @@ class Function;
 
 class BasicBlock : public Value
 {
+    using InstructionList = std::vector<std::unique_ptr<Instruction>>;
+
   public:
     BasicBlock(std::string Name, Function *Parent)
         : Name(Name), Parent(Parent), Value(Value::Label)
@@ -35,11 +37,13 @@ class BasicBlock : public Value
     std::string &GetName() { return Name; }
     void SetName(const std::string &N) { Name = N; }
 
+    InstructionList &GetInstructions() { return Instructions; }
+
     void Print() const;
 
   private:
     std::string Name;
-    std::vector<std::unique_ptr<Instruction>> Instructions;
+    InstructionList Instructions;
     Function *Parent;
 };
 

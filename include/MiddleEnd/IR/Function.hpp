@@ -15,6 +15,9 @@ class FunctionParameter;
 
 class Function
 {
+    using BasicBlockList = std::vector<std::unique_ptr<BasicBlock>>;
+    using ParameterList  = std::vector<std::unique_ptr<FunctionParameter>>;
+
   public:
     Function(const std::string &Name, IRType RT);
 
@@ -23,6 +26,11 @@ class Function
 
     BasicBlock *GetCurrentBB();
     BasicBlock *GetBB(const std::size_t Index);
+
+    std::string &GetName() { return Name; }
+
+    BasicBlockList &GetBasicBlocks() { return BasicBlocks; }
+    ParameterList &GetParameters() { return Parameters; }
 
     void CreateBasicBlock();
 
@@ -34,8 +42,8 @@ class Function
   private:
     std::string Name;
     IRType ReturnType;
-    std::vector<std::unique_ptr<FunctionParameter>> Parameters;
-    std::vector<std::unique_ptr<BasicBlock>> BasicBlocks;
+    ParameterList Parameters;
+    BasicBlockList BasicBlocks;
 };
 
 

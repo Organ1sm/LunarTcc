@@ -222,6 +222,7 @@ void IRFactory::InsertBB(std::unique_ptr<BasicBlock> BB)
 
 void IRFactory::Insert(std::unique_ptr<FunctionParameter> FP)
 {
+    FP->SetId(ID++);
     GetCurrentFunction()->Insert(std::move(FP));
 }
 

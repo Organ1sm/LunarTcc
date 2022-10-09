@@ -6,6 +6,7 @@
 #define LUNARTCC_VALUE_HPP
 
 
+#include <cstdint>
 #include <variant>
 #include "MiddleEnd/IR/IRType.hpp"
 
@@ -34,13 +35,18 @@ class Value
     unsigned GetID() const { return UniqueId; }
     void SetId(unsigned i) { UniqueId = i; }
 
-    bool IsConstant() { return Kind == Const; }
+    unsigned GetBitWidth() const { return ValueType.GetBitSize(); }
+
+    bool IsConstant() const { return Kind == Const; }
+    bool IsRegister() const { return Kind == Register; }
+    bool IsParameter() const { return Kind == Param; }
+    bool IsIntType() const { return ValueType.IsInt(); }
 
     virtual std::string ValueString() const { return "$" + std::to_string(UniqueId); }
 
   protected:
     unsigned UniqueId;
-    VKind Kind;
+    VKind Kind {Register};
     IRType ValueType;
 };
 
@@ -52,6 +58,7 @@ class Constant : public Value
     Constant(double V) : Value(Value::Const, IRType(IRType::FP, 64)), Val(V) {}
 
     bool IsFPConst() const { return ValueType.IsFP(); }
+    uint64_t GetIntValue() { return std::get<uint64_t>(Val); }
 
     std::string ValueString() const override;
 
@@ -63,7 +70,7 @@ class FunctionParameter : public Value
 {
   public:
     FunctionParameter() = delete;
-    FunctionParameter(std::string &Name, IRType T) : Value(Value::Param, T) , Name(Name){}
+    FunctionParameter(std::string &Name, IRType T) : Value(Value::Param, T), Name(Name) {}
 
     std::string ValueString() const override { return "$" + Name; }
 
