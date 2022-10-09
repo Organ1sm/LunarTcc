@@ -17,6 +17,7 @@
 #include "BackEnd/PrologueEpilogInsertion.hpp"
 #include "BackEnd/RegisterAllocator.hpp"
 #include "BackEnd/TargetArchs/AArch64/AArch64TargetMachine.hpp"
+#include "BackEnd/TargetArchs/RISCV/RISCVTargetMachine.hpp"
 
 
 bool getFileContent(const std::string &fileName, std::vector<std::string> &VecOfStrs)
@@ -123,8 +124,11 @@ int main(int argc, char *argv[])
 
     std::unique_ptr<TargetMachine> TM;
 
-    TM = std::make_unique<AArch64::AArch64TargetMachine>();
-    
+    if (TargetArch == "riscv")
+        TM = std::make_unique<RISCV::RISCVTargetMachine>();
+    else
+        TM = std::make_unique<AArch64::AArch64TargetMachine>();
+
     MachineInstructionLegalizer Legalizer(&LLIRModule, TM.get());
     Legalizer.Run();
 
@@ -139,7 +143,7 @@ int main(int argc, char *argv[])
 
     AssemblyEmitter AE(&LLIRModule, TM.get());
     AE.GenerateAssembly();
-        
+
 
     return 0;
 }

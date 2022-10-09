@@ -4,27 +4,27 @@
 #include "BackEnd/TargetRegister.hpp"
 
 
-namespace AArch64
+namespace RISCV
 {
     enum Registers : unsigned {
-        Invalid,
-#define AARCH64_REGISTER(ID, WIDTH, NAME, ALIAS) ID,
-#include "AArch64Registers.def"
+        INVALID,
+#define RISCV_REGISTER(ID, WIDTH, NAME, ALIAS) ID,
+#include "RISCVRegisters.def"
     };
 
-    class AArch64RegisterInfo : public RegisterInfo
+    class RISCVRegisterInfo : public RegisterInfo
     {
       public:
-        AArch64RegisterInfo();
-        ~AArch64RegisterInfo() override {}
+        RISCVRegisterInfo();
+        ~RISCVRegisterInfo() override {}
 
         TargetRegister *GetRegister(unsigned i) override;
         TargetRegister *GetRegisterByID(unsigned i) override;
-
         unsigned GetFrameRegister() override;
         unsigned GetStackRegister() override;
 
       private:
-        TargetRegister Registers[35];
+        TargetRegister Registers[32];
     };
-}    // namespace AArch64
+
+}    // namespace RISCV
