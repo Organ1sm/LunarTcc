@@ -131,22 +131,17 @@ void RegisterAllocator::RunRA()
                     if (!Operand.IsStackAccess())
                         continue;
 
-                    MachineOperand FrameRegister;
-                    MachineOperand Offset;
+                    auto FrameReg = TM->GetRegInfo()->GetStackRegister();
+                    auto ObjSize =
+                        static_cast<int>(Func.GetStackObjectPosition(Operand.GetSlot()));
+                    auto Offset = StackFrameSize - 4 - ObjSize;
 
                     // using SP as frame register fro simplicity
                     // TODO: Add FP register handing if target support it.
-                    FrameRegister.SetTypeToRegister();
-                    FrameRegister.SetReg(TM->GetRegInfo()->GetStackRegister());
-
-                    Offset.SetTypeToIntImm();
-                    Offset.SetValue(
-                        StackFrameSize - 4
-                        - (int)Func.GetStackObjectPosition(Operand.GetSlot()));
 
                     Instr.RemoveMemOperand();
-                    Instr.AddOperand(FrameRegister);
-                    Instr.AddOperand(Offset);
+                    Instr.AddRegister(FrameReg);
+                    Instr.AddImmediate(Offset);
 
                     break;
                 }

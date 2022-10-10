@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
 #include "BackEnd/MachineOperand.hpp"
 #include "BackEnd/TargetInstructionLegalizer.hpp"
@@ -75,6 +76,12 @@ class MachineInstruction
     void InsertOperand(std::size_t Index, MachineOperand Operand);
 
     void RemoveMemOperand();
+
+    void AddRegister(uint64_t Reg);
+    void AddImmediate(uint64_t Num);
+    void AddMemory(uint64_t Id);
+    void AddStackAccess(uint64_t Slot);
+    void AddLabel(const char *Label);
 
     bool IsFallThroughBranch() const { return Operands.size() == 2; }
     bool IsLoad() const { return Opcode == Load; }
