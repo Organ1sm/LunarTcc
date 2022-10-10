@@ -70,6 +70,8 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
     {
         assert(I->GetMemoryLocation()->IsRegister() && "Must be a register");
 
+        ResultMI.AddAttribute(MachineInstruction::IsSTORE);
+
         auto AddressReg = I->GetMemoryLocation()->GetID();
 
         if (ParentFunction->IsStackSlot(AddressReg))
@@ -83,6 +85,8 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
     else if (auto I = dynamic_cast<LoadInstruction *>(Instr); I != nullptr)
     {
         assert(I->GetMemoryLocation()->IsRegister() && "Must be a register");
+
+        ResultMI.AddAttribute(MachineInstruction::IsLOAD);
 
         auto AddressReg = I->GetMemoryLocation()->GetID();
         ResultMI.AddOperand(GetMachineOperandFromValue((Value *)I));
