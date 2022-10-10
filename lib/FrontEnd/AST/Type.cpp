@@ -46,7 +46,7 @@ std::string FunctionType::ToString() const
     if (ArgSize != 0)
         TypeStr += " (";
 
-    for (int i = 0; i < ArgSize; i++)
+    for (std::size_t i = 0; i < ArgSize; i++)
     {
         TypeStr += Type::ToString(ArgumentTypes[i]);
         if (i == ArgSize - 1)
@@ -69,7 +69,7 @@ std::string ComplexType::ToString() const
         auto ArgSize = ArgumentTypes.size();
         if (ArgSize > 0)
             TyStr += " (";
-        for (int i = 0; i < ArgSize; i++)
+        for (std::size_t i = 0; i < ArgSize; i++)
         {
             TyStr += Type::ToString(ArgumentTypes[i]);
             if (i + 1 < ArgSize)
