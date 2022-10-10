@@ -18,3 +18,28 @@ void MachineInstruction::RemoveMemOperand()
             Operands.erase(Operands.begin() + i--);
     }
 }
+
+void MachineInstruction::AddRegister(uint64_t Reg)
+{
+    AddOperand(MachineOperand::CreateRegister(Reg));
+}
+
+void MachineInstruction::AddImmediate(uint64_t Num)
+{
+    AddOperand(MachineOperand::CreateImmediate(Num));
+}
+
+void MachineInstruction::AddMemory(uint64_t Id)
+{
+    AddOperand(MachineOperand::CreateMemory(Id));
+}
+
+void MachineInstruction::AddStackAccess(uint64_t Slot)
+{
+    AddOperand(MachineOperand::CreateStackAccess(Slot));
+}
+
+void MachineInstruction::AddLabel(const char *Label)
+{
+    AddOperand(MachineOperand::CreateLabel(Label));
+}

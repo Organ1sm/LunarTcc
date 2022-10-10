@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
 #include "BackEnd/MachineOperand.hpp"
 #include "BackEnd/TargetInstructionLegalizer.hpp"
@@ -49,6 +50,11 @@ class MachineInstruction
         GE
     };
 
+    enum Flags : unsigned {
+        IsLOAD  = 1,
+        IsSTORE = 1 << 1
+    };
+
     MachineInstruction() {}
     MachineInstruction(unsigned Opcode, MachineBasicBlock *Parent)
         : Opcode(Opcode), Parent(Parent)
@@ -64,9 +70,9 @@ class MachineInstruction
 
     void AddOperand(MachineOperand MO) { Operands.push_back(MO); }
 
-    void SetAttributes(unsigned A) { OtherAttributes = A; }
-    unsigned GetRelation() const { return OtherAttributes; }
-
+    void AddAttribute(unsigned AttributeFlag) { OtherAttributes |= AttributeFlag; }
+    void SetAttributes(unsigned A) { Attributes = A; }
+    unsigned GetRelation() const { return Attributes; }
 
     MachineBasicBlock *GetParent() const { return Parent; }
     void SetParent(MachineBasicBlock *BB) { Parent = BB; }
@@ -76,15 +82,22 @@ class MachineInstruction
 
     void RemoveMemOperand();
 
+    void AddRegister(uint64_t Reg);
+    void AddImmediate(uint64_t Num);
+    void AddMemory(uint64_t Id);
+    void AddStackAccess(uint64_t Slot);
+    void AddLabel(const char *Label);
+
     bool IsFallThroughBranch() const { return Operands.size() == 2; }
-    bool IsLoad() const { return Opcode == Load; }
-    bool IsStore() const { return Opcode == Store; }
-    bool IsLoadOrStore() const { return Opcode == Load || Opcode == Store; }
+    bool IsLoad() const { return Opcode == Load || (OtherAttributes & IsLOAD); }
+    bool IsStore() const { return Opcode == Store || (OtherAttributes & IsSTORE); }
+    bool IsLoadOrStore() const { return IsLoad() || IsStore(); }
 
   private:
     unsigned Opcode = 0;
-    //
+
     // Capture things like the relation for compare instructions
+    unsigned Attributes      = 0;
     unsigned OtherAttributes = 0;
 
     OperandList Operands;

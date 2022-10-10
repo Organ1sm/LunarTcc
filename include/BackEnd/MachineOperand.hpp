@@ -51,6 +51,9 @@ class MachineOperand
     static MachineOperand CreateRegister(uint64_t Reg);
     static MachineOperand CreateImmediate(uint64_t Val);
     static MachineOperand CreateVirtualRegister(uint64_t Reg);
+    static MachineOperand CreateMemory(uint64_t Id);
+    static MachineOperand CreateStackAccess(uint64_t Slot);
+    static MachineOperand CreateLabel(const char *Label);
 
   private:
     unsigned Type {None};

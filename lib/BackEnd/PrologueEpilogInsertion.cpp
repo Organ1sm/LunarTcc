@@ -10,13 +10,11 @@ MachineInstruction
 {
     MachineInstruction Add(MachineInstruction::Add, nullptr);
 
-    auto SPReg        = TM->GetRegInfo()->GetStackRegister();
-    auto SPRegMO      = MachineOperand::CreateRegister(SPReg);
-    auto AdjustmentMO = MachineOperand::CreateImmediate(StackAdjustmentSize);
+    auto SPReg = TM->GetRegInfo()->GetStackRegister();
 
-    Add.AddOperand(SPRegMO);
-    Add.AddOperand(SPRegMO);
-    Add.AddOperand(AdjustmentMO);
+    Add.AddRegister(SPReg);
+    Add.AddRegister(SPReg);
+    Add.AddImmediate(StackAdjustmentSize);
 
     if (!TM->SelectInstruction(&Add))
     {
