@@ -503,7 +503,7 @@ std::unique_ptr<Expression> Parser::ParseIdentifierExpression()
                 EmitError("arguments number mismatch", lexer);
 
 
-            for (int i = 0; i < FuncArgNums; i++)
+            for (std::size_t i = 0; i < FuncArgNums; i++)
             {
                 auto CallArgType = CallArgs[i]->GetResultType().GetTypeVariant();
 

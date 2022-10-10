@@ -209,7 +209,7 @@ Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF)
 
     auto Param = std::make_unique<FunctionParameter>(FunctionParameter(Name, ParamType));
 
-    auto ST = IRF->CreateStore(Param.get(), SA);
+    IRF->CreateStore(Param.get(), SA);
     IRF->Insert(std::move(Param));
 
     return nullptr;
@@ -508,8 +508,10 @@ void VariableDeclaration::ASTDump(unsigned tab)
 void CompoundStatement::ASTDump(unsigned int tab)
 {
     PrintLn("CompoundStatement ", tab);
+
     for (auto &d : Declarations)
         d->ASTDump(tab + 2);
+
     for (auto &s : Statements)
         s->ASTDump(tab + 2);
 }

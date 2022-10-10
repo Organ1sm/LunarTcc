@@ -135,7 +135,7 @@ std::optional<Token> Lexer::LexKeyWord()
     auto StartLineIndex   = LineIndex;
     auto StartColumnIndex = ColumnIndex;
 
-    for (int i = Word.length(); i > 0; i--)
+    for (std::size_t i = Word.length(); i > 0; i--)
         EatNextChar();
 
     std::string_view StringValue {&Source[StartLineIndex][StartColumnIndex],
@@ -245,7 +245,7 @@ std::optional<Token> Lexer::LexSymbol()
 Token Lexer::LookAhead(unsigned n)
 {
     // fill in the TokenBuffer to have at least n element
-    for (int i = TokenBuffer.size(); i < n; i++)
+    for (std::size_t i = TokenBuffer.size(); i < n; i++)
         TokenBuffer.push_back(Lex());
 
     return TokenBuffer[n - 1];
