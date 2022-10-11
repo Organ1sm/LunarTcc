@@ -1,3 +1,5 @@
+#include <string>
+#include <iostream>
 #include "BackEnd/MachineInstruction.hpp"
 
 void MachineInstruction::RemoveOperand(std::size_t Index)
@@ -42,4 +44,65 @@ void MachineInstruction::AddStackAccess(uint64_t Slot)
 void MachineInstruction::AddLabel(const char *Label)
 {
     AddOperand(MachineOperand::CreateLabel(Label));
+}
+
+void MachineInstruction::Print() const
+{
+    std::string OpcodeStr;
+
+    switch (Opcode)
+    {
+        case OperationCode::And:
+            OpcodeStr = "And ";
+            break;
+        case OperationCode::Or:
+            OpcodeStr = "Or  ";
+            break;
+        case OperationCode::Add:
+            OpcodeStr = "Add ";
+            break;
+        case OperationCode::Sub:
+            OpcodeStr = "Sub ";
+            break;
+        case OperationCode::Mul:
+            OpcodeStr = "Mul ";
+            break;
+        case OperationCode::Div:
+            OpcodeStr = "Div ";
+            break;
+        case OperationCode::Mod:
+            OpcodeStr = "Mod ";
+            break;
+        case OperationCode::Cmp:
+            OpcodeStr = "Cmp ";
+            break;
+        case OperationCode::Store:
+            OpcodeStr = "Store";
+            break;
+        case OperationCode::Load:
+            OpcodeStr = "Load";
+            break;
+        case OperationCode::Jump:
+            OpcodeStr = "Jump";
+            break;
+        case OperationCode::Branch:
+            OpcodeStr = "Branch";
+            break;
+        case OperationCode::Ret:
+            OpcodeStr = "Ret ";
+            break;
+
+        default:
+            break;
+    }
+
+    std::cout << OpcodeStr << "\t";
+    for (std::size_t i = 0; i < Operands.size(); i++)
+    {
+        Operands[i].Print();
+        if (i < Operands.size() - 1)
+            std::cout << ", ";
+    }
+
+    std::cout << std::endl;
 }

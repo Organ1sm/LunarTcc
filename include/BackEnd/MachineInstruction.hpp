@@ -93,6 +93,8 @@ class MachineInstruction
     bool IsStore() const { return Opcode == Store || (OtherAttributes & IsSTORE); }
     bool IsLoadOrStore() const { return IsLoad() || IsStore(); }
 
+    void Print() const;
+
   private:
     unsigned Opcode = 0;
 

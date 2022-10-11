@@ -55,6 +55,8 @@ class MachineOperand
     static MachineOperand CreateStackAccess(uint64_t Slot);
     static MachineOperand CreateLabel(const char *Label);
 
+    void Print() const;
+
   private:
     unsigned Type {None};
     uint64_t Value            = ~0;

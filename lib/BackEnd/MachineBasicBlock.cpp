@@ -1,4 +1,5 @@
 #include <cassert>
+#include <iostream>
 #include "BackEnd/MachineBasicBlock.hpp"
 
 
@@ -61,4 +62,15 @@ auto MachineBasicBlock::ReplaceInstr(MachineInstruction MI,
     assert(!"Replacable Instruction was not found.");
 
     return Instructions.end();
+}
+
+void MachineBasicBlock::Print() const
+{
+    std::cout << "%BB: " << Name << ":" << std::endl;
+
+    for (auto &I : Instructions)
+    {
+        std::cout << "\t";
+        I.Print();
+    }
 }

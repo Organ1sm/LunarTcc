@@ -1,3 +1,4 @@
+#include <iostream>
 #include "BackEnd/MachineFunction.hpp"
 #include "BackEnd/MachineBasicBlock.hpp"
 
@@ -23,4 +24,12 @@ unsigned MachineFunction::GetNextAvailableVirtualRegister()
     }
 
     return ++NextVirtualReg;
+}
+
+void MachineFunction::Print() const
+{
+    std::cout << "Function: " << Name << std::endl;
+
+    for (auto &BB : BasicBlocks)
+        BB.Print();
 }
