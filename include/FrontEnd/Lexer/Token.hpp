@@ -70,6 +70,9 @@ class Token
         AndAssign,       // &=
         Ellipsis,        // ...
 
+        // Comment
+        SingleComment,
+
         // Keyword
         // FuncType qualifier
         Const,
