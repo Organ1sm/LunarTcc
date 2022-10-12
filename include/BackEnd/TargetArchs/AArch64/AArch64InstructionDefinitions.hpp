@@ -23,7 +23,11 @@ namespace AArch64
         LDR,
         STR,
         BEQ,
+        BNE,
+        BGE,
+        BGT,
         BLE,
+        BLT,
         B,
         RET,
     };
