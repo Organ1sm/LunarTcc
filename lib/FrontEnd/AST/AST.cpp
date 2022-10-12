@@ -155,6 +155,50 @@ Value *WhileStatement::IRCodegen(IRFactory *IRF)
     return nullptr;
 }
 
+Value *ForStatement::IRCodegen(IRFactory *IRF)
+{
+    // Similar solution to WhileStatement. The difference is that here the
+    // initialization part has to be generated before the loop_header basicblock
+    // and also inserting the increment expression before the backward jump to the
+    // loop_header
+    const auto FuncPtr = IRF->GetCurrentFunction();
+    auto Header        = std::make_unique<BasicBlock>("loop_header", FuncPtr);
+    auto LoopBody      = std::make_unique<BasicBlock>("loop_body", FuncPtr);
+    auto LoopEnd       = std::make_unique<BasicBlock>("loop_end", FuncPtr);
+    auto HeaderPtr     = Header.get();
+
+    // Generating code for the initializing expression and adding and explicit
+    // unconditional jump to the loop header basic block
+    Init->IRCodegen(IRF);
+    IRF->CreateJump(Header.get());
+
+    // Inserting the loop header basicblock and generating the code
+    // for the loop condition
+    IRF->InsertBB(std::move(Header));
+    auto Cond = Condition->IRCodegen(IRF);
+
+    if (auto CMP = dynamic_cast<CompareInstruction *>(Cond); CMP != nullptr)
+    {
+        CMP->InvertRelation();
+        IRF->CreateBranch(Cond, LoopEnd.get());
+    }
+    else
+    {
+        auto CmpEQ =
+            IRF->CreateCmp(CompareInstruction::EQ, Cond, IRF->GetConstant((uint64_t)0));
+        IRF->CreateBranch(CmpEQ, LoopEnd.get());
+    }
+
+    IRF->InsertBB(std::move(LoopBody));
+    Body->IRCodegen(IRF);
+    Increment->IRCodegen(IRF);
+    IRF->CreateJump(HeaderPtr);
+
+    IRF->InsertBB(std::move(LoopEnd));
+
+    return nullptr;
+}
+
 Value *ReturnStatement::IRCodegen(IRFactory *IRF)
 {
     if (ReturnValue.has_value() == false)
@@ -534,6 +578,16 @@ void WhileStatement::ASTDump(unsigned int tab)
 {
     PrintLn("WhileStatement ", tab);
     Condition->ASTDump(tab + 2);
+    Body->ASTDump(tab + 2);
+}
+
+void ForStatement::ASTDump(unsigned int tab)
+{
+    PrintLn("ForStatement", tab);
+
+    Init->ASTDump(tab + 2);
+    Condition->ASTDump(tab + 2);
+    Increment->ASTDump(tab + 2);
     Body->ASTDump(tab + 2);
 }
 
