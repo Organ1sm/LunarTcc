@@ -163,7 +163,15 @@ std::optional<Token> Lexer::LexSymbol()
             TokenKind = Token::Mul;
             break;
         case '/':
-            TokenKind = Token::Div;
+            if (GetNextNthCharOnSameLine(1) == '/')
+            {
+                TokenKind = Token::SingleComment;
+                Size      = 2;
+            }
+            else
+            {
+                TokenKind = Token::Div;
+            }
             break;
         case '%':
             TokenKind = Token::Mod;
@@ -297,6 +305,13 @@ Token Lexer::Lex()
         Result = LexIdentifier();
     if (!Result)
         Result = LexSymbol();
+
+    if (Result.has_value() && Result.value().GetKind() == Token::SingleComment)
+    {
+        LineIndex++;
+        ColumnIndex = 0;
+        return Lex();
+    }
 
     if (Result)
         return Result.value();
