@@ -49,6 +49,7 @@ int main(int argc, char *argv[])
     bool DumpAst           = false;
     bool DumpIR            = false;
     std::string TargetArch = "aarch64";
+    bool PrintBeforePasses = false;
 
     for (auto i = 1; i < argc; ++i)
     {
@@ -77,6 +78,11 @@ int main(int argc, char *argv[])
             else if (!option.compare(0, 5, "arch="))
             {
                 TargetArch = std::string(&argv[i][6]);
+                continue;
+            }
+            else if (!option.compare("print-before-passes"))
+            {
+                PrintBeforePasses = true;
                 continue;
             }
             else
@@ -129,17 +135,53 @@ int main(int argc, char *argv[])
     else
         TM = std::make_unique<AArch64::AArch64TargetMachine>();
 
+    if (PrintBeforePasses)
+    {
+        std::cout << "<<<<< Before Legalizer >>>>>" << std::endl << std::endl;
+        LLIRModule.Print();
+        std::cout << std::endl;
+    }
+
     MachineInstructionLegalizer Legalizer(&LLIRModule, TM.get());
     Legalizer.Run();
+
+    if (PrintBeforePasses)
+    {
+        std::cout << "<<<<< Before Instruction Selection >>>>>" << std::endl << std::endl;
+        LLIRModule.Print();
+        std::cout << std::endl;
+    }
 
     InstructionSelection IS(&LLIRModule, TM.get());
     IS.InstrSelect();
 
+    if (PrintBeforePasses)
+    {
+        std::cout << "<<<<< Before Register Allocator >>>>>" << std::endl << std::endl;
+        LLIRModule.Print();
+        std::cout << std::endl;
+    }
+
     RegisterAllocator RA(&LLIRModule, TM.get());
     RA.RunRA();
 
+    if (PrintBeforePasses)
+    {
+        std::cout << "<<<<< Before Prolgue/Epilog Insertion >>>>>" << std::endl
+                  << std::endl;
+        LLIRModule.Print();
+        std::cout << std::endl;
+    }
+
     PrologueEpilogInsertion PEI(&LLIRModule, TM.get());
     PEI.Run();
+
+    if (PrintBeforePasses)
+    {
+        std::cout << "<<<<< Before Emitting Assembly >>>>>" << std::endl << std::endl;
+        LLIRModule.Print();
+        std::cout << std::endl;
+    }
 
     AssemblyEmitter AE(&LLIRModule, TM.get());
     AE.GenerateAssembly();

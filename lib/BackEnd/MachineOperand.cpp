@@ -1,3 +1,5 @@
+#include <cstdint>
+#include <iostream>
 #include "BackEnd/MachineOperand.hpp"
 
 MachineOperand MachineOperand::CreateRegister(uint64_t Reg)
@@ -52,4 +54,31 @@ MachineOperand MachineOperand::CreateLabel(const char *Label)
     MO.SetLabel(Label);
 
     return MO;
+}
+
+void MachineOperand::Print() const
+{
+    switch (this->Type)
+    {
+        case MachineOperand::Register:
+            std::cout << "%" << Value;
+            break;
+        case MachineOperand::VirtualRegister:
+            std::cout << "%vr-" << Value;
+            break;
+        case MachineOperand::IntImmediate:
+            std::cout << static_cast<int64_t>(Value);
+            break;
+        case MachineOperand::StackAccess:
+            std::cout << "stack" << Value;
+            break;
+        case MachineOperand::Paramter:
+            std::cout << "@" << Value;
+            break;
+        case MachineOperand::Label:
+            std::cout << "<" << BelongToLabel << ">";
+            break;
+        default:
+            break;
+    }
 }
