@@ -40,10 +40,10 @@ class Parser
     std::unique_ptr<Statement> ParseStatement();
     std::unique_ptr<IfStatement> ParseIfStatement();
     std::unique_ptr<WhileStatement> ParseWhileStatement();
+    std::unique_ptr<ForStatement> ParseForStatement();
     std::unique_ptr<ReturnStatement> ParseReturnStatement();
     std::unique_ptr<CompoundStatement> ParseCompoundStatement();
     std::unique_ptr<ExpressionStatement> ParseExpressionStatement();
-
     std::unique_ptr<Expression> ParseExpression();
     std::unique_ptr<Expression> ParseBinaryExpression();
     std::unique_ptr<Expression> ParsePrimaryExpression();
@@ -64,7 +64,6 @@ class Parser
     SymbolTableStack SymTabStack;
     IRFactory *IRF;
 };
-
 
 
 #endif

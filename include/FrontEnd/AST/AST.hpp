@@ -62,7 +62,7 @@ class VariableDeclaration : public Statement
     VariableDeclaration(std::string &Name, ArrayType Ty) : Name(Name), AType(Ty) {}
 
     void ASTDump(unsigned int tab = 0) override;
-    
+
     Value *IRCodegen(IRFactory *IRF) override;
 
   private:
@@ -155,6 +155,31 @@ class WhileStatement : public Statement
 
   private:
     std::unique_ptr<Expression> Condition;
+    std::unique_ptr<Statement> Body;
+};
+
+class ForStatement : public Statement
+{
+  public:
+    std::unique_ptr<Expression> &GetInit() { return Init; }
+    void SetInit(std::unique_ptr<Expression> i) { Init = std::move(i); }
+
+    std::unique_ptr<Expression> &GetCondition() { return Condition; }
+    void SetCondition(std::unique_ptr<Expression> c) { Condition = std::move(c); }
+
+    std::unique_ptr<Expression> &GetIncrement() { return Increment; }
+    void SetIncrement(std::unique_ptr<Expression> i) { Increment = std::move(i); }
+
+    std::unique_ptr<Statement> &GetBody() { return Body; }
+    void SetBody(std::unique_ptr<Statement> b) { Body = std::move(b); }
+
+    void ASTDump(unsigned tab = 0) override;
+    Value *IRCodegen(IRFactory *IRF) override;
+
+  private:
+    std::unique_ptr<Expression> Init;
+    std::unique_ptr<Expression> Condition;
+    std::unique_ptr<Expression> Increment;
     std::unique_ptr<Statement> Body;
 };
 
