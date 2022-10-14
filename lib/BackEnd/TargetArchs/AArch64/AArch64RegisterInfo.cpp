@@ -55,6 +55,6 @@ TargetRegister *AArch64RegisterInfo::GetRegisterByID(unsigned int i)
     return &Registers[i - 1];
 }
 
-unsigned AArch64RegisterInfo::GetFrameRegister() { return W29; }
+unsigned AArch64RegisterInfo::GetFrameRegister() { return 29; }
 
-unsigned AArch64RegisterInfo::GetStackRegister() { return SP; }
+unsigned AArch64RegisterInfo::GetStackRegister() { return 32; }
