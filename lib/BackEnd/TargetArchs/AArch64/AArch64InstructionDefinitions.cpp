@@ -78,6 +78,12 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             "cset\t$1, $2, $3",
             {GPR, GPR, GPR}
         };
+        ret[MOV_ri] = {
+            MOV_ri,
+            32,
+            "mov\t$1, #$2",
+            {GPR, UIMM16}
+        };
         ret[LDR] = {
             LDR,
             32,

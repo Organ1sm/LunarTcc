@@ -20,6 +20,7 @@ namespace AArch64
         CMP_ri,
         CMP_rr,
         CSET,
+        MOV_ri,
         LDR,
         STR,
         BEQ,
@@ -36,6 +37,7 @@ namespace AArch64
         GPR,
         SIMM12,
         UIMM12,
+        UIMM16,
         SIMM13_LSB0,
         SIMM21_LSB0,
     };
