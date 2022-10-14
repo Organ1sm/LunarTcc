@@ -29,6 +29,20 @@ auto MachineBasicBlock::InsertInstrToFront(MachineInstruction MI)
     return Instructions.insert(Instructions.begin(), MI);
 }
 
+auto MachineBasicBlock::InsertBefore(MachineInstruction MI, MachineInstruction *BeforeMI)
+    -> MachineBasicBlock::InstructionList::iterator
+{
+    size_t i = 0;
+    for (; i < Instructions.size(); i++)
+        if (&Instructions[i] == BeforeMI)
+            break;
+
+    assert(i < Instructions.size() && "Instruction not found in the list");
+
+    return InsertInstr(MI, i);
+}
+
+
 auto MachineBasicBlock::InsertAfter(MachineInstruction MI, MachineInstruction *AfterMI)
     -> MachineBasicBlock::InstructionList::iterator
 {

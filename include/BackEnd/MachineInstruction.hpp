@@ -34,10 +34,13 @@ class MachineInstruction
         Branch,    // 65548
         Ret,       // 65549
 
+        // Moves and constant materializations
+        LoadImm,
+
         // Memory Access
-        Load,         // 65550
-        Store,        // 65551
-        StackAlloc    // 65552
+        Load,
+        Store,
+        StackAlloc,
     };
 
     enum CmpRelation {

@@ -30,6 +30,10 @@ class MachineBasicBlock
 
     InstructionList::iterator InsertInstrToFront(MachineInstruction MI);
 
+    /// Find where BeforeMI is in the InstructionList and insert MI before it
+    InstructionList::iterator InsertBefore(MachineInstruction MI,
+                                           MachineInstruction *BeforeMI);
+
     /// Find where AfterMI is in the InstructionList and insert MI after it
     InstructionList::iterator InsertAfter(MachineInstruction MI,
                                           MachineInstruction *AfterMI);
