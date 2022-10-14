@@ -35,9 +35,12 @@ class MachineInstruction
         Ret,       // 65549
 
         // Memory Access
-        Load,         // 65550
-        Store,        // 65551
-        StackAlloc    // 65552
+        Load,          // 65550
+        Store,         // 65551
+        StackAlloc,    // 65552
+
+        // Moves and constant materializations
+        LoadImm,
     };
 
     enum CmpRelation {
