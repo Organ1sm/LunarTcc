@@ -36,7 +36,7 @@ class Instruction : public Value
         Ret,
 
         // Memory Operations.
-        Load,
+        Load = Ret + 2,
         Store,
         StackAlloc
     };
