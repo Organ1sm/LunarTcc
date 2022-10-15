@@ -46,7 +46,7 @@ void StackFrame::Print() const
 
     for (const auto &FrameObj : StackSlots)
     {
-        std::cout << "\t\tPosition: " << Num++ << ",  ID" << FrameObj.first
+        std::cout << "\t\tPosition: " << Num++ << ",  ID: " << FrameObj.first
                   << ", Size: " << FrameObj.second << std::endl;
     }
 

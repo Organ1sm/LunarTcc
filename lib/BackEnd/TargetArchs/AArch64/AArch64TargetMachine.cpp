@@ -155,6 +155,36 @@ bool AArch64TargetMachine::SelectCmp(MachineInstruction *MI)
     return false;
 }
 
+bool AArch64TargetMachine::SelectSExt(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 2 && "SEXT must have 2 operands");
+
+    if (MI->GetOperand(1)->GetType().GetBitWidth() == 8)
+    {
+        MI->SetOpcode(SXTB);
+        return true;
+    }
+
+    assert(!"Unimplemented!");
+    return false;
+}
+
+bool AArch64TargetMachine::SelectTrunc(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 2 && "SEXT must have 2 operands");
+
+    if (MI->GetOperand(0)->GetType().GetBitWidth() == 8)
+    {
+        MI->SetOpcode(AND_rri);
+        MI->AddImmediate(0xFFu);
+        return true;
+    }
+
+    assert(!"Unimplemented!");
+    return false;
+}
+
+
 bool AArch64TargetMachine::SelectLoadImm(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 2 && "LOAD_IMM must have exactly 2 operands");
@@ -171,6 +201,12 @@ bool AArch64TargetMachine::SelectLoad(MachineInstruction *MI)
     assert((MI->GetOperandsNumber() == 2 || MI->GetOperandsNumber() == 3)
            && "LOAD must have 2 or 3 operands");
 
+    if (MI->GetOperand(0)->GetType().GetBitWidth() == 8)
+    {
+        MI->SetOpcode(LDRB);
+        return true;
+    }
+
     MI->SetOpcode(LDR);
     return true;
 }
@@ -179,6 +215,12 @@ bool AArch64TargetMachine::SelectStore(MachineInstruction *MI)
 {
     assert((MI->GetOperandsNumber() == 2 || MI->GetOperandsNumber() == 3)
            && "STORE must have 2 or 3 operands");
+
+    if (MI->GetOperand(MI->GetOperandsNumber() - 1)->GetType().GetBitWidth() == 8)
+    {
+        MI->SetOpcode(STRB);
+        return true;
+    }
 
     MI->SetOpcode(STR);
     return true;

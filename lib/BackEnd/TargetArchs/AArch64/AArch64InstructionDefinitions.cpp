@@ -60,6 +60,12 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             "mul\t$1, $2, #$3",
             {GPR, GPR, UIMM12}
         };
+        ret[AND_rri] = {
+            ADD_rri,
+            32,
+            "and\t$1, $2, #$3",
+            {GPR, GPR, UIMM12}
+        };
         ret[CMP_rr] = {
             CMP_rr,
             32,
@@ -78,6 +84,12 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             "cset\t$1, $2, $3",
             {GPR, GPR, GPR}
         };
+        ret[SXTB] = {
+            SXTB,
+            32,
+            "sxtb\t$1, $2",
+            {GPR, GPR}
+        };
         ret[MOV_ri] = {
             MOV_ri,
             32,
@@ -91,10 +103,24 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             {GPR, GPR, SIMM12},
             TargetInstruction::Load
         };
+        ret[LDRB] = {
+            LDRB,
+            32,
+            "ldrb\t$1, [$2, #$3]",
+            {GPR, GPR, SIMM12},
+            TargetInstruction::Load
+        };
         ret[STR] = {
             STR,
             32,
             "str\t$1, [$2, #$3]",
+            {GPR, GPR, SIMM12},
+            TargetInstruction::Store
+        };
+        ret[STRB] = {
+            STRB,
+            32,
+            "strb\t$1, [$2, #$3]",
             {GPR, GPR, SIMM12},
             TargetInstruction::Store
         };

@@ -17,7 +17,14 @@ MachineOperand GetMachineOperandFromValue(Value *Val)
 {
     if (Val->IsRegister())
     {
-        return MachineOperand::CreateVirtualRegister(Val->GetID());
+        auto BitWidth = Val->GetBitWidth();
+        auto VReg     = MachineOperand::CreateVirtualRegister(Val->GetID());
+
+        assert(Val->IsIntType() && "Only handling integer types for now");
+
+        VReg.SetType(LowLevelType::CreateInt(BitWidth));
+
+        return VReg;
     }
     else if (Val->IsParameter())
     {
@@ -164,8 +171,6 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
 
     return ResultMI;
 }
-
-
 
 void HandleStackAllocation(StackAllocationInstruction *Instr, MachineFunction *Func)
 {
