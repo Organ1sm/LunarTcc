@@ -27,7 +27,6 @@ class TargetInstruction
                       const char *AsmString,
                       std::vector<unsigned> OpTypes,
                       unsigned Attr)
-
         : OperationID(OpID), Size(Size), AsmString(AsmString), OperandTypes(OpTypes),
           Attributes(Attr)
     {}

@@ -12,6 +12,7 @@ class LowLevelType
         FloatingPoint
     };
 
+    // TODO
     LowLevelType() {}
     LowLevelType(unsigned Ty) : Type(Ty) {}
 
