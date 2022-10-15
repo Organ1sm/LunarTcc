@@ -17,17 +17,23 @@ MachineOperand GetMachineOperandFromValue(Value *Val)
 {
     if (Val->IsRegister())
     {
-        return MachineOperand::CreateVirtualRegister(Val->GetID());
+        auto BitWidth = Val->GetBitWidth();
+        auto VReg     = MachineOperand::CreateVirtualRegister(Val->GetID());
+
+        assert(Val->IsIntType() && "Only handling integer types for now");
+
+        VReg.SetType(LowLevelType::CreateInt(BitWidth));
+
+        return VReg;
     }
     else if (Val->IsParameter())
     {
-        MachineOperand Result;
+        auto Result   = MachineOperand::CreateParameter(Val->GetID());
+        auto BitWidth = Val->GetBitWidth();
 
         // FIXME: Only handling int params now, handle others too
         // And add type to registers and others too
-        Result.SetTypeToParameter();
-        Result.SetType(LowLevelType::CreateInt(32));
-        Result.SetValue(Val->GetID());
+        Result.SetType(LowLevelType::CreateInt(BitWidth));
 
         return Result;
     }
@@ -64,6 +70,15 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
         ResultMI.AddOperand(Result);
         ResultMI.AddOperand(FirstStep);
         ResultMI.AddOperand(SecondStep);
+    }
+    // Two address ALU instructions: Instr Result, Op
+    else if (auto I = dynamic_cast<UnaryInstruction *>(Instr); I != nullptr)
+    {
+        auto Result = GetMachineOperandFromValue((Value *)I);
+        auto Op     = GetMachineOperandFromValue(I->GetOperand());
+
+        ResultMI.AddOperand(Result);
+        ResultMI.AddOperand(Op);
     }
     // Store Instruction: Store [Address], Src
     else if (auto I = dynamic_cast<StoreInstruction *>(Instr); I != nullptr)
@@ -156,8 +171,6 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
 
     return ResultMI;
 }
-
-
 
 void HandleStackAllocation(StackAllocationInstruction *Instr, MachineFunction *Func)
 {

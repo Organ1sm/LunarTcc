@@ -25,6 +25,9 @@ class MachineInstruction
         Cmp,              // 65543
 
         // Conversions
+        SExt,          // Sign extension
+        ZExt,          // Zero extension
+        Trunc,         // Truncating
         FloatToInt,    // 65544
         IntToFloat,    // 65545
 
@@ -88,7 +91,7 @@ class MachineInstruction
     void AddRegister(uint64_t Reg);
     void AddImmediate(uint64_t Num);
     void AddMemory(uint64_t Id);
-    void AddStackAccess(uint64_t Slot);
+    void AddStackAccess(uint64_t Slot, unsigned Size = 4);
     void AddLabel(const char *Label);
 
     bool IsFallThroughBranch() const { return Operands.size() == 2; }

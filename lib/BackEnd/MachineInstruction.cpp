@@ -36,7 +36,7 @@ void MachineInstruction::AddMemory(uint64_t Id)
     AddOperand(MachineOperand::CreateMemory(Id));
 }
 
-void MachineInstruction::AddStackAccess(uint64_t Slot)
+void MachineInstruction::AddStackAccess(uint64_t Slot, unsigned Size)
 {
     AddOperand(MachineOperand::CreateStackAccess(Slot));
 }
@@ -75,6 +75,15 @@ void MachineInstruction::Print() const
             break;
         case OperationCode::Cmp:
             OpcodeStr = "Cmp ";
+            break;
+        case OperationCode::SExt:
+            OpcodeStr = "SEXT";
+            break;
+        case OperationCode::ZExt:
+            OpcodeStr = "ZExt";
+            break;
+        case OperationCode::Trunc:
+            OpcodeStr = "Trunc";
             break;
         case OperationCode::Store:
             OpcodeStr = "Store";
