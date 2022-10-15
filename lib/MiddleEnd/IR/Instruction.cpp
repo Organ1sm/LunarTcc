@@ -33,6 +33,12 @@ std::string Instruction::AsString(Instruction::InstructionKind IK)
             return "div";
         case Mod:
             return "mod";
+        case SExt:
+            return "sext";
+        case ZExt:
+            return "zext";
+        case Trunc:
+            return "trunc";
         case FloatToInt:
             return "ftoi";
         case IntToFloat:

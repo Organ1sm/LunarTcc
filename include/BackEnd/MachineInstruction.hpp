@@ -25,6 +25,9 @@ class MachineInstruction
         Cmp,              // 65543
 
         // Conversions
+        SExt,          // Sign extension
+        ZExt,          // Zero extension
+        Trunc,         // Truncating
         FloatToInt,    // 65544
         IntToFloat,    // 65545
 
