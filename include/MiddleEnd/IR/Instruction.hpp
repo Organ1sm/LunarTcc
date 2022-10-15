@@ -26,6 +26,9 @@ class Instruction : public Value
         Cmp,
 
         // Conversions
+        SExt,     // Sign extension
+        ZExt,     // Zero extension
+        Trunc,    // Truncating
         FloatToInt,
         IntToFloat,
 
