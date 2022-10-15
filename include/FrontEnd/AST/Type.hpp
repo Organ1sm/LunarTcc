@@ -10,8 +10,9 @@ class Type
   public:
     // ordered -> conversion rank
     enum VariantKind {
-        InValid,
+        Invalid,
         Void,
+        Char,
         Int,
         Double,
     };
@@ -22,7 +23,7 @@ class Type
     virtual std::string ToString() const { return ToString(Ty); }
     static std::string ToString(const VariantKind vk);
 
-    Type() : Ty(InValid) {};
+    Type() : Ty(Invalid) {};
     Type(VariantKind vk) : Ty(vk) {}
 
     Type(Type &&)            = default;
@@ -96,7 +97,7 @@ class FunctionType : public Type
 class ComplexType : public Type
 {
   public:
-    ComplexType() : Kind(Simple), Type(InValid) {}
+    ComplexType() : Kind(Simple), Type(Invalid) {}
     ComplexType(VariantKind vk) : Kind(Simple), Type(vk) {}
     ComplexType(Type t) : ComplexType(t.GetTypeVariant()) {}
 

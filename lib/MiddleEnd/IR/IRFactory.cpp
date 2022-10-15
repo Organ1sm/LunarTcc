@@ -57,6 +57,16 @@ BinaryInstruction *IRFactory::CreateAnd(Value *LHS, Value *RHS)
     return CreateBinaryInstruction(Instruction::And, LHS, RHS);
 }
 
+UnaryInstruction *IRFactory::CreateSExt(Value *Operand, uint8_t BitWidth)
+{
+    return nullptr;
+}
+
+UnaryInstruction *IRFactory::CreateTrunc(Value *Operand, uint8_t BitWidth)
+{
+    return nullptr;
+}
+
 UnaryInstruction *IRFactory::CreateFloatToInt(Value *Operand, uint8_t FloatBitWidth)
 {
     auto Inst = std::make_unique<UnaryInstruction>(Instruction::FloatToInt,
