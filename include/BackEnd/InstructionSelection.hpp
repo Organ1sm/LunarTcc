@@ -1,10 +1,7 @@
 #pragma once
 
-#include "MiddleEnd/IR/Function.hpp"
-#include "MiddleEnd/IR/Module.hpp"
-#include "BackEnd/MachineIRModule.hpp"
-
 class TargetMachine;
+class MachineIRModule;
 
 class InstructionSelection
 {

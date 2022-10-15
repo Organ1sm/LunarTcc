@@ -1,8 +1,7 @@
 #pragma once
 
-#include "BackEnd/MachineBasicBlock.hpp"
-#include "BackEnd/MachineIRModule.hpp"
-#include "BackEnd/TargetMachine.hpp"
+class MachineIRModule;
+class TargetMachine;
 
 class RegisterAllocator
 {

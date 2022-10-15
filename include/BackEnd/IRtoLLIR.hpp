@@ -1,9 +1,7 @@
 #pragma once
 
-
-#include "MiddleEnd/IR/Module.hpp"
-#include "MachineIRModule.hpp"
-
+class Module;
+class MachineIRModule;
 
 class IRtoLLIR
 {

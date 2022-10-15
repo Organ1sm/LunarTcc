@@ -4,7 +4,6 @@
 #include <vector>
 #include "BackEnd/MachineInstruction.hpp"
 
-
 class MachineFunction;
 
 class MachineBasicBlock

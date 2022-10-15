@@ -1,8 +1,8 @@
 #pragma once
 
 #include "BackEnd/RegisterInfo.hpp"
-#include "BackEnd/TargetRegister.hpp"
 
+class TargetRegister;
 
 namespace AArch64
 {

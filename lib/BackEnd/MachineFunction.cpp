@@ -1,6 +1,6 @@
 #include <iostream>
 #include "BackEnd/MachineFunction.hpp"
-#include "BackEnd/MachineBasicBlock.hpp"
+#include "BackEnd/MachineInstruction.hpp"
 
 unsigned MachineFunction::GetNextAvailableVirtualRegister()
 {

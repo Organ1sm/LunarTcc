@@ -1,6 +1,8 @@
 #include "BackEnd/AssemblyEmitter.hpp"
+#include "BackEnd/TargetMachine.hpp"
 #include "BackEnd/TargetRegister.hpp"
 #include "BackEnd/TargetInstruction.hpp"
+#include "BackEnd/MachineIRModule.hpp"
 #include "BackEnd/MachineBasicBlock.hpp"
 #include <iostream>
 #include <cassert>

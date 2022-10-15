@@ -1,7 +1,7 @@
-#include "BackEnd/TargetInstructionLegalizer.hpp"
 #include "BackEnd/MachineInstructionLegalizer.hpp"
 #include "BackEnd/MachineBasicBlock.hpp"
-
+#include "BackEnd/MachineIRModule.hpp"
+#include "BackEnd/TargetMachine.hpp"
 
 void MachineInstructionLegalizer::Run()
 {

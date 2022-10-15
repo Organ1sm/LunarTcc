@@ -3,7 +3,6 @@
 //
 
 #include "FrontEnd/AST/Type.hpp"
-#include "MiddleEnd/IR/IRType.hpp"
 
 std::string Type::ToString(const Type::VariantKind vk)
 {

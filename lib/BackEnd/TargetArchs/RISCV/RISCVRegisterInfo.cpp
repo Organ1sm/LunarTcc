@@ -1,5 +1,4 @@
 #include "BackEnd/TargetArchs/RISCV/RISCVRegisterInfo.hpp"
-#include "BackEnd/TargetRegister.hpp"
 #include <cassert>
 
 using namespace RISCV;

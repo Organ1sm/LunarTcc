@@ -4,7 +4,7 @@
 #include <vector>
 #include "BackEnd/StackFrame.hpp"
 #include "BackEnd/LowLevelType.hpp"
-#include "BackEnd/MachineInstruction.hpp"
+#include "BackEnd/MachineBasicBlock.hpp"
 
 class MachineFunction
 {

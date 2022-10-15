@@ -1,4 +1,7 @@
 #include "BackEnd/MachineOperand.hpp"
+#include "BackEnd/MachineFunction.hpp"
+#include "BackEnd/MachineIRModule.hpp"
+#include "BackEnd/TargetMachine.hpp"
 #include "BackEnd/PrologueEpilogInsertion.hpp"
 #include "BackEnd/MachineBasicBlock.hpp"
 #include "BackEnd/Support.hpp"

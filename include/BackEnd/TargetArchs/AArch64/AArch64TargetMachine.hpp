@@ -1,11 +1,7 @@
-#include "BackEnd/MachineInstruction.hpp"
-#include "BackEnd/TargetMachine.hpp"
-#include "AArch64InstructionDefinitions.hpp"
-#include "AArch64InstructionLegalizer.hpp"
-#include "AArch64RegisterInfo.hpp"
-#include "AArch64TargetABI.hpp"
-#include <cassert>
+#pragma once
 
+#include "BackEnd/TargetMachine.hpp"
+#include <cassert>
 
 namespace AArch64
 {

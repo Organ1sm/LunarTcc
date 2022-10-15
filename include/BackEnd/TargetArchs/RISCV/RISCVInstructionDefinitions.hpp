@@ -1,7 +1,6 @@
 #pragma once
 
 #include "BackEnd/InstructionDefinitions.hpp"
-#include "BackEnd/MachineInstruction.hpp"
 #include "BackEnd/TargetInstruction.hpp"
 #include <map>
 

@@ -3,6 +3,7 @@
 #include "BackEnd/MachineBasicBlock.hpp"
 #include "BackEnd/MachineInstruction.hpp"
 #include "BackEnd/MachineOperand.hpp"
+#include "BackEnd/MachineIRModule.hpp"
 #include "BackEnd/IRtoLLIR.hpp"
 #include "BackEnd/LowLevelType.hpp"
 #include "BackEnd/TargetInstructionLegalizer.hpp"
@@ -11,6 +12,7 @@
 #include "MiddleEnd/IR/Function.hpp"
 #include "MiddleEnd/IR/Instruction.hpp"
 #include "MiddleEnd/IR/Value.hpp"
+#include "MiddleEnd/IR/Module.hpp"
 
 
 MachineOperand GetMachineOperandFromValue(Value *Val)

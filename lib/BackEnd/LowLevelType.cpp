@@ -1,6 +1,5 @@
 #include "BackEnd/LowLevelType.hpp"
 
-
 LowLevelType LowLevelType::CreateInt(unsigned int BW)
 {
     LowLevelType LLT(Integer);

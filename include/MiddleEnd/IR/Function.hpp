@@ -7,9 +7,9 @@
 
 #include <vector>
 #include <memory>
-#include "MiddleEnd/IR/IRType.hpp"
 #include "MiddleEnd/IR/BasicBlock.hpp"
 
+class IRType;
 class BasicBlock;
 class FunctionParameter;
 
@@ -45,8 +45,5 @@ class Function
     ParameterList Parameters;
     BasicBlockList BasicBlocks;
 };
-
-
-
 
 #endif    // LUNARTCC_FUNCTION_HPP

@@ -38,7 +38,4 @@ class Module
     std::vector<Function> Functions;
 };
 
-
-
-
 #endif    // LUNARTCC_MODULE_HPP

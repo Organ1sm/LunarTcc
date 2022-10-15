@@ -1,4 +1,5 @@
 #include "BackEnd/InstructionSelection.hpp"
+#include "BackEnd/MachineIRModule.hpp"
 #include "BackEnd/MachineBasicBlock.hpp"
 #include "BackEnd/TargetMachine.hpp"
 
