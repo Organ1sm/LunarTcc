@@ -47,6 +47,15 @@ MachineOperand MachineOperand::CreateStackAccess(uint64_t Slot)
     return MO;
 }
 
+MachineOperand MachineOperand::CreateParameter(uint64_t Val)
+{
+    MachineOperand MO;
+    MO.SetTypeToParameter();
+    MO.SetReg(Val);
+
+    return MO;
+}
+
 MachineOperand MachineOperand::CreateLabel(const char *Label)
 {
     MachineOperand MO;
@@ -81,4 +90,7 @@ void MachineOperand::Print() const
         default:
             break;
     }
+
+    if (LLT.IsValid())
+        std::cout << "(" << LLT.ToString() << ")";
 }

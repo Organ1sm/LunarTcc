@@ -31,6 +31,7 @@ class MachineFunction
 
     unsigned GetStackFrameSize() { return SF.GetSize(); }
     unsigned GetStackObjectPosition(unsigned ID) { return SF.GetPosition(ID); }
+    unsigned GetStackObjectSize(unsigned ID) { return SF.GetSize(ID); }
 
     bool IsStackSlot(unsigned ID) { return SF.IsStackSlot(ID); }
 

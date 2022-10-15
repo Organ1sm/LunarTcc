@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 class LowLevelType
 {
   public:
@@ -17,14 +19,11 @@ class LowLevelType
     unsigned GetBitWidth() { return this->BitWidth; }
 
     bool IsInteger() const { return Type == Integer; }
+    bool IsValid() const { return Type != Invalid; }
 
-    static LowLevelType CreateInt(unsigned BW)
-    {
-        LowLevelType LLT(Integer);
-        LLT.SetBitWidth(BW);
+    static LowLevelType CreateInt(unsigned BW);
 
-        return LLT;
-    }
+    std::string ToString() const;
 
   private:
     unsigned Type = Invalid;

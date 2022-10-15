@@ -29,6 +29,8 @@ unsigned MachineFunction::GetNextAvailableVirtualRegister()
 void MachineFunction::Print() const
 {
     std::cout << "Function: " << Name << std::endl;
+    std::cout << "\tStackFrame: " << std::endl;
+    SF.Print();
 
     for (auto &BB : BasicBlocks)
         BB.Print();

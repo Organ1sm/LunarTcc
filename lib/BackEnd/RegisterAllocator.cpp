@@ -234,9 +234,10 @@ void RegisterAllocator::RunRA()
                         continue;
 
                     auto FrameReg = TM->GetRegInfo()->GetStackRegister();
-                    auto ObjSize =
+                    auto ObjPos =
                         static_cast<int>(Func.GetStackObjectPosition(Operand.GetSlot()));
-                    auto Offset = StackFrameSize - 4 - ObjSize;
+                    auto ObjSize = Func.GetStackObjectSize(Operand.GetSlot());
+                    auto Offset  = StackFrameSize - ObjSize - ObjPos;
 
                     // using SP as frame register fro simplicity
                     // TODO: Add FP register handing if target support it.

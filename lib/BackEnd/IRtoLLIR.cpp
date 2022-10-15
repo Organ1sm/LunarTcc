@@ -21,13 +21,12 @@ MachineOperand GetMachineOperandFromValue(Value *Val)
     }
     else if (Val->IsParameter())
     {
-        MachineOperand Result;
+        auto Result   = MachineOperand::CreateParameter(Val->GetID());
+        auto BitWidth = Val->GetBitWidth();
 
         // FIXME: Only handling int params now, handle others too
         // And add type to registers and others too
-        Result.SetTypeToParameter();
-        Result.SetType(LowLevelType::CreateInt(32));
-        Result.SetValue(Val->GetID());
+        Result.SetType(LowLevelType::CreateInt(BitWidth));
 
         return Result;
     }
@@ -64,6 +63,15 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
         ResultMI.AddOperand(Result);
         ResultMI.AddOperand(FirstStep);
         ResultMI.AddOperand(SecondStep);
+    }
+    // Two address ALU instructions: Instr Result, Op
+    else if (auto I = dynamic_cast<UnaryInstruction *>(Instr); I != nullptr)
+    {
+        auto Result = GetMachineOperandFromValue((Value *)I);
+        auto Op     = GetMachineOperandFromValue(I->GetOperand());
+
+        ResultMI.AddOperand(Result);
+        ResultMI.AddOperand(Op);
     }
     // Store Instruction: Store [Address], Src
     else if (auto I = dynamic_cast<StoreInstruction *>(Instr); I != nullptr)
