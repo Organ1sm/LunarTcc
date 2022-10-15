@@ -4,11 +4,28 @@
 #include <cassert>
 #include <stack>
 #include <memory>
-#include "FrontEnd/AST/AST.hpp"
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include "FrontEnd/AST/Type.hpp"
 #include "FrontEnd/Parser/SymbolTable.hpp"
-#include "MiddleEnd/IR/IRFactory.hpp"
+
+class Node;
+class Expression;
+
+class Declaration;
+class VariableDeclaration;
+class FunctionDeclaration;
+class FunctionParameterDeclaration;
+
+class Statement;
+class IfStatement;
+class WhileStatement;
+class ForStatement;
+class ReturnStatement;
+class CompoundStatement;
+class ExpressionStatement;
+
+class SymbolTableStack;
+class IRFactory;
 
 class Parser
 {
@@ -44,6 +61,7 @@ class Parser
     std::unique_ptr<ReturnStatement> ParseReturnStatement();
     std::unique_ptr<CompoundStatement> ParseCompoundStatement();
     std::unique_ptr<ExpressionStatement> ParseExpressionStatement();
+
     std::unique_ptr<Expression> ParseExpression();
     std::unique_ptr<Expression> ParseBinaryExpression();
     std::unique_ptr<Expression> ParsePrimaryExpression();
@@ -57,7 +75,6 @@ class Parser
                              ComplexType SymType,
                              const bool ToGlobal = false,
                              ValueType SymValue  = ValueType());
-
 
   private:
     Lexer lexer;

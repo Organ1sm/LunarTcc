@@ -2,7 +2,6 @@
 #include <iostream>
 #include "BackEnd/MachineBasicBlock.hpp"
 
-
 void MachineBasicBlock::InsertInstr(MachineInstruction MI)
 {
     if (MI.GetParent() == nullptr)

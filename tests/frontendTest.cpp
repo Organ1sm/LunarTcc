@@ -6,7 +6,9 @@
 #include <memory>
 #include "BackEnd/MachineIRModule.hpp"
 #include "FrontEnd/Lexer/Lexer.hpp"
+#include "FrontEnd/AST/AST.hpp"
 #include "FrontEnd/Parser/Parser.hpp"
+#include "MiddleEnd/IR/Function.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
 #include "MiddleEnd/IR/Module.hpp"
 #include "BackEnd/AssemblyEmitter.hpp"

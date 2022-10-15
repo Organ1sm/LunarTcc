@@ -33,6 +33,7 @@ Instruction *BasicBlock::InsertSA(std::unique_ptr<Instruction> Ins)
 void BasicBlock::Print() const
 {
     std::cout << "." << Name << ":" << std::endl;
+
     for (auto &Instruction : Instructions)
         Instruction->Print();
 }

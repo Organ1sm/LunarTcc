@@ -1,8 +1,10 @@
 #pragma once
 
-#include "BackEnd/MachineFunction.hpp"
-#include "BackEnd/MachineIRModule.hpp"
-#include "BackEnd/TargetMachine.hpp"
+#include <cstdint>
+class TargetMachine;
+class MachineIRModule;
+class MachineFunction;
+class MachineInstruction;
 
 class PrologueEpilogInsertion
 {

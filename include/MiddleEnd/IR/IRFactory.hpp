@@ -8,12 +8,15 @@
 #include <memory>
 #include <map>
 #include "MiddleEnd/IR/Instruction.hpp"
-#include "MiddleEnd/IR/Function.hpp"
 #include "MiddleEnd/IR/BasicBlock.hpp"
-#include "MiddleEnd/IR/Module.hpp"
 
-class Constant;
 class Value;
+class Constant;
+class FunctionParameter;
+
+class Module;
+class Function;
+class BasicBlock;
 
 class IRFactory
 {

@@ -1,11 +1,8 @@
 #pragma once
 
-#include "BackEnd/MachineInstruction.hpp"
 #include "BackEnd/TargetMachine.hpp"
-#include "RISCVTargetABI.hpp"
-#include "RISCVRegisterInfo.hpp"
-#include "RISCVInstructionDefinitions.hpp"
 
+class MachineInstruction;
 
 namespace RISCV
 {
@@ -13,7 +10,6 @@ namespace RISCV
     {
       public:
         RISCVTargetMachine();
-
         ~RISCVTargetMachine() override {}
 
         bool SelectAdd(MachineInstruction *MI) override;

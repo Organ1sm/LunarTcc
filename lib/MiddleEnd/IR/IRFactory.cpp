@@ -2,7 +2,9 @@
 // Created by Organ1sm.
 //
 #include "MiddleEnd/IR/Value.hpp"
+#include "MiddleEnd/IR/Module.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
+#include "MiddleEnd/IR/Function.hpp"
 
 BinaryInstruction *
     IRFactory::CreateBinaryInstruction(Instruction::InstructionKind K, Value *L, Value *R)

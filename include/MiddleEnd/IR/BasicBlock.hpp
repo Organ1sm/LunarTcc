@@ -47,7 +47,4 @@ class BasicBlock : public Value
     Function *Parent;
 };
 
-
-
-
 #endif    // LUNARTCC_BASICBLOCK_HPP

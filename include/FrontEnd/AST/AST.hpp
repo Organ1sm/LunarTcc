@@ -12,8 +12,9 @@
 #include "FrontEnd/Lexer/Token.hpp"
 #include "FrontEnd/AST/Type.hpp"
 #include "Utils/ErrorLogger.hpp"
-#include "MiddleEnd/IR/IRFactory.hpp"
-#include "MiddleEnd/IR/Value.hpp"
+
+class Value;
+class IRFactory;
 
 class Node
 {
@@ -456,7 +457,5 @@ class TranslationUnit : public Statement
   private:
     std::vector<std::unique_ptr<Statement>> Declarations;
 };
-
-
 
 #endif

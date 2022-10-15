@@ -5,7 +5,6 @@
 #ifndef LUNARTCC_VALUE_HPP
 #define LUNARTCC_VALUE_HPP
 
-
 #include <cstdint>
 #include <variant>
 #include "MiddleEnd/IR/IRType.hpp"
@@ -90,6 +89,5 @@ class GlobalVariable : public Value
   private:
     std::string Name;
 };
-
 
 #endif    // LUNARTCC_VALUE_HPP

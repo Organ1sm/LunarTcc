@@ -1,9 +1,8 @@
 #pragma once
 
-#include "BackEnd/RegisterInfo.hpp"
 #include "BackEnd/TargetABI.hpp"
-#include "BackEnd/TargetRegister.hpp"
 
+class RegisterInfo;
 
 namespace AArch64
 {

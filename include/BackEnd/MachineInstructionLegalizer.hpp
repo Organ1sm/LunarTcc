@@ -1,8 +1,7 @@
 #pragma once
 
-#include "BackEnd/MachineIRModule.hpp"
-#include "BackEnd/TargetMachine.hpp"
-
+class MachineIRModule;
+class TargetMachine;
 
 /// Based on the target machine decide for each yet target independent machine
 /// instructions that it is selectable or not.

@@ -1,5 +1,7 @@
-#include "MachineIRModule.hpp"
-#include "TargetMachine.hpp"
+#pragma once
+
+class TargetMachine;
+class MachineIRModule;
 
 class AssemblyEmitter
 {

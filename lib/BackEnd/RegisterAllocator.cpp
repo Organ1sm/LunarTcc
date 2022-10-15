@@ -1,4 +1,6 @@
 #include "BackEnd/RegisterAllocator.hpp"
+#include "BackEnd/MachineBasicBlock.hpp"
+#include "BackEnd/MachineIRModule.hpp"
 #include "BackEnd/MachineInstruction.hpp"
 #include "BackEnd/MachineFunction.hpp"
 #include "BackEnd/MachineOperand.hpp"

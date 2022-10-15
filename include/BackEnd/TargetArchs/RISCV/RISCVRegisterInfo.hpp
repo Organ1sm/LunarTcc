@@ -3,7 +3,6 @@
 #include "BackEnd/RegisterInfo.hpp"
 #include "BackEnd/TargetRegister.hpp"
 
-
 namespace RISCV
 {
     enum Registers : unsigned {

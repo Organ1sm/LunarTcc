@@ -1,8 +1,8 @@
 #pragma once
 
-#include "BackEnd/MachineInstruction.hpp"
 #include "BackEnd/TargetInstructionLegalizer.hpp"
 
+class MachineInstruction;
 
 namespace AArch64
 {

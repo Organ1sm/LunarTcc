@@ -3,8 +3,6 @@
 #include <cstdint>
 #include <vector>
 #include "BackEnd/MachineOperand.hpp"
-#include "BackEnd/TargetInstructionLegalizer.hpp"
-
 
 class MachineBasicBlock;
 

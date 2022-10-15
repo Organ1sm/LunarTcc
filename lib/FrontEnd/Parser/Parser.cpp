@@ -1,4 +1,6 @@
 #include "FrontEnd/Parser/Parser.hpp"
+#include "FrontEnd/AST/AST.hpp"
+#include "MiddleEnd/IR/IRFactory.hpp"
 
 static bool IsTypeSpecifier(Token::TokenKind tk)
 {

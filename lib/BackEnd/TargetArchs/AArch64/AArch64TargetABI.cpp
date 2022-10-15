@@ -24,7 +24,6 @@ AArch64TargetABI::AArch64TargetABI(RegisterInfo *RI)
         CalleeSavedRegisters.push_back(RI->GetRegister(i));
 
     // w9-w15
-    for(int i = 9; i <= 15; i++)
+    for (int i = 9; i <= 15; i++)
         CallerSavedRegisters.push_back(RI->GetRegister(i));
-
 }

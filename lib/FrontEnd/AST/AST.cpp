@@ -1,8 +1,7 @@
 #include "FrontEnd/AST/AST.hpp"
-#include "MiddleEnd/IR/BasicBlock.hpp"
+#include "MiddleEnd/IR/IRFactory.hpp"
 #include "MiddleEnd/IR/IRType.hpp"
 #include "MiddleEnd/IR/Instruction.hpp"
-#include "MiddleEnd/IR/Value.hpp"
 #include <cassert>
 #include <memory>
 
