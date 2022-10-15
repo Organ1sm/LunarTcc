@@ -31,7 +31,8 @@ class IRFactory
     BinaryInstruction *CreateOr(Value *LHS, Value *RHS);
     BinaryInstruction *CreateAnd(Value *LHS, Value *RHS);
 
-
+    UnaryInstruction *CreateSExt(Value *Operand, uint8_t BitWidth = 32);
+    UnaryInstruction *CreateTrunc(Value *Operand, uint8_t BitWidth = 32);
     UnaryInstruction *CreateFloatToInt(Value *Operand, uint8_t FloatBitWidth = 32);
     UnaryInstruction *CreateIntToFloat(Value *Operand, uint8_t IntBitWidth = 32);
 

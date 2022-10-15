@@ -13,9 +13,11 @@ std::string Type::ToString(const Type::VariantKind vk)
             return "double";
         case Int:
             return "int";
+        case Char:
+            return "char";
         case Void:
             return "void";
-        case InValid:
+        case Invalid:
             return "invalid";
         default:
             assert(false && "Unknown type.");
@@ -25,7 +27,8 @@ std::string Type::ToString(const Type::VariantKind vk)
 
 bool Type::IsImplicitlyCastable(const Type::VariantKind from, const Type::VariantKind to)
 {
-    return (from == Int && to == Double) || (from == Double && to == Int);
+    return (from == Int && to == Double) || (from == Double && to == Int)
+           || (from == Char && to == Int) || (from == Int && to == Char);
 }
 
 std::string ArrayType::ToString() const
