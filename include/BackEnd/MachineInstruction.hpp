@@ -91,7 +91,7 @@ class MachineInstruction
     void AddRegister(uint64_t Reg);
     void AddImmediate(uint64_t Num);
     void AddMemory(uint64_t Id);
-    void AddStackAccess(uint64_t Slot);
+    void AddStackAccess(uint64_t Slot, unsigned Size = 4);
     void AddLabel(const char *Label);
 
     bool IsFallThroughBranch() const { return Operands.size() == 2; }

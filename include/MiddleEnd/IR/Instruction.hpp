@@ -91,6 +91,8 @@ class UnaryInstruction : public Instruction
         : Instruction(UO, P, ResultType), Op(Operand)
     {}
 
+    Value *GetOperand() { return Op;}
+
     void Print() const override;
 
   private:

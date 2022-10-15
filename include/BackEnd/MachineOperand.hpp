@@ -35,7 +35,7 @@ class MachineOperand
     void SetValue(uint64_t V) { Value = V; }
 
     void SetType(LowLevelType LLT) { this->LLT = LLT; }
-    LowLevelType GetType(LowLevelType LLT) const { return LLT; }
+    LowLevelType GetType() const { return LLT; }
 
     const char *GetLabel() { return BelongToLabel; }
     void SetLabel(const char *L) { BelongToLabel = L; }
@@ -53,6 +53,7 @@ class MachineOperand
     static MachineOperand CreateVirtualRegister(uint64_t Reg);
     static MachineOperand CreateMemory(uint64_t Id);
     static MachineOperand CreateStackAccess(uint64_t Slot);
+    static MachineOperand CreateParameter(uint64_t Val);
     static MachineOperand CreateLabel(const char *Label);
 
     void Print() const;
