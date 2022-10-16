@@ -118,11 +118,11 @@ int main(int argc, char *argv[])
     Parser parser(src, &IRF);
 
     auto AST = parser.Parse();
-    AST->IRCodegen(&IRF);
 
     if (DumpAst)
         AST->ASTDump();
 
+    AST->IRCodegen(&IRF);
     if (DumpIR)
         IRModule.Print();
 

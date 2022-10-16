@@ -32,16 +32,24 @@ class IRType
     void SetKind(TKind K) { Kind = K; }
     void SetToPointerKind() { Kind = Ptr; }
 
+    uint8_t GetPointerLevel() const { return PointerLevel; }
+    void SetPointerLevel(uint8_t pl)
+    {
+        assert(pl < 10 && "Unrealistic pointer level");
+        PointerLevel = pl;
+    }
+
     bool IsFP() const { return Kind == FP; }
     bool IsVoid() const { return Kind == None; }
     bool IsSInt() const { return Kind == SInt; }
     bool IsUInt() const { return Kind == UInt; }
     bool IsInvalid() const { return Kind == Invalid; }
     bool IsInt() const { return IsSInt() || IsUInt(); }
+    bool IsPointer() const { return PointerLevel > 0; }
 
     void SetNumberOfElements(unsigned N) { NumberOfElements = N; }
     std::size_t GetBitSize() const { return BitWidth; }
-    std::size_t GetByteSize() const { return (BitWidth * NumberOfElements + 7) / 8; }
+    std::size_t GetByteSize() const;
 
     IRType GetBaseType() const { return IRType(Kind, BitWidth); }
 
@@ -56,10 +64,10 @@ class IRType
     static IRType CreateInt(uint8_t BW = 32) { return IRType(SInt, BW); }
     static IRType CreateFloat(uint8_t BW = 32) { return IRType(FP, BW); }
 
-
   private:
     TKind Kind;
     uint8_t BitWidth;
+    uint8_t PointerLevel {0};
     unsigned NumberOfElements {1};
 };
 

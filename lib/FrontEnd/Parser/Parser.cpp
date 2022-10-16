@@ -18,6 +18,20 @@ static bool IsTypeSpecifier(Token::TokenKind tk)
     return false;
 }
 
+static bool IsUnaryOperator(Token::TokenKind tk)
+{
+    switch (tk)
+    {
+        case Token::Mul:
+            return true;
+
+        default:
+            break;
+    }
+
+    return false;
+}
+
 static bool IsReturnTypeSpecifier(Token::TokenKind tk)
 {
     return tk == Token::Void || IsTypeSpecifier(tk);
@@ -143,6 +157,10 @@ double Parser::ParseRealConstant()
 std::unique_ptr<Node> Parser::ParseTranslationUnit() { return std::unique_ptr<Node>(); }
 
 
+//=--------------------------------------------------------------------------=//
+//=------------------------- Parse Declaration ------------------------------=//
+//=--------------------------------------------------------------------------=//
+
 // <ExternalDeclaration> ::= <FunctionDeclaration>
 //                         | <VaraibleDeclaration>
 std::unique_ptr<Node> Parser::ParseExternalDeclaration()
@@ -225,7 +243,7 @@ std::unique_ptr<FunctionDeclaration>
     return std::make_unique<FunctionDeclaration>(FuncType, NameStr, PL, Body);
 }
 
-// <ParameterDeclaration> ::= { <TypeSpecifier> <Identifier>? }?
+// <ParameterDeclaration> ::= { <TypeSpecifier> '*' <Identifier>? }?
 std::unique_ptr<FunctionParameterDeclaration> Parser::ParseParameterDeclaration()
 {
     std::unique_ptr<FunctionParameterDeclaration> FPD =
@@ -233,15 +251,22 @@ std::unique_ptr<FunctionParameterDeclaration> Parser::ParseParameterDeclaration(
 
     if (IsTypeSpecifier(GetCurrentTokenKind()))
     {
-        Type type = ParseTypeSpecifier();
+        Type Ty = ParseTypeSpecifier();
         Lex();
-        FPD->SetType(type);
+
+        while (lexer.Is(Token::Mul))
+        {
+            Ty.IncrementPointerLevel();
+            Lex();    // Eat the `*` character
+        }
+
+        FPD->SetType(Ty);
 
         if (lexer.Is(Token::Identifier))
         {
             auto IdName = Lex().GetString();
             FPD->SetName(IdName);
-            InsertToSymbolTable(IdName, ComplexType(type));
+            InsertToSymbolTable(IdName, ComplexType(Ty));
         }
     }
 
@@ -286,9 +311,14 @@ Node Parser::ParseReturnTypeSpecifier() { return Node(); }
 //                           {'[' <IntegerConstant> ]'}* ';'
 std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration()
 {
-    auto Type = ParseTypeSpecifier();
+    auto Ty = ParseTypeSpecifier();
     Lex();
 
+    while (lexer.Is(Token::Mul))
+    {
+        Ty.IncrementPointerLevel();
+        Lex();    // Eat the `*` character
+    }
     std::string Name = Expect(Token::Identifier).GetString();
     std::vector<unsigned> Dimensions;
 
@@ -301,11 +331,14 @@ std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration()
 
     Expect(Token::SemiColon);
 
-    InsertToSymbolTable(Name, ComplexType(Type, Dimensions));
+    InsertToSymbolTable(Name, ComplexType(Ty, Dimensions));
 
-    return std::make_unique<VariableDeclaration>(Name, Type, Dimensions);
+    return std::make_unique<VariableDeclaration>(Name, Ty, Dimensions);
 }
 
+//=--------------------------------------------------------------------------=//
+//=------------------------- Parse Statement --------------------------------=//
+//=--------------------------------------------------------------------------=//
 
 // <Statement> ::= <ExpressionStatement>
 //               | <WhileStatement>
@@ -368,12 +401,16 @@ std::unique_ptr<ForStatement> Parser::ParseForStatement()
 
     Expect(Token::For);
     Expect(Token::LeftParen);
+
     FS->SetInit(std::move(ParseExpression()));
     Expect(Token::SemiColon);
+
     FS->SetCondition(std::move(ParseExpression()));
     Expect(Token::SemiColon);
+
     FS->SetIncrement(std::move(ParseExpression()));
     Expect(Token::RightParen);
+
     FS->SetBody(std::move(ParseStatement()));
 
     return FS;
@@ -440,6 +477,10 @@ std::unique_ptr<ExpressionStatement> Parser::ParseExpressionStatement()
     return ES;
 }
 
+//=--------------------------------------------------------------------------=//
+//=------------------------- Parse Expression -------------------------------=//
+//=--------------------------------------------------------------------------=//
+
 std::unique_ptr<Expression> Parser::ParseExpression() { return ParseBinaryExpression(); }
 
 static int GetBinOpPrecedence(Token::TokenKind TK)
@@ -472,9 +513,30 @@ static int GetBinOpPrecedence(Token::TokenKind TK)
     }
 }
 
+std::unique_ptr<Expression> Parser::ParseUnaryExpression()
+{
+    auto UnaryOperation = lexer.GetCurrentToken();
+    Lex();
+
+    std::unique_ptr<Expression> Expr;
+
+    if (IsUnaryOperator(GetCurrentTokenKind()))
+        return std::make_unique<UnaryExpression>(UnaryOperation,
+                                                 std::move(ParseUnaryExpression()));
+
+    // TODO: Add semantic check that only pointer types are dereferenced
+    Expr = ParsePrimaryExpression();
+
+    return std::make_unique<UnaryExpression>(UnaryOperation, std::move(Expr));
+}
+
 std::unique_ptr<Expression> Parser::ParseBinaryExpression()
 {
     auto LeftExpression = ParsePrimaryExpression();
+
+    if (LeftExpression == nullptr)
+        LeftExpression = ParseUnaryExpression();
+
     return ParseBinaryExpressionRHS(0, std::move(LeftExpression));
 }
 
@@ -493,8 +555,10 @@ std::unique_ptr<Expression> Parser::ParsePrimaryExpression()
     }
     else if (lexer.Is(Token::Identifier))
         return ParseIdentifierExpression();
-    else
+    else if (lexer.Is(Token::Real) || lexer.Is(Token::Integer))
         return ParseConstantExpression();
+    else
+        return nullptr;
 }
 
 // <IdentifierExpression> ::= CallExpression
@@ -650,6 +714,10 @@ std::unique_ptr<Expression>
 
         Token BinaryOperator = Lex();
         auto RightExpression = ParsePrimaryExpression();
+
+        if (RightExpression == nullptr)
+            RightExpression = ParseUnaryExpression();
+
 
         /// In case of Assignment check if the left operand since if should be an
         /// lvalue. Which is either an identifier reference or an array expression.

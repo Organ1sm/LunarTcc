@@ -6,6 +6,35 @@
 #include <memory>
 
 //=--------------------------------------------------------------------------=//
+//=------------------------- Constructor  -----------------------------------=//
+//=--------------------------------------------------------------------------=//
+
+BinaryExpression::BinaryExpression(BinaryExpression::ExprPtr L,
+                                   Token Op,
+                                   BinaryExpression::ExprPtr R)
+    : Lhs(std::move(L)), Operation(Op), Rhs(std::move(R))
+{
+    if (IsCondition())
+        ResultType = ComplexType(Type::Int);
+    else
+        ResultType =
+            ComplexType(Type::GetStrongestType(Lhs->GetResultType().GetTypeVariant(),
+                                               Rhs->GetResultType().GetTypeVariant()));
+}
+
+UnaryExpression::UnaryExpression(Token Op, UnaryExpression::ExprPtr E)
+    : Operation(Op), Expr(std::move(E))
+{
+    if (GetOperationKind() == UnaryOperation::DeRef)
+    {
+        ResultType = Expr->GetResultType();
+        ResultType.DecrementPointerLevel();
+    }
+    else
+        assert(!"Unimplemented!");
+}
+
+//=--------------------------------------------------------------------------=//
 //=------------------------- IR Codegen functions ---------------------------=//
 //=--------------------------------------------------------------------------=//
 
@@ -31,6 +60,14 @@ static IRType GetIRTypeFromVK(Type::VariantKind VK)
             assert(!"Invalid type.");
             break;
     }
+}
+
+static IRType GetIRTypeFromASTType(ComplexType CT)
+{
+    IRType Result = GetIRTypeFromVK(CT.GetTypeVariant());
+
+    Result.SetPointerLevel(CT.GetPointerLevel());
+    return Result;
 }
 
 Value *CompoundStatement::IRCodegen(IRFactory *IRF)
@@ -251,8 +288,8 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
 
 Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF)
 {
-    IRType ParamType = GetIRTypeFromVK(Ty.GetTypeVariant());
-    auto SA          = IRF->CreateSA(Name, ParamType);
+    auto ParamType = GetIRTypeFromASTType(Ty);
+    auto SA        = IRF->CreateSA(Name, ParamType);
     IRF->AddToSymbolTable(Name, SA);
 
     auto Param = std::make_unique<FunctionParameter>(FunctionParameter(Name, ParamType));
@@ -265,7 +302,7 @@ Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF)
 
 Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
 {
-    auto VarType = GetIRTypeFromVK(AType.GetTypeVariant());
+    auto VarType = GetIRTypeFromASTType(AType);
 
     // If an array type, then change type to reflect this.
     if (AType.IsArray())
@@ -408,6 +445,23 @@ Value *IntegerLiteralExpression::IRCodegen(IRFactory *IRF)
 Value *FloatLiteralExpression::IRCodegen(IRFactory *IRF)
 {
     return IRF->GetConstant(FPValue);
+}
+
+Value *UnaryExpression::IRCodegen(IRFactory *IRF)
+{
+    auto E = Expr->IRCodegen(IRF);
+
+    if (GetOperationKind() == UnaryOperation::DeRef)
+    {
+        auto ResultType = E->GetType();
+        return IRF->CreateLoad(ResultType, E);
+    }
+    else
+    {
+        assert(!"Unimplemented");
+    }
+
+    return nullptr;
 }
 
 Value *BinaryExpression::IRCodegen(IRFactory *IRF)
@@ -630,6 +684,7 @@ void FunctionDeclaration::ASTDump(unsigned int tab)
 
     Body->ASTDump(tab + 2);
 }
+
 FunctionType FunctionDeclaration::CreateType(const Type &t,
                                              const FunctionDeclaration::ParamVec &params)
 {
@@ -695,20 +750,28 @@ void BinaryExpression::ASTDump(unsigned int tab)
     Rhs->ASTDump(tab + 2);
 }
 
-BinaryExpression::BinaryExpression(BinaryExpression::ExprPtr L,
-                                   Token Op,
-                                   BinaryExpression::ExprPtr R)
-{
-    Lhs       = std::move(L);
-    Operation = Op;
-    Rhs       = std::move(R);
 
-    if (IsCondition())
-        ResultType = ComplexType(Type::Int);
-    else
-        ResultType =
-            ComplexType(Type::GetStrongestType(Lhs->GetResultType().GetTypeVariant(),
-                                               Rhs->GetResultType().GetTypeVariant()));
+UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
+{
+    switch (Operation.GetKind())
+    {
+        case Token::Mul:
+            return UnaryOperation::DeRef;
+        default:
+            assert(!"Invalid unary operator kind.");
+            break;
+    }
+}
+
+void UnaryExpression::ASTDump(unsigned int tab)
+{
+    auto Str = "'" + ResultType.ToString() + "' ";
+    Str += "'" + Operation.GetString() + "'";
+
+    Print("UnaryExpression ", tab);
+    PrintLn(Str.c_str());
+
+    Expr->ASTDump(tab + 2);
 }
 
 void CallExpression::ASTDump(unsigned int tab)

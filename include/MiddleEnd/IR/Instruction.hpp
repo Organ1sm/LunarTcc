@@ -91,7 +91,7 @@ class UnaryInstruction : public Instruction
         : Instruction(UO, P, ResultType), Op(Operand)
     {}
 
-    Value *GetOperand() { return Op;}
+    Value *GetOperand() { return Op; }
 
     void Print() const override;
 
@@ -218,7 +218,9 @@ class StackAllocationInstruction : public Instruction
   public:
     StackAllocationInstruction(std::string &S, IRType T, BasicBlock *P)
         : Instruction(InstructionKind::StackAlloc, P, T), VariableName(S)
-    {}
+    {
+        this->GetTypeRef().SetPointerLevel(this->GetTypeRef().GetPointerLevel() + 1);
+    }
 
     void Print() const override;
 
@@ -248,11 +250,15 @@ class LoadInstruction : public Instruction
   public:
     LoadInstruction(IRType T, Value *S, Value *O, BasicBlock *P)
         : Instruction(InstructionKind::Load, P, T), Source(S), Offset(O)
-    {}
+    {
+        this->GetTypeRef().SetPointerLevel(this->GetTypeRef().GetPointerLevel() - 1);
+    }
 
     LoadInstruction(IRType T, Value *S, BasicBlock *P)
         : Instruction(InstructionKind::Load, P, T), Source(S), Offset(nullptr)
-    {}
+    {
+        this->GetTypeRef().SetPointerLevel(this->GetTypeRef().GetPointerLevel() - 1);
+    }
 
     Value *GetMemoryLocation() { return Source; }
 
