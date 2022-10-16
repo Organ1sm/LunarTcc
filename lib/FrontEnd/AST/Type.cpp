@@ -95,19 +95,17 @@ std::string ComplexType::ToString() const
     }
 }
 
-ComplexType::ComplexType(Type t, std::vector<unsigned int> d)
+ComplexType::ComplexType(Type t, std::vector<unsigned int> d) : Type(t)
 {
     if (d.size() == 0)
     {
         Kind = Simple;
-        Ty   = t.GetTypeVariant();
     }
     else
     {
         Kind       = Array;
         Dimensions = std::move(d);
     }
-    Ty = t.GetTypeVariant();
 }
 
 ComplexType::ComplexType(Type t, std::vector<VariantKind> a)
@@ -140,8 +138,9 @@ bool operator==(const ComplexType &lhs, const ComplexType &rhs)
 
 ComplexType::ComplexType(ComplexType &&ct)
 {
-    Ty   = ct.Ty;
-    Kind = ct.Kind;
+    Ty           = ct.Ty;
+    Kind         = ct.Kind;
+    PointerLevel = ct.PointerLevel;
 
     if (ct.Kind == Array)
         Dimensions = std::move(ct.Dimensions);
@@ -151,8 +150,9 @@ ComplexType::ComplexType(ComplexType &&ct)
 
 ComplexType::ComplexType(const ComplexType &ct)
 {
-    Ty   = ct.Ty;
-    Kind = ct.Kind;
+    Ty           = ct.Ty;
+    Kind         = ct.Kind;
+    PointerLevel = ct.PointerLevel;
 
     if (ct.Kind == Array)
         Dimensions = ct.Dimensions;
@@ -162,8 +162,9 @@ ComplexType::ComplexType(const ComplexType &ct)
 
 ComplexType &ComplexType::operator=(const ComplexType &ct)
 {
-    Ty   = ct.Ty;
-    Kind = ct.Kind;
+    Ty           = ct.Ty;
+    Kind         = ct.Kind;
+    PointerLevel = ct.PointerLevel;
 
     if (ct.Kind == Array)
         Dimensions = ct.Dimensions;

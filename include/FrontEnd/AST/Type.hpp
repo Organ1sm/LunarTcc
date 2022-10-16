@@ -1,6 +1,7 @@
 #ifndef LUNARTCC_TYPE_H
 #define LUNARTCC_TYPE_H
 
+#include <cstdint>
 #include <vector>
 #include <string>
 #include <cassert>
@@ -17,12 +18,6 @@ class Type
         Double,
     };
 
-    VariantKind GetTypeVariant() const { return Ty; }
-    void SetTypeVariant(VariantKind t) { Ty = t; }
-
-    virtual std::string ToString() const { return ToString(Ty); }
-    static std::string ToString(const VariantKind vk);
-
     Type() : Ty(Invalid) {};
     Type(VariantKind vk) : Ty(vk) {}
 
@@ -34,6 +29,24 @@ class Type
 
     virtual ~Type() = default;
 
+    VariantKind GetTypeVariant() const { return Ty; }
+    void SetTypeVariant(VariantKind t) { Ty = t; }
+
+    uint8_t GetPointerLevel() const { return PointerLevel; }
+    void SetPointerLevel(uint8_t pl) { PointerLevel = pl; }
+
+    void IncrementPointerLevel() { PointerLevel++; }
+    void DecrementPointerLevel()
+    {
+        assert(PointerLevel > 0 && "Cannot decrement below 0");
+        PointerLevel--;
+    }
+
+    bool IsPointerTYpe() const { return PointerLevel != 0; }
+
+    virtual std::string ToString() const { return ToString(Ty); }
+    static std::string ToString(const VariantKind vk);
+
     static Type GetStrongestType(const VariantKind T1, const VariantKind T2)
     {
         return std::max(T1, T2);
@@ -43,6 +56,7 @@ class Type
 
   protected:
     VariantKind Ty;
+    uint8_t PointerLevel {0};
 };
 
 class ArrayType : public Type
@@ -99,7 +113,7 @@ class ComplexType : public Type
   public:
     ComplexType() : Kind(Simple), Type(Invalid) {}
     ComplexType(VariantKind vk) : Kind(Simple), Type(vk) {}
-    ComplexType(Type t) : ComplexType(t.GetTypeVariant()) {}
+    ComplexType(Type t) : Kind(Simple), Type(t) {}
 
     ComplexType(ComplexType &&ct);
 
