@@ -1,3 +1,4 @@
+#include <cassert>
 #include <string>
 #include <iostream>
 #include "BackEnd/MachineInstruction.hpp"
@@ -16,9 +17,14 @@ void MachineInstruction::RemoveMemOperand()
 {
     for (std::size_t i = 0; i < Operands.size(); i++)
     {
-        if (Operands[i].IsStackAccess())
+        if (Operands[i].IsStackAccess() || Operands[i].IsMemory())
+        {
             Operands.erase(Operands.begin() + i--);
+            return;
+        }
     }
+
+    assert(!"Nothing was removed");
 }
 
 void MachineInstruction::AddRegister(uint64_t Reg)
