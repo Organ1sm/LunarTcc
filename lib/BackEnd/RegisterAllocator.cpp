@@ -232,21 +232,35 @@ void RegisterAllocator::RunRA()
                 for (auto &Operand : Instr.GetOperands())
                 {
                     // Only consider load and stores.
-                    if (!Operand.IsStackAccess())
+                    if (!Operand.IsStackAccess() && !Operand.IsMemory())
                         continue;
 
-                    auto FrameReg = TM->GetRegInfo()->GetStackRegister();
-                    auto ObjPos =
-                        static_cast<int>(Func.GetStackObjectPosition(Operand.GetSlot()));
-                    auto ObjSize = Func.GetStackObjectSize(Operand.GetSlot());
-                    auto Offset  = StackFrameSize - ObjSize - ObjPos;
+                    // Handle stack access
+                    if (Operand.IsStackAccess())
+                    {
+                        auto FrameReg = TM->GetRegInfo()->GetStackRegister();
+                        auto ObjPos   = static_cast<int>(
+                            Func.GetStackObjectPosition(Operand.GetSlot()));
+                        auto ObjSize = Func.GetStackObjectSize(Operand.GetSlot());
+                        auto Offset  = StackFrameSize - ObjSize - ObjPos;
 
-                    // using SP as frame register fro simplicity
-                    // TODO: Add FP register handing if target support it.
+                        // using SP as frame register fro simplicity
+                        // TODO: Add FP register handing if target support it.
 
-                    Instr.RemoveMemOperand();
-                    Instr.AddRegister(FrameReg);
-                    Instr.AddImmediate(Offset);
+                        Instr.RemoveMemOperand();
+                        Instr.AddRegister(FrameReg);
+                        Instr.AddImmediate(Offset);
+                    }
+                    // Handle memory access
+                    else 
+                    {
+                        auto BaseReg = Operand.GetReg();
+                        auto Offset = 0;
+
+                        Instr.RemoveMemOperand();
+                        Instr.AddRegister(BaseReg); 
+                        Instr.AddImmediate(Offset);
+                    }
 
                     break;
                 }
