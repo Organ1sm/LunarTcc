@@ -66,7 +66,7 @@ static IRType GetIRTypeFromASTType(ComplexType CT)
 {
     IRType Result = GetIRTypeFromVK(CT.GetTypeVariant());
 
-    // Result.SetPointerLevel(CT.GetPointerLevel());
+    Result.SetPointerLevel(CT.GetPointerLevel());
     return Result;
 }
 
@@ -288,8 +288,8 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
 
 Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF)
 {
-    IRType ParamType = GetIRTypeFromVK(Ty.GetTypeVariant());
-    auto SA          = IRF->CreateSA(Name, ParamType);
+    auto ParamType = GetIRTypeFromASTType(Ty);
+    auto SA        = IRF->CreateSA(Name, ParamType);
     IRF->AddToSymbolTable(Name, SA);
 
     auto Param = std::make_unique<FunctionParameter>(FunctionParameter(Name, ParamType));
@@ -302,7 +302,7 @@ Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF)
 
 Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
 {
-    auto VarType = GetIRTypeFromVK(AType.GetTypeVariant());
+    auto VarType = GetIRTypeFromASTType(AType);
 
     // If an array type, then change type to reflect this.
     if (AType.IsArray())

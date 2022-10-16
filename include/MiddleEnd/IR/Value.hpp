@@ -28,7 +28,7 @@ class Value
     Value(VKind VK, IRType T) : ValueType(T), Kind(VK) {}
 
     virtual ~Value() {};
-    IRType &GetType() { return ValueType; }
+    IRType &GetTypeRef() { return ValueType; }
     IRType GetType() const { return ValueType; }
 
     unsigned GetID() const { return UniqueId; }
@@ -41,7 +41,7 @@ class Value
     bool IsParameter() const { return Kind == Param; }
     bool IsIntType() const { return ValueType.IsInt(); }
 
-    virtual std::string ValueString() const { return "$" + std::to_string(UniqueId); }
+    virtual std::string ValueString() const;
 
   protected:
     unsigned UniqueId;
