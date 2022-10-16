@@ -29,6 +29,8 @@ class IRFactory;
 
 class Parser
 {
+    using ExprPtr = std::unique_ptr<Expression>;
+
   public:
     std::unique_ptr<Node> Parse();
 
@@ -62,14 +64,14 @@ class Parser
     std::unique_ptr<CompoundStatement> ParseCompoundStatement();
     std::unique_ptr<ExpressionStatement> ParseExpressionStatement();
 
-    std::unique_ptr<Expression> ParseExpression();
-    std::unique_ptr<Expression> ParseBinaryExpression();
-    std::unique_ptr<Expression> ParsePrimaryExpression();
-    std::unique_ptr<Expression> ParseIdentifierExpression();
-    std::unique_ptr<Expression> ParseConstantExpression();
-    std::unique_ptr<Expression>
-        ParseBinaryExpressionRHS(int Precedence,
-                                 std::unique_ptr<Expression> LeftExpression);
+    ExprPtr ParseExpression();
+    ExprPtr ParseUnaryExpression();
+    ExprPtr ParseBinaryExpression();
+    ExprPtr ParsePrimaryExpression();
+    ExprPtr ParseIdentifierExpression();
+    ExprPtr ParseConstantExpression();
+    ExprPtr ParseBinaryExpressionRHS(int Precedence,
+                                     std::unique_ptr<Expression> LeftExpression);
 
     void InsertToSymbolTable(const std::string &SymbolName,
                              ComplexType SymType,

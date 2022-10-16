@@ -19,9 +19,9 @@ class IRFactory;
 class Node
 {
   public:
-    virtual void ASTDump(unsigned tab = 0) { PrintLn("Node"); }
     virtual ~Node() {}
 
+    virtual void ASTDump(unsigned tab = 0) { PrintLn("Node"); }
     virtual Value *IRCodegen(IRFactory *IRF);
 };
 
@@ -303,8 +303,36 @@ class BinaryExpression : public Expression
 
   private:
     Token Operation;
-    std::unique_ptr<Expression> Lhs;
-    std::unique_ptr<Expression> Rhs;
+    ExprPtr Lhs;
+    ExprPtr Rhs;
+};
+
+class UnaryExpression : public Expression
+{
+    using ExprPtr = std::unique_ptr<Expression>;
+
+  public:
+    enum UnaryOperation {
+        DeRef
+    };
+
+    UnaryExpression() = default;
+    UnaryExpression(Token Op, ExprPtr E);
+
+    UnaryOperation GetOperationKind();
+
+    Token GetOperation() { return Operation; }
+    void SetOperation(Token op) { Operation = op; }
+
+    ExprPtr &GetPtr() { return Expr; }
+    void SetExpr(ExprPtr &e) { Expr = std::move(e); }
+
+    void ASTDump(unsigned tab = 0) override;
+    Value *IRCodegen(IRFactory *IRF) override;
+
+  private:
+    Token Operation;
+    ExprPtr Expr;
 };
 
 class CallExpression : public Expression
