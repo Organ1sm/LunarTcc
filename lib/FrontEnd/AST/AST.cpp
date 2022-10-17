@@ -2,6 +2,7 @@
 #include "MiddleEnd/IR/IRFactory.hpp"
 #include "MiddleEnd/IR/IRType.hpp"
 #include "MiddleEnd/IR/Instruction.hpp"
+#include "Utils/ErrorLogger.hpp"
 #include <cassert>
 #include <memory>
 
@@ -9,17 +10,27 @@
 //=------------------------- Constructor  -----------------------------------=//
 //=--------------------------------------------------------------------------=//
 
+StructMemberReference::StructMemberReference(ExprPtr Expr,
+                                             std::string Id,
+                                             std::size_t Idx)
+    : StructTypedExpression(std::move(Expr)), MemberIdentifier(Id), MemberIndex(Idx)
+{
+    auto STEType = StructTypedExpression->GetResultType();
+    assert(MemberIndex < STEType.GetTypeList().size());
+
+    this->ResultType = STEType.GetTypeList()[MemberIndex];
+}
+
 BinaryExpression::BinaryExpression(BinaryExpression::ExprPtr L,
                                    Token Op,
                                    BinaryExpression::ExprPtr R)
     : Lhs(std::move(L)), Operation(Op), Rhs(std::move(R))
 {
     if (IsCondition())
-        ResultType = ComplexType(Type::Int);
+        ResultType = Type(Type::Int);
     else
-        ResultType =
-            ComplexType(Type::GetStrongestType(Lhs->GetResultType().GetTypeVariant(),
-                                               Rhs->GetResultType().GetTypeVariant()));
+        ResultType = Type(Type::GetStrongestType(Lhs->GetResultType().GetTypeVariant(),
+                                                 Rhs->GetResultType().GetTypeVariant()));
 }
 
 UnaryExpression::UnaryExpression(Token Op, UnaryExpression::ExprPtr E)
@@ -52,17 +63,17 @@ static IRType GetIRTypeFromVK(Type::VariantKind VK)
             return IRType(IRType::SInt, 8);
         case Type::Int:
             return IRType(IRType::SInt);
-            break;
         case Type::Double:
             return IRType(IRType::FP, 64);
-            break;
+        case Type::Composite:
+            return IRType(IRType::Struct);
         default:
             assert(!"Invalid type.");
             break;
     }
 }
 
-static IRType GetIRTypeFromASTType(ComplexType CT)
+static IRType GetIRTypeFromASTType(Type CT)
 {
     IRType Result = GetIRTypeFromVK(CT.GetTypeVariant());
 
@@ -289,11 +300,10 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
 Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF)
 {
     auto ParamType = GetIRTypeFromASTType(Ty);
+    auto Param     = std::make_unique<FunctionParameter>(Name, ParamType);
     auto SA        = IRF->CreateSA(Name, ParamType);
+
     IRF->AddToSymbolTable(Name, SA);
-
-    auto Param = std::make_unique<FunctionParameter>(FunctionParameter(Name, ParamType));
-
     IRF->CreateStore(Param.get(), SA);
     IRF->Insert(std::move(Param));
 
@@ -328,6 +338,10 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
     return SA;
 }
 
+Value *MemberDeclaration::IRCodegen(IRFactory *IRF) { return nullptr; }
+
+Value *StructDeclaration::IRCodegen(IRFactory *IRF) { return nullptr; }
+
 Value *CallExpression::IRCodegen(IRFactory *IRF)
 {
     std::vector<Value *> Args;
@@ -335,7 +349,7 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
     for (auto &Arg : Arguments)
         Args.push_back(Arg->IRCodegen(IRF));
 
-    auto ReturnType = GetResultType().GetFunctionType().GetReturnType();
+    auto ReturnType = GetResultType().GetReturnType();
 
     IRType ReturnIRType;
 
@@ -347,6 +361,9 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
         case Type::Double:
             ReturnIRType = IRType(IRType::FP, 64);
             break;
+        case Type::Void:
+            ReturnIRType = IRType(IRType::None, 0);
+            break;
         default:
             break;
     }
@@ -357,6 +374,9 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
 Value *ReferenceExpression::IRCodegen(IRFactory *IRF)
 {
     auto Local = IRF->GetSymbolValue(Identifier);
+
+    if (this->GetResultType().IsStruct())
+        return Local;
 
     if (Local)
     {
@@ -386,34 +406,16 @@ Value *ReferenceExpression::IRCodegen(IRFactory *IRF)
 ///  store [$arrayBase + $offset], $R
 Value *ArrayExpression::IRCodegen(IRFactory *IRF)
 {
-    // FIXME: for now just assume only 1 dimensional arrays
-    auto Index         = IndexExpression[0]->IRCodegen(IRF);
-    auto ArrayBaseType = Index->GetType().GetBaseType();
+    assert(BaseExpression && "BaseExpression cannot be Null");
+    assert(IndexExpression && "IndexExpression cannot be Null");
 
-    auto SizeofArrayType = IRF->GetConstant(ArrayBaseType.GetByteSize());
-    auto FinalIndex      = IRF->CreateMul(Index, SizeofArrayType);
+    auto BaseValue  = BaseExpression->IRCodegen(IRF);
+    auto IndexValue = IndexExpression->IRCodegen(IRF);
 
+    auto ArrayBaseType = BaseValue->GetType().GetBaseType();
+    // ArrayBaseType.IncrementPointerLevel();
 
-    auto Id = Identifier.GetString();
-    // return a pointer to the lvalue.
-    if (GetLValueness())
-    {
-        auto LocalValue  = IRF->GetSymbolValue(Id);
-        auto GlobalValue = IRF->GetGlobalVar(Id);
-
-        auto PtrToElement =
-            IRF->CreateAdd(LocalValue ? LocalValue : GlobalValue, FinalIndex);
-
-        PtrToElement->GetType().SetToPointerKind();
-
-        return PtrToElement;
-    }
-
-
-    // return the rvalue.
-    auto Element = IRF->CreateLoad(ArrayBaseType, IRF->GetSymbolValue(Id), FinalIndex);
-
-    return Element;
+    return nullptr;
 }
 
 Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
@@ -436,6 +438,8 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
 
     return nullptr;
 }
+
+Value *StructMemberReference::IRCodegen(IRFactory *IRF) { return nullptr; }
 
 Value *IntegerLiteralExpression::IRCodegen(IRFactory *IRF)
 {
@@ -611,6 +615,26 @@ void VariableDeclaration::ASTDump(unsigned tab)
     PrintLn(NameStr.c_str());
 }
 
+void MemberDeclaration::ASTDump(unsigned tab)
+{
+    auto TypeStr = "'" + AType.ToString() + "' ";
+    auto NameStr = "'" + Name + "'";
+
+    Print("MemberDeclaration ", tab);
+    Print(TypeStr.c_str());
+    PrintLn(NameStr.c_str());
+}
+
+void StructDeclaration::ASTDump(unsigned tab)
+{
+    Print("StructDeclaration '", tab);
+    Print(Name.c_str());
+    PrintLn("' ");
+
+    for (auto &M : Members)
+        M->ASTDump(tab + 2);
+}
+
 void CompoundStatement::ASTDump(unsigned int tab)
 {
     PrintLn("CompoundStatement ", tab);
@@ -685,19 +709,21 @@ void FunctionDeclaration::ASTDump(unsigned int tab)
     Body->ASTDump(tab + 2);
 }
 
-FunctionType FunctionDeclaration::CreateType(const Type &t,
-                                             const FunctionDeclaration::ParamVec &params)
+Type FunctionDeclaration::CreateType(const Type &t,
+                                     const FunctionDeclaration::ParamVec &params)
 {
-    FunctionType funcType(t);
+    Type funcType(t);
+    funcType.SetTypeKind(Type::Function);
+
     for (auto &Argument : params)
     {
-        auto type = Argument->GetType().GetTypeVariant();
-        funcType.GetArgumentTypes().push_back(type);
+        auto type = Argument->GetType();
+        funcType.GetArgTypes().push_back(type);
     }
 
     // if there are no arguments then set it to void
     if (params.empty())
-        funcType.GetArgumentTypes().push_back(Type::Void);
+        funcType.GetArgTypes().push_back(Type::Void);
 
     return funcType;
 }
@@ -750,6 +776,16 @@ void BinaryExpression::ASTDump(unsigned int tab)
     Rhs->ASTDump(tab + 2);
 }
 
+void StructMemberReference::ASTDump(unsigned tab)
+{
+    auto Str = "'" + ResultType.ToString() + "' ";
+    Str += "'." + MemberIdentifier + "'";
+
+    Print("StructMemberReference ", tab);
+    PrintLn(Str.c_str());
+
+    StructTypedExpression->ASTDump(tab + 2);
+}
 
 UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
 {
@@ -820,13 +856,11 @@ void FloatLiteralExpression::ASTDump(unsigned int tab)
 void ArrayExpression::ASTDump(unsigned int tab)
 {
     auto Str = "'" + ResultType.ToString() + "' ";
-    Str += "'" + Identifier.GetString() + "'";
 
     Print("ArrayExpression ", tab);
     PrintLn(Str.c_str());
 
-    for (auto &i : IndexExpression)
-        i->ASTDump(tab + 2);
+    IndexExpression->ASTDump(tab + 2);
 }
 
 void TranslationUnit::ASTDump(unsigned int tab)
@@ -834,6 +868,8 @@ void TranslationUnit::ASTDump(unsigned int tab)
     PrintLn("TranslationUnit", tab);
     for (auto &Declaration : Declarations)
         Declaration->ASTDump(tab + 2);
+
+    PrintLn("");
 }
 
 void ImplicitCastExpression::ASTDump(unsigned int tab)
