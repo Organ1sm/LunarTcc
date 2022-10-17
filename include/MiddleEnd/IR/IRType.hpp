@@ -18,7 +18,8 @@ class IRType
         FP,      // Float
         UInt,    // Unsigned Int
         SInt,    // Signed Int
-        Ptr      // Pointer
+        Ptr,     // Pointer
+        Struct
     };
 
     IRType() : Kind(Invalid), BitWidth(0) {}

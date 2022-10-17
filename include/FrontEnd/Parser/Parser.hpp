@@ -4,6 +4,7 @@
 #include <cassert>
 #include <stack>
 #include <memory>
+#include <map>
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include "FrontEnd/AST/Type.hpp"
 #include "FrontEnd/Parser/SymbolTable.hpp"
@@ -13,6 +14,8 @@ class Expression;
 
 class Declaration;
 class VariableDeclaration;
+class MemberDeclaration;
+class StructDeclaration;
 class FunctionDeclaration;
 class FunctionParameterDeclaration;
 
@@ -45,6 +48,10 @@ class Parser
     unsigned ParseIntegerConstant();
     double ParseRealConstant();
 
+    Type ParseType(Token::TokenKind tk);
+    bool IsTypeSpecifier(Token::TokenKind tk);
+    bool IsReturnTypeSpecifier(Token::TokenKind tk);
+
     std::unique_ptr<Node> ParseTranslationUnit();
     std::unique_ptr<Node> ParseExternalDeclaration();
     std::unique_ptr<FunctionDeclaration> ParseFunctionDeclaration(const Type &ReturnType,
@@ -52,6 +59,8 @@ class Parser
     std::unique_ptr<VariableDeclaration> ParseVariableDeclaration();
     std::unique_ptr<FunctionParameterDeclaration> ParseParameterDeclaration();
     std::vector<std::unique_ptr<FunctionParameterDeclaration>> ParseParameterList();
+    std::unique_ptr<MemberDeclaration> ParseMemberDeclaration();
+    std::unique_ptr<StructDeclaration> ParseStructDeclaration();
 
     Type ParseTypeSpecifier();
     Node ParseReturnTypeSpecifier();
@@ -65,6 +74,9 @@ class Parser
     std::unique_ptr<ExpressionStatement> ParseExpressionStatement();
 
     ExprPtr ParseExpression();
+    ExprPtr ParseCallExpression(Token ID);
+    ExprPtr ParseArrayExpression(ExprPtr Base);
+    ExprPtr ParsePostFixExpression();
     ExprPtr ParseUnaryExpression();
     ExprPtr ParseBinaryExpression();
     ExprPtr ParsePrimaryExpression();
@@ -74,7 +86,7 @@ class Parser
                                      std::unique_ptr<Expression> LeftExpression);
 
     void InsertToSymbolTable(const std::string &SymbolName,
-                             ComplexType SymType,
+                             Type SymType,
                              const bool ToGlobal = false,
                              ValueType SymValue  = ValueType());
 
@@ -82,6 +94,9 @@ class Parser
     Lexer lexer;
     SymbolTableStack SymTabStack;
     IRFactory *IRF;
+
+    // Type name to type, and the list of names for the struct field
+    std::map<std::string, std::tuple<Type, std::vector<std::string>>> UserDefinedTypes;
 
     /// Used for determining if implicit cast need or not in return statements
     Type CurrentFuncRetType {Type::Invalid};

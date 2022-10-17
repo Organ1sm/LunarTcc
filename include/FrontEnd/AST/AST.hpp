@@ -35,16 +35,20 @@ class Expression : public Node
 {
   public:
     Expression() = default;
-    Expression(ComplexType t) : ResultType(std::move(t)) {}
+    Expression(Type t) : ResultType(std::move(t)) {}
     Expression(Type::VariantKind vk) : ResultType(vk) {}
 
-    ComplexType GetResultType() { return ResultType; }
-    void SetResultType(ComplexType t) { ResultType = t; }
+    Type &GetResultType() { return ResultType; }
+    void SetResultType(Type t) { ResultType = t; }
+
+    void SetLValueness(bool p) { IsLValue = p; }
+    bool GetLValueness() { return IsLValue; }
 
     void ASTDump(unsigned int tab = 0) override { PrintLn("Expression", tab); }
 
   protected:
-    ComplexType ResultType;
+    bool IsLValue {false};
+    Type ResultType;
 };
 
 class VariableDeclaration : public Statement
@@ -53,14 +57,14 @@ class VariableDeclaration : public Statement
     std::string &GetName() { return Name; }
     void SetName(std::string &name) { Name = name; }
 
-    ArrayType GetType() { return AType; }
-    void SetType(ArrayType t) { AType = t; }
+    Type GetType() { return AType; }
+    void SetType(Type t) { AType = t; }
 
     VariableDeclaration(std::string &Name, Type Ty, std::vector<unsigned> Dim)
         : Name(Name), AType(Ty, std::move(Dim))
     {}
 
-    VariableDeclaration(std::string &Name, ArrayType Ty) : Name(Name), AType(Ty) {}
+    VariableDeclaration(std::string &Name, Type Ty) : Name(Name), AType(Ty) {}
 
     void ASTDump(unsigned int tab = 0) override;
 
@@ -68,7 +72,55 @@ class VariableDeclaration : public Statement
 
   private:
     std::string Name;
-    ArrayType AType;
+    Type AType;
+};
+
+class MemberDeclaration : public Statement
+{
+  public:
+    MemberDeclaration() = default;
+    MemberDeclaration(std::string &Name, Type Ty) : Name(Name), AType(Ty) {}
+    MemberDeclaration(std::string &Name, Type Ty, std::vector<unsigned> Dim)
+        : Name(Name), AType(Ty, std::move(Dim))
+    {}
+
+    std::string &GetName() { return Name; }
+    void SetName(std::string &s) { Name = s; }
+
+    Type GetType() { return AType; }
+    void SetType(Type t) { AType = t; }
+
+    void ASTDump(unsigned tab = 0) override;
+    Value *IRCodegen(IRFactory *IRF) override;
+
+  private:
+    std::string Name;
+    Type AType;
+};
+
+class StructDeclaration : public Statement
+{
+    using MemberDeclVec = std::vector<std::unique_ptr<MemberDeclaration>>;
+
+  public:
+    StructDeclaration() = default;
+    StructDeclaration(std::string &Name, MemberDeclVec &M, Type &StructType)
+        : Name(Name), Members(std::move(M)), SType(StructType)
+    {}
+
+    std::string &GetName() { return Name; }
+    void SetName(std::string &s) { Name = s; }
+
+    MemberDeclVec &GetMembers() { return Members; }
+    void SetType(MemberDeclVec m) { Members = std::move(m); }
+
+    void ASTDump(unsigned tab = 0) override;
+    Value *IRCodegen(IRFactory *IRF) override;
+
+  private:
+    Type SType;
+    std::string Name;
+    MemberDeclVec Members;
 };
 
 class CompoundStatement : public Statement
@@ -228,8 +280,8 @@ class FunctionDeclaration : public Statement
     using ParamVec = std::vector<std::unique_ptr<FunctionParameterDeclaration>>;
 
   public:
-    FunctionType GetType() { return FuncType; }
-    void SetType(FunctionType ft) { FuncType = ft; }
+    Type GetType() { return FuncType; }
+    void SetType(Type ft) { FuncType = ft; }
 
     std::string &GetName() { return Name; }
     void SetName(std::string &s) { Name = s; }
@@ -241,10 +293,10 @@ class FunctionDeclaration : public Statement
     std::unique_ptr<CompoundStatement> &GetBody() { return Body; }
     void SetBody(std::unique_ptr<CompoundStatement> &cs) { Body = std::move(cs); }
 
-    static FunctionType CreateType(const Type &t, const ParamVec &params);
+    static Type CreateType(const Type &t, const ParamVec &params);
 
     FunctionDeclaration() = delete;
-    FunctionDeclaration(FunctionType FT,
+    FunctionDeclaration(Type FT,
                         std::string Name,
                         ParamVec &Args,
                         std::unique_ptr<CompoundStatement> &Body)
@@ -255,10 +307,33 @@ class FunctionDeclaration : public Statement
     Value *IRCodegen(IRFactory *IRF) override;
 
   private:
-    FunctionType FuncType;
+    Type FuncType;
     std::string Name;
     ParamVec Arguments;
     std::unique_ptr<CompoundStatement> Body;
+};
+
+class StructMemberReference : public Expression
+{
+    using ExprPtr = std::unique_ptr<Expression>;
+
+  public:
+    StructMemberReference() {}
+    StructMemberReference(ExprPtr Expr, std::string Id, std::size_t Idx);
+
+    std::string GetMemberId() { return MemberIdentifier; }
+    void SetMemberId(std::string Id) { MemberIdentifier = Id; }
+
+    ExprPtr &GetExpr() { return StructTypedExpression; }
+    void SetExpr(ExprPtr &e) { StructTypedExpression = std::move(e); }
+
+    void ASTDump(unsigned int tab = 0) override;
+    Value *IRCodegen(IRFactory *IRF) override;
+
+  private:
+    ExprPtr StructTypedExpression;
+    std::string MemberIdentifier;
+    std::size_t MemberIndex;
 };
 
 class BinaryExpression : public Expression
@@ -346,7 +421,7 @@ class CallExpression : public Expression
     ExprVec &GetArguments() { return Arguments; }
     void SetArguments(ExprVec &A) { Arguments = std::move(A); }
 
-    CallExpression(const std::string &Name, ExprVec &Args, ComplexType T)
+    CallExpression(const std::string &Name, ExprVec &Args, Type T)
         : Name(Name), Arguments(std::move(Args)), Expression(std::move(T))
     {}
 
@@ -364,16 +439,12 @@ class ReferenceExpression : public Expression
     std::string &GetIdentifier() { return Identifier; }
     void SetIdentifier(std::string &id) { Identifier = id; }
 
-    void SetLValueness(bool p) { IsLValue = p; }
-    bool GetLValueness() const { return IsLValue; }
-
     ReferenceExpression(Token t) { Identifier = t.GetString(); }
 
     void ASTDump(unsigned int tab = 0) override;
     Value *IRCodegen(IRFactory *IRF) override;
 
   private:
-    bool IsLValue {false};
     std::string Identifier;
 };
 
@@ -384,10 +455,7 @@ class IntegerLiteralExpression : public Expression
     void SetValue(unsigned v) { IntValue = v; }
 
     IntegerLiteralExpression() = delete;
-    IntegerLiteralExpression(unsigned v) : IntValue(v)
-    {
-        SetResultType(ComplexType(Type::Int));
-    }
+    IntegerLiteralExpression(unsigned v) : IntValue(v) { SetResultType(Type(Type::Int)); }
 
     void ASTDump(unsigned int tab = 0) override;
     Value *IRCodegen(IRFactory *IRF) override;
@@ -403,10 +471,7 @@ class FloatLiteralExpression : public Expression
     void SetValue(double v) { FPValue = v; }
 
     FloatLiteralExpression() = delete;
-    FloatLiteralExpression(double v) : FPValue(v)
-    {
-        SetResultType(ComplexType(Type::Double));
-    }
+    FloatLiteralExpression(double v) : FPValue(v) { SetResultType(Type(Type::Double)); }
 
     void ASTDump(unsigned int tab = 0) override;
     Value *IRCodegen(IRFactory *IRF) override;
@@ -417,20 +482,14 @@ class FloatLiteralExpression : public Expression
 
 class ArrayExpression : public Expression
 {
-    using ExprVec = std::vector<std::unique_ptr<Expression>>;
+    using ExprPtr = std::unique_ptr<Expression>;
 
   public:
-    Token &GetIdentifier() { return Identifier; }
-    void SetIdentifier(Token &id) { Identifier = id; };
+    ExprPtr &GetIndexExpression() { return IndexExpression; }
+    void SetIndexExpression(ExprPtr &e) { IndexExpression = std::move(e); }
 
-    ExprVec &GetIndexExpression() { return IndexExpression; }
-    void SetIndexExpression(ExprVec &e) { IndexExpression = std::move(e); }
-
-    void SetLValueness(bool p) { IsLValue = p; }
-    bool GetLValueness() const { return IsLValue; }
-
-    ArrayExpression(const Token &Id, ExprVec &IEs, ComplexType Ct = ComplexType())
-        : Identifier(Id), IndexExpression(std::move(IEs))
+    ArrayExpression(ExprPtr &Base, ExprPtr &IEs, Type Ct = Type())
+        : BaseExpression(std::move(Base)), IndexExpression(std::move(IEs))
     {
         ResultType = Ct;
     }
@@ -439,16 +498,15 @@ class ArrayExpression : public Expression
     Value *IRCodegen(IRFactory *IRF) override;
 
   private:
-    bool IsLValue {false};
-    Token Identifier;
-    ExprVec IndexExpression;
+    ExprPtr BaseExpression;
+    ExprPtr IndexExpression;
 };
 
 class ImplicitCastExpression : public Expression
 {
   public:
-    ImplicitCastExpression(std::unique_ptr<Expression> e, Type::VariantKind rt)
-        : CastableExpression(std::move(e)), Expression(rt)
+    ImplicitCastExpression(std::unique_ptr<Expression> e, Type t)
+        : CastableExpression(std::move(e)), Expression(t.GetTypeVariant())
     {}
 
     Type GetSourceType() { return CastableExpression->GetResultType(); }

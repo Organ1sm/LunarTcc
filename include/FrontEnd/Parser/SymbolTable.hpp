@@ -14,7 +14,7 @@
 class SymbolTableStack
 {
   public:
-    using Entry = std::tuple<std::string, ComplexType, ValueType>;
+    using Entry = std::tuple<std::string, Type, ValueType>;
     using Table = std::vector<Entry>;
 
     // Adding the first empty table

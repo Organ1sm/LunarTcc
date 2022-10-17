@@ -38,6 +38,7 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Greater,       ">"          },
     {And,           "&"          },
     {Not,           "!"          },
+    {Dot,           "."          },
 
     {Equal,         "=="         },
     {NotEqual,      "!="         },
@@ -53,7 +54,8 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Int,           "int"        },
     {Double,        "double"     },
     {Void,          "void"       },
-    {Char,          "char"       }
+    {Char,          "char"       },
+    {Struct,        "struct"     },
 };
 
 std::string Token::ToString(Token::TokenKind tk)

@@ -11,7 +11,8 @@ std::unordered_map<std::string, Token::TokenKind> Lexer::KeyWords =
         {"else",   Token::Else  },
         {"for",    Token::For   },
         {"while",  Token::While },
-        {"return", Token::Return}
+        {"return", Token::Return},
+        {"struct", Token::Struct},
 };
 
 Lexer::Lexer(std::vector<std::string> &s)
@@ -151,6 +152,9 @@ std::optional<Token> Lexer::LexSymbol()
 
     switch (GetNextChar())
     {
+        case '.':
+            TokenKind = Token::Dot;
+            break;
         case ',':
             TokenKind = Token::Comma;
             break;
@@ -301,11 +305,11 @@ Token Lexer::Lex()
     auto Result = LexKeyWord();
 
     if (!Result)
+        Result = LexSymbol();
+    if (!Result)
         Result = LexNumber();
     if (!Result)
         Result = LexIdentifier();
-    if (!Result)
-        Result = LexSymbol();
 
     if (Result.has_value() && Result.value().GetKind() == Token::SingleComment)
     {
