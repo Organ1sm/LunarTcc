@@ -201,7 +201,8 @@ bool AArch64TargetMachine::SelectLoad(MachineInstruction *MI)
     assert((MI->GetOperandsNumber() == 2 || MI->GetOperandsNumber() == 3)
            && "LOAD must have 2 or 3 operands");
 
-    if (MI->GetOperand(0)->GetType().GetBitWidth() == 8)
+    auto OprType = MI->GetOperand(0)->GetType();
+    if (OprType.GetBitWidth() == 8 && !OprType.IsPointer())
     {
         MI->SetOpcode(LDRB);
         return true;
