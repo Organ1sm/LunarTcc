@@ -6,6 +6,8 @@
 #include <string>
 #include <cassert>
 
+/// TODO: The types here should be subdivided into categories as before, 
+/// type class is too bloated.
 class Type
 {
   public:

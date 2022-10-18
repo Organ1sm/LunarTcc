@@ -11,6 +11,7 @@
 
 class BasicBlock;
 class Function;
+class IRType;
 class Value;
 
 class Module
@@ -34,6 +35,7 @@ class Module
     void Print() const;
 
   private:
+    std::vector<IRType> StructTypes;
     std::vector<std::unique_ptr<Value>> GlobalVars;
     std::vector<Function> Functions;
 };

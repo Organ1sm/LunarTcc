@@ -77,6 +77,16 @@ static IRType GetIRTypeFromASTType(Type CT)
 {
     IRType Result = GetIRTypeFromVK(CT.GetTypeVariant());
 
+    if (Result.IsStruct())
+    {
+        auto StructName = CT.GetName();
+        Result.SetStructName(StructName);
+
+        // convert each member AST type to IRType (recursive)
+        for (auto &MemberASTType : CT.GetTypeList())
+            Result.GetMemberTypes().push_back(GetIRTypeFromASTType(MemberASTType));
+    }
+
     Result.SetPointerLevel(CT.GetPointerLevel());
     return Result;
 }
@@ -316,14 +326,7 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
 
     // If an array type, then change type to reflect this.
     if (AType.IsArray())
-    {
-        unsigned ElementNumber = 1;
-
-        for (auto Dim : AType.GetDimensions())
-            ElementNumber *= Dim;
-
-        VarType.SetNumberOfElements(ElementNumber);
-    }
+        VarType.SetDimensions(AType.GetDimensions());
 
     // If we are in global scope, then its a global variable Declaration
     if (IRF->IsGlobalScope())
@@ -333,7 +336,6 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
     /// Allocate space on stack and update the local symbol Table.
     auto SA = IRF->CreateSA(Name, VarType);
     IRF->AddToSymbolTable(Name, SA);
-
 
     return SA;
 }
@@ -439,7 +441,25 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
     return nullptr;
 }
 
-Value *StructMemberReference::IRCodegen(IRFactory *IRF) { return nullptr; }
+Value *StructMemberReference::IRCodegen(IRFactory *IRF)
+{
+    assert(StructTypedExpression && "cannot be Null");
+
+    auto BaseValue = StructTypedExpression->IRCodegen(IRF);
+    auto ExprType  = BaseValue->GetType();
+
+    assert(ExprType.IsStruct());
+
+    auto IndexValue = IRF->GetConstant((uint64_t)MemberIndex);
+    auto GEP        = IRF->CreateGEP(ExprType, BaseValue, IndexValue);
+
+    if (GetLValueness())
+        return GEP;
+
+    auto ResultType = GetIRTypeFromASTType(this->GetResultType());
+
+    return IRF->CreateLoad(ResultType, GEP);
+}
 
 Value *IntegerLiteralExpression::IRCodegen(IRFactory *IRF)
 {
