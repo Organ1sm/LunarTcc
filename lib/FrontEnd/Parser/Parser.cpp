@@ -127,6 +127,7 @@ unsigned Parser::ParseIntegerConstant()
     Token T         = Expect(Token::Integer);
     auto TokenStr   = T.GetString();
     unsigned Result = 0;
+
     for (auto c : TokenStr)
     {
         Result *= 10;

@@ -25,15 +25,16 @@ class IRFactory
 
     IRFactory(Module &M) : CurrentModule(M), ID(0) {}
 
-    BinaryInstruction *CreateAdd(Value *LHS, Value *RHS);
-    BinaryInstruction *CreateSub(Value *LHS, Value *RHS);
-    BinaryInstruction *CreateMul(Value *LHS, Value *RHS);
-    BinaryInstruction *CreateDiv(Value *LHS, Value *RHS);
-    BinaryInstruction *CreateMod(Value *LHS, Value *RHS);
+    Instruction *CreateAdd(Value *LHS, Value *RHS);
+    Instruction *CreateSub(Value *LHS, Value *RHS);
+    Instruction *CreateMul(Value *LHS, Value *RHS);
+    Instruction *CreateDiv(Value *LHS, Value *RHS);
+    Instruction *CreateMod(Value *LHS, Value *RHS);
 
-    BinaryInstruction *CreateOr(Value *LHS, Value *RHS);
-    BinaryInstruction *CreateAnd(Value *LHS, Value *RHS);
+    Instruction *CreateOr(Value *LHS, Value *RHS);
+    Instruction *CreateAnd(Value *LHS, Value *RHS);
 
+    UnaryInstruction *CreateMov(Value *Operand, uint8_t BitWidth = 32);
     UnaryInstruction *CreateSExt(Value *Operand, uint8_t BitWidth = 32);
     UnaryInstruction *CreateTrunc(Value *Operand, uint8_t BitWidth = 32);
     UnaryInstruction *CreateFloatToInt(Value *Operand, uint8_t FloatBitWidth = 32);
@@ -45,6 +46,8 @@ class IRFactory
     ReturnInstruction *CreateRet(Value *ReturnVal);
 
     StackAllocationInstruction *CreateSA(std::string Indentifier, IRType Type);
+
+    GetElemPointerInstruction *CreateGEP(IRType ResultType, Value *Source, Value *Index);
 
     StoreInstruction *CreateStore(Value *Source, Value *Destination);
 
@@ -82,7 +85,7 @@ class IRFactory
     Constant *GetConstant(double C);
 
   private:
-    BinaryInstruction *
+    Instruction *
         CreateBinaryInstruction(Instruction::InstructionKind K, Value *L, Value *R);
 
     BasicBlock *GetCurrentBB();

@@ -71,6 +71,8 @@ class FunctionParameter : public Value
     FunctionParameter() = delete;
     FunctionParameter(std::string &Name, IRType T) : Value(Value::Param, T), Name(Name) {}
 
+    std::string &GetName() { return Name; }
+
     std::string ValueString() const override { return "$" + Name; }
 
   private:
