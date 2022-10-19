@@ -126,10 +126,6 @@ int main(int argc, char *argv[])
     if (DumpIR)
         IRModule.Print();
 
-    MachineIRModule LLIRModule;
-    IRtoLLIR I2LLIR(IRModule, &LLIRModule);
-    I2LLIR.GenerateLLIRFromIR();
-
     std::unique_ptr<TargetMachine> TM;
 
     if (TargetArch == "riscv")
@@ -137,10 +133,14 @@ int main(int argc, char *argv[])
     else
         TM = std::make_unique<AArch64::AArch64TargetMachine>();
 
+    MachineIRModule LLIRModule;
+    IRtoLLIR I2LLIR(IRModule, &LLIRModule, TM.get());
+    I2LLIR.GenerateLLIRFromIR();
+
     if (PrintBeforePasses)
     {
         std::cout << "<<<<< Before Legalizer >>>>>" << std::endl << std::endl;
-        LLIRModule.Print();
+        LLIRModule.Print(TM.get());
         std::cout << std::endl;
     }
 
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
     if (PrintBeforePasses)
     {
         std::cout << "<<<<< Before Instruction Selection >>>>>" << std::endl << std::endl;
-        LLIRModule.Print();
+        LLIRModule.Print(TM.get());
         std::cout << std::endl;
     }
 
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
     if (PrintBeforePasses)
     {
         std::cout << "<<<<< Before Register Allocator >>>>>" << std::endl << std::endl;
-        LLIRModule.Print();
+        LLIRModule.Print(TM.get());
         std::cout << std::endl;
     }
 
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
     {
         std::cout << "<<<<< Before Prolgue/Epilog Insertion >>>>>" << std::endl
                   << std::endl;
-        LLIRModule.Print();
+        LLIRModule.Print(TM.get());
         std::cout << std::endl;
     }
 
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
     if (PrintBeforePasses)
     {
         std::cout << "<<<<< Before Emitting Assembly >>>>>" << std::endl << std::endl;
-        LLIRModule.Print();
+        LLIRModule.Print(TM.get());
         std::cout << std::endl;
     }
 

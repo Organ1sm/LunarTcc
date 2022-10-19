@@ -6,6 +6,7 @@
 #include "BackEnd/MachineIRModule.hpp"
 #include "BackEnd/IRtoLLIR.hpp"
 #include "BackEnd/LowLevelType.hpp"
+#include "BackEnd/TargetMachine.hpp"
 #include "BackEnd/TargetInstructionLegalizer.hpp"
 #include "FrontEnd/AST/AST.hpp"
 #include "MiddleEnd/IR/BasicBlock.hpp"
@@ -15,17 +16,15 @@
 #include "MiddleEnd/IR/Module.hpp"
 
 
-MachineOperand GetMachineOperandFromValue(Value *Val)
+MachineOperand GetMachineOperandFromValue(Value *Val, TargetMachine *TM)
 {
     if (Val->IsRegister())
     {
         auto BitWidth = Val->GetBitWidth();
         auto VReg     = MachineOperand::CreateVirtualRegister(Val->GetID());
 
-        assert(Val->IsIntType() && "Only handling integer types for now");
-
         if (Val->GetTypeRef().IsPointer())
-            VReg.SetType(LowLevelType::CreatePtr());
+            VReg.SetType(LowLevelType::CreatePtr(TM->GetPointerSize()));
         else
             VReg.SetType(LowLevelType::CreateInt(BitWidth));
 
@@ -39,7 +38,7 @@ MachineOperand GetMachineOperandFromValue(Value *Val)
         // FIXME: Only handling int params now, handle others too
         // And add type to registers and others too
         if (Val->GetTypeRef().IsPointer())
-            Result.SetType(LowLevelType::CreatePtr());
+            Result.SetType(LowLevelType::CreatePtr(TM->GetPointerSize()));
         else
             Result.SetType(LowLevelType::CreateInt(BitWidth));
 
@@ -50,7 +49,7 @@ MachineOperand GetMachineOperandFromValue(Value *Val)
         auto C = dynamic_cast<Constant *>(Val);
         assert(!C->IsFPConst() && "TODO");
 
-        return MachineOperand::CreateImmediate(C->GetIntValue());
+        return MachineOperand::CreateImmediate(C->GetIntValue(), 32);
     }
     else
     {
@@ -60,9 +59,9 @@ MachineOperand GetMachineOperandFromValue(Value *Val)
     return MachineOperand();
 }
 
-MachineInstruction ConvertToMachineInstr(Instruction *Instr,
-                                         MachineBasicBlock *BB,
-                                         std::vector<MachineBasicBlock> &BBS)
+MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
+                                                   MachineBasicBlock *BB,
+                                                   std::vector<MachineBasicBlock> &BBS)
 {
     auto Operation      = Instr->GetInstructionKind();
     auto ParentFunction = BB->GetParent();
@@ -71,9 +70,9 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
     // Three Address Instructions: Instr Result, Op1, Op2
     if (auto I = dynamic_cast<BinaryInstruction *>(Instr); I != nullptr)
     {
-        auto Result     = GetMachineOperandFromValue((Value *)I);
-        auto FirstStep  = GetMachineOperandFromValue(I->GetLHS());
-        auto SecondStep = GetMachineOperandFromValue(I->GetRHS());
+        auto Result     = GetMachineOperandFromValue((Value *)I, TM);
+        auto FirstStep  = GetMachineOperandFromValue(I->GetLHS(), TM);
+        auto SecondStep = GetMachineOperandFromValue(I->GetRHS(), TM);
 
         ResultMI.AddOperand(Result);
         ResultMI.AddOperand(FirstStep);
@@ -82,8 +81,8 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
     // Two address ALU instructions: Instr Result, Op
     else if (auto I = dynamic_cast<UnaryInstruction *>(Instr); I != nullptr)
     {
-        auto Result = GetMachineOperandFromValue((Value *)I);
-        auto Op     = GetMachineOperandFromValue(I->GetOperand());
+        auto Result = GetMachineOperandFromValue((Value *)I, TM);
+        auto Op     = GetMachineOperandFromValue(I->GetOperand(), TM);
 
         ResultMI.AddOperand(Result);
         ResultMI.AddOperand(Op);
@@ -102,7 +101,40 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
         else
             ResultMI.AddMemory(AddressReg);
 
-        ResultMI.AddOperand(GetMachineOperandFromValue(I->GetSavedValue()));
+        // if Source is a struct an not struct pointer
+        if (I->GetSavedValue()->GetTypeRef().IsStruct()
+            && !I->GetSavedValue()->GetTypeRef().IsPointer())
+        {
+            unsigned RegSize = TM->GetPointerSize();
+            auto StructName =
+                static_cast<FunctionParameter *>(I->GetSavedValue())->GetName();
+
+            assert(!StructToRegMap[StructName].empty() && "Unknown struct name");
+
+            MachineInstruction CurrentStore;
+            unsigned Counter = 0;
+
+            // Create Store for the Register which holds the struct parts
+            for (auto ParamId : StructToRegMap[StructName])
+            {
+                CurrentStore = MachineInstruction(MachineInstruction::Store, BB);
+
+                CurrentStore.AddStackAccess(AddressReg, Counter * RegSize / 8);
+                CurrentStore.AddVirtualRegister(ParamId, RegSize);
+
+                Counter++;
+
+                // insert all the stores but the last one, that will be the return value
+                if (Counter < StructToRegMap[StructName].size())
+                    BB->InsertInstr(CurrentStore);
+            }
+
+            return CurrentStore;
+        }
+        else
+        {
+            ResultMI.AddOperand(GetMachineOperandFromValue(I->GetSavedValue(), TM));
+        }
     }
     // Load Instruction: Load Dest, [Address]
     else if (auto I = dynamic_cast<LoadInstruction *>(Instr); I != nullptr)
@@ -110,14 +142,58 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
         assert(I->GetMemoryLocation()->IsRegister() && "Must be a register");
 
         ResultMI.AddAttribute(MachineInstruction::IsLOAD);
+        ResultMI.AddOperand(GetMachineOperandFromValue((Value *)I, TM));
 
         auto AddressReg = I->GetMemoryLocation()->GetID();
-        ResultMI.AddOperand(GetMachineOperandFromValue((Value *)I));
 
         if (ParentFunction->IsStackSlot(AddressReg))
             ResultMI.AddStackAccess(AddressReg);
         else
             ResultMI.AddMemory(AddressReg);
+    }
+    // GEP instruction: GEP Dest, Source, list of indexes
+    // to
+    //   STACK_ADDRESS Dest, Source
+    // **arithmetic instructions to calculate the index** ex: 1 index which is 6
+    //   MUL idx, sizeof(Source[0]), 6
+    //   ADD Dest, Dest, idx
+    else if (auto I = dynamic_cast<GetElemPointerInstruction *>(Instr); I != nullptr)
+    {
+        auto SA = MachineInstruction(MachineInstruction::StackAddress, BB);
+
+        auto Dest = GetMachineOperandFromValue((Value *)I, TM);
+        SA.AddOperand(Dest);
+
+        auto AddressReg = I->GetSource()->GetID();
+        assert(ParentFunction->IsStackSlot(AddressReg) && "Must be stack slot");
+        SA.AddStackAccess(AddressReg);
+
+        BB->InsertInstr(SA);
+
+        auto &SourceType           = I->GetSource()->GetTypeRef();
+        unsigned ConstantIndexPart = 0;
+        auto Index                 = ((Constant *)I->GetIndex())->GetIntValue();
+        if (I->GetIndex()->IsConstant())
+        {
+            if (!SourceType.IsStruct())
+                ConstantIndexPart = (SourceType.CalcElemSize(0) * Index);
+            else    // its a struct and has to determine the offset other way
+                ConstantIndexPart = SourceType.GetElemByteOffset(Index);
+        }
+        else
+            assert(!"Unimplemented for expression indexes");
+
+        // FIXME: For unknown reason this not work as expected. Investigate it!
+        // If there is nothing to add, then exit now
+        //    if (ConstantIndexPart == 0)
+        //      return SA;
+
+        auto ADD = MachineInstruction(MachineInstruction::Add, BB);
+        ADD.AddOperand(Dest);
+        ADD.AddOperand(Dest);
+        ADD.AddImmediate(ConstantIndexPart, Dest.GetSize());
+
+        return ADD;
     }
     // Jump Instruction: Jump Label
     else if (auto I = dynamic_cast<JumpInstruction *>(Instr); I != nullptr)
@@ -147,7 +223,7 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
                 FalseLabel = bb.GetName().c_str();
         }
 
-        ResultMI.AddOperand(GetMachineOperandFromValue(I->GetCondition()));
+        ResultMI.AddOperand(GetMachineOperandFromValue(I->GetCondition(), TM));
         ResultMI.AddLabel(TrueLabel);
 
         if (I->HasFalseLabel())
@@ -156,9 +232,9 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
     // Compare Instruction: cmp relation br1, br2
     else if (auto I = dynamic_cast<CompareInstruction *>(Instr); I != nullptr)
     {
-        auto Result      = GetMachineOperandFromValue((Value *)I);
-        auto FirstSrcOp  = GetMachineOperandFromValue(I->GetLHS());
-        auto SecondSrcOp = GetMachineOperandFromValue(I->GetRHS());
+        auto Result      = GetMachineOperandFromValue((Value *)I, TM);
+        auto FirstSrcOp  = GetMachineOperandFromValue(I->GetLHS(), TM);
+        auto SecondSrcOp = GetMachineOperandFromValue(I->GetRHS(), TM);
 
         ResultMI.AddOperand(Result);
         ResultMI.AddOperand(FirstSrcOp);
@@ -169,7 +245,7 @@ MachineInstruction ConvertToMachineInstr(Instruction *Instr,
     // Ret Instruction: ret op
     else if (auto I = dynamic_cast<ReturnInstruction *>(Instr); I != nullptr)
     {
-        auto Result = GetMachineOperandFromValue(I->GetRetVal());
+        auto Result = GetMachineOperandFromValue(I->GetRetVal(), TM);
         ResultMI.AddOperand(Result);
     }
     else
@@ -185,17 +261,42 @@ void HandleStackAllocation(StackAllocationInstruction *Instr, MachineFunction *F
     Func->InsertStackSlot(Instr->GetID(), Instr->GetType().GetByteSize());
 }
 
-void HandleFunctionParams(Function &F, MachineFunction *Func)
+void IRtoLLIR::HandleFunctionParams(Function &F, MachineFunction *Func)
 {
     for (auto &Param : F.GetParameters())
     {
-        auto ParamID = Param->GetID();
-        assert(Param->IsIntType() && "Other types Unimplemented yet.");
-
+        auto ParamID   = Param->GetID();
         auto ParamSize = Param->GetBitWidth();
 
+        // Handle structs
+        if (Param->GetTypeRef().IsStruct())
+        {
+            auto StructName = Param->GetName();
+            // Pointer size also represents the architecture bit size and more
+            // importantly the largest bitwidth a general register can have for the
+            // given target
+            // TODO: revisit this statement later and refine the implementation
+            // for example have a function which check all registers and decide the
+            // max size that way, or the max possible size of parameter registers
+            // but for AArch64 and RISC-V its sure the bit size of the architecture
+
+            // FIXME: The maximum allowed structure size which allowed to be passed
+            // by the target is target dependent. Remove the hardcoded value and
+            // ask the target for the right size.
+            unsigned MaxStructSize = 128;    // bit size
+            for (size_t i = 0; i < MaxStructSize / TM->GetPointerSize(); i++)
+            {
+                auto NextVreg = Func->GetNextAvailableVirtualRegister();
+                StructToRegMap[StructName].push_back(ParamID + 1000000 + i);
+                Func->InsertParameter(ParamID + 1000000 + i,
+                                      LowLevelType::CreateInt(TM->GetPointerSize()));
+            }
+
+            continue;
+        }
+
         if (Param->GetTypeRef().IsPointer())
-            Func->InsertParameter(ParamID, LowLevelType::CreatePtr());
+            Func->InsertParameter(ParamID, LowLevelType::CreatePtr(TM->GetPointerSize()));
         else
             Func->InsertParameter(ParamID, LowLevelType::CreateInt(ParamSize));
     }

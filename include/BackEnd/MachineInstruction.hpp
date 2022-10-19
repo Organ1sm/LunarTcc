@@ -5,6 +5,7 @@
 #include "BackEnd/MachineOperand.hpp"
 
 class MachineBasicBlock;
+class TargetMachine;
 
 class MachineInstruction
 {
@@ -23,17 +24,17 @@ class MachineInstruction
         Cmp,              // 65543
 
         // Conversions
-        SExt,          // Sign extension
-        ZExt,          // Zero extension
-        Trunc,         // Truncating
-        FloatToInt,    // 65544
-        IntToFloat,    // 65545
+        SExt,     // Sign extension
+        ZExt,     // Zero extension
+        Trunc,    // Truncating
+        FloatToInt,
+        IntToFloat,
 
         // Control Flow Operations
-        Call,      // 65546
-        Jump,      // 65547
-        Branch,    // 65548
-        Ret,       // 65549
+        Call,
+        Jump,
+        Branch,
+        Ret,
 
         // Moves and constant materializations
         LoadImm,
@@ -42,6 +43,7 @@ class MachineInstruction
         Load,
         Store,
         StackAlloc,
+        StackAddress,
     };
 
     enum CmpRelation {
@@ -86,10 +88,11 @@ class MachineInstruction
 
     void RemoveMemOperand();
 
-    void AddRegister(uint64_t Reg);
-    void AddImmediate(uint64_t Num);
+    void AddRegister(uint64_t Reg, unsigned BitWidth = 32);
+    void AddVirtualRegister(uint64_t Reg, unsigned BitWidth = 32);
+    void AddImmediate(uint64_t Num, unsigned BitWidth = 32);
     void AddMemory(uint64_t Id);
-    void AddStackAccess(uint64_t Slot, unsigned Size = 4);
+    void AddStackAccess(uint64_t Slot, unsigned Offset = 0);
     void AddLabel(const char *Label);
 
     bool IsFallThroughBranch() const { return Operands.size() == 2; }
@@ -97,7 +100,7 @@ class MachineInstruction
     bool IsStore() const { return Opcode == Store || (OtherAttributes & IsSTORE); }
     bool IsLoadOrStore() const { return IsLoad() || IsStore(); }
 
-    void Print() const;
+    void Print(TargetMachine *MI) const;
 
   private:
     unsigned Opcode = 0;

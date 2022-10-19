@@ -5,6 +5,7 @@
 #include "BackEnd/MachineInstruction.hpp"
 
 class MachineFunction;
+class TargetMachine;
 
 class MachineBasicBlock
 {
@@ -41,7 +42,7 @@ class MachineBasicBlock
     InstructionList::iterator ReplaceInstr(MachineInstruction MI,
                                            MachineInstruction *Replacable);
 
-    void Print() const;
+    void Print(TargetMachine *TM) const;
 
   private:
     std::string Name;
