@@ -11,6 +11,8 @@ namespace AArch64
         AArch64TargetMachine();
         ~AArch64TargetMachine() override {}
 
+        uint8_t GetPointerSize() override { return 64; }
+
         bool SelectAdd(MachineInstruction *MI) override;
         bool SelectSub(MachineInstruction *MI) override;
         bool SelectMul(MachineInstruction *MI) override;
@@ -22,6 +24,7 @@ namespace AArch64
         bool SelectLoadImm(MachineInstruction *MI) override;
         bool SelectLoad(MachineInstruction *MI) override;
         bool SelectStore(MachineInstruction *MI) override;
+        bool SelectStackAddress(MachineInstruction *MI) override;
         bool SelectBranch(MachineInstruction *MI) override;
         bool SelectJump(MachineInstruction *MI) override;
         bool SelectRet(MachineInstruction *MI) override;

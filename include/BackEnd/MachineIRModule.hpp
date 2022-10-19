@@ -15,10 +15,10 @@ class MachineIRModule
     FunctionList &GetFunctions() { return Functions; }
     MachineFunction *GetCurrentFunction() { return &Functions[Functions.size() - 1]; }
 
-    void Print() const
+    void Print(TargetMachine *TM) const
     {
         for (auto &F : Functions)
-            F.Print();
+            F.Print(TM);
     }
 
   private:
