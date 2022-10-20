@@ -5,8 +5,9 @@
 #include "MiddleEnd/IR/Module.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
 #include "MiddleEnd/IR/Function.hpp"
+#include <memory>
 
-BinaryInstruction *
+Instruction *
     IRFactory::CreateBinaryInstruction(Instruction::InstructionKind K, Value *L, Value *R)
 {
     auto Inst = std::make_unique<BinaryInstruction>(K, L, R, GetCurrentBB());
@@ -24,39 +25,52 @@ Instruction *IRFactory::Insert(std::unique_ptr<Instruction> I)
     return this->GetCurrentBB()->Insert(std::move(I));
 }
 
-BinaryInstruction *IRFactory::CreateAdd(Value *LHS, Value *RHS)
+Instruction *IRFactory::CreateAdd(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Add, LHS, RHS);
 }
 
-BinaryInstruction *IRFactory::CreateSub(Value *LHS, Value *RHS)
+Instruction *IRFactory::CreateSub(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Sub, LHS, RHS);
 }
 
-BinaryInstruction *IRFactory::CreateMul(Value *LHS, Value *RHS)
+Instruction *IRFactory::CreateMul(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Mul, LHS, RHS);
 }
 
-BinaryInstruction *IRFactory::CreateDiv(Value *LHS, Value *RHS)
+Instruction *IRFactory::CreateDiv(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Div, LHS, RHS);
 }
 
-BinaryInstruction *IRFactory::CreateMod(Value *LHS, Value *RHS)
+Instruction *IRFactory::CreateMod(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Mod, LHS, RHS);
 }
 
-BinaryInstruction *IRFactory::CreateOr(Value *LHS, Value *RHS)
+Instruction *IRFactory::CreateOr(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Or, LHS, RHS);
 }
 
-BinaryInstruction *IRFactory::CreateAnd(Value *LHS, Value *RHS)
+Instruction *IRFactory::CreateAnd(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::And, LHS, RHS);
+}
+
+UnaryInstruction *IRFactory::CreateMov(Value *Operand, uint8_t BitWidth)
+{
+    auto Inst = std::make_unique<UnaryInstruction>(
+        Instruction::Mov, IRType::CreateInt(BitWidth), Operand, GetCurrentBB());
+
+    Inst->SetId(ID++);
+    auto InstPtr = Inst.get();
+
+    Insert(std::move(Inst));
+
+    return InstPtr;
 }
 
 UnaryInstruction *IRFactory::CreateSExt(Value *Operand, uint8_t BitWidth)
@@ -141,6 +155,19 @@ StackAllocationInstruction *IRFactory::CreateSA(std::string Indentifier, IRType 
 
     Inst->SetId(ID++);
     CurrentModule.GetBB(0)->Insert(std::move(Inst));
+
+    return InstPtr;
+}
+
+GetElemPointerInstruction *
+    IRFactory::CreateGEP(IRType ResultType, Value *Source, Value *Index)
+{
+    auto Inst    = std::make_unique<GetElemPointerInstruction>(ResultType, Source, Index,
+                                                            GetCurrentBB());
+    auto InstPtr = Inst.get();
+
+    Inst->SetId(ID++);
+    Insert(std::move(Inst));
 
     return InstPtr;
 }

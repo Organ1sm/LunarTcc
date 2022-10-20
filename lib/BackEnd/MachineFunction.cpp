@@ -26,12 +26,12 @@ unsigned MachineFunction::GetNextAvailableVirtualRegister()
     return ++NextVirtualReg;
 }
 
-void MachineFunction::Print() const
+void MachineFunction::Print(TargetMachine *TM) const
 {
     std::cout << "Function: " << Name << std::endl;
     std::cout << "\tStackFrame: " << std::endl;
     SF.Print();
 
     for (auto &BB : BasicBlocks)
-        BB.Print();
+        BB.Print(TM);
 }

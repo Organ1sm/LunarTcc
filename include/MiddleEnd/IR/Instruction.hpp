@@ -10,6 +10,7 @@
 #include "MiddleEnd//IR/Value.hpp"
 
 class BasicBlock;
+class IRType;
 
 class Instruction : public Value
 {
@@ -41,7 +42,10 @@ class Instruction : public Value
         // Memory Operations.
         Load = Ret + 2,
         Store,
-        StackAlloc
+        StackAlloc,
+        GetELemPtr,
+
+        Mov,
     };
 
     static std::string AsString(InstructionKind IK);
@@ -228,6 +232,27 @@ class StackAllocationInstruction : public Instruction
     std::string VariableName;
 };
 
+class GetElemPointerInstruction : public Instruction
+{
+  public:
+    GetElemPointerInstruction(IRType T,
+                              Value *CompositeObject,
+                              Value *AccessIndex,
+                              BasicBlock *P)
+        : Instruction(Instruction::GetELemPtr, P, T), Source(CompositeObject),
+          Index(AccessIndex)
+    {}
+
+    Value *GetSource() const { return Source; }
+    Value *GetIndex() { return Index; }
+
+    void Print() const override;
+
+  private:
+    Value *Source;
+    Value *Index;
+};
+
 class StoreInstruction : public Instruction
 {
   public:
@@ -251,15 +276,16 @@ class LoadInstruction : public Instruction
     LoadInstruction(IRType T, Value *S, Value *O, BasicBlock *P)
         : Instruction(InstructionKind::Load, P, T), Source(S), Offset(O)
     {
-        this->GetTypeRef().SetPointerLevel(this->GetTypeRef().GetPointerLevel() - 1);
+        ConstructorHelper();
     }
 
     LoadInstruction(IRType T, Value *S, BasicBlock *P)
         : Instruction(InstructionKind::Load, P, T), Source(S), Offset(nullptr)
     {
-        this->GetTypeRef().SetPointerLevel(this->GetTypeRef().GetPointerLevel() - 1);
+        ConstructorHelper();
     }
 
+    void ConstructorHelper();
     Value *GetMemoryLocation() { return Source; }
 
     void Print() const override;

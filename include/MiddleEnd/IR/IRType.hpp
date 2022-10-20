@@ -6,6 +6,7 @@
 #define LUNARTCC_IRTYPE_HPP
 
 #include <cstdint>
+#include <vector>
 #include <string>
 #include <cassert>
 
@@ -18,26 +19,29 @@ class IRType
         FP,      // Float
         UInt,    // Unsigned Int
         SInt,    // Signed Int
-        Ptr      // Pointer
+        Ptr,     // Pointer
+        Struct
     };
 
     IRType() : Kind(Invalid), BitWidth(0) {}
     IRType(TKind kind) : Kind(kind), BitWidth(32) {}
     IRType(TKind kind, uint8_t bw) : Kind(kind), BitWidth(bw) {}
 
-    IRType(TKind kind, uint8_t bw, unsigned num)
-        : Kind(kind), BitWidth(bw), NumberOfElements(num)
-    {}
-
     void SetKind(TKind K) { Kind = K; }
     void SetToPointerKind() { Kind = Ptr; }
 
     uint8_t GetPointerLevel() const { return PointerLevel; }
-    void SetPointerLevel(uint8_t pl)
-    {
-        assert(pl < 10 && "Unrealistic pointer level");
-        PointerLevel = pl;
-    }
+    void SetPointerLevel(uint8_t pl);
+    void IncrementPointerLevel() { PointerLevel++; }
+    void DecrementPointerLevel();
+
+    void SetDimensions(const std::vector<unsigned> &N) { Dimensions = N; }
+    std::vector<unsigned> &GetDimensions() { return Dimensions; }
+
+    void SetStructName(std::string &N) { StructName = N; }
+    const std::string &GetStructName() const { return StructName; }
+
+    std::vector<IRType> &GetMemberTypes() { return MembersTypeList; }
 
     bool IsFP() const { return Kind == FP; }
     bool IsVoid() const { return Kind == None; }
@@ -46,10 +50,13 @@ class IRType
     bool IsInvalid() const { return Kind == Invalid; }
     bool IsInt() const { return IsSInt() || IsUInt(); }
     bool IsPointer() const { return PointerLevel > 0; }
+    bool IsStruct() const { return Kind == Struct; }
 
-    void SetNumberOfElements(unsigned N) { NumberOfElements = N; }
     std::size_t GetBitSize() const { return BitWidth; }
     std::size_t GetByteSize() const;
+
+    unsigned CalcElemSize(unsigned dim);
+    unsigned GetElemByteOffset(const unsigned StructElemIndex) const;
 
     IRType GetBaseType() const { return IRType(Kind, BitWidth); }
 
@@ -68,7 +75,9 @@ class IRType
     TKind Kind;
     uint8_t BitWidth;
     uint8_t PointerLevel {0};
-    unsigned NumberOfElements {1};
+    std::string StructName;
+    std::vector<IRType> MembersTypeList;
+    std::vector<unsigned> Dimensions;
 };
 
 #endif    // LUNARTCC_IRTYPE_HPP

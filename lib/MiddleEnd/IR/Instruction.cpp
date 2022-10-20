@@ -12,6 +12,15 @@ std::string &BranchInstruction::GetTrueLabelName() { return TrueTarget->GetName(
 
 std::string &BranchInstruction::GetFalseLabelName() { return FalseTarget->GetName(); }
 
+void LoadInstruction::ConstructorHelper()
+{
+    auto PtrLevel = this->GetTypeRef().GetPointerLevel();
+
+    if (PtrLevel != 0)
+        PtrLevel--;
+
+    this->GetTypeRef().SetPointerLevel(PtrLevel);
+}
 //=--------------------------------------------------------------------------=//
 //=------------------------- Print functions --------------------------=//
 //=--------------------------------------------------------------------------=//
@@ -57,8 +66,12 @@ std::string Instruction::AsString(Instruction::InstructionKind IK)
             return "store";
         case StackAlloc:
             return "salloc";
+        case GetELemPtr:
+            return "gep";
         case Cmp:
             return "cmp";
+        case Mov:
+            return "mov";
         default:
             assert(!"Unknown instruction kind.");
             break;
@@ -186,6 +199,18 @@ void StackAllocationInstruction::Print() const
 {
     std::cout << "\t" << AsString(InstKind) << "\t";
     std::cout << ValueString() << std::endl;
+}
+
+void GetElemPointerInstruction::Print() const
+{
+    std::cout << "\t" << AsString(InstKind) << "\t";
+    std::cout << ValueString() << ", ";
+    std::cout << Source->ValueString();
+
+    std::string Str = ", ";
+    Str += Index->ValueString();
+
+    std::cout << Str << std::endl;
 }
 
 void StoreInstruction::Print() const

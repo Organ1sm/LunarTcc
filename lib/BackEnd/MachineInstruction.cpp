@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include "BackEnd/MachineInstruction.hpp"
+#include "BackEnd/TargetMachine.hpp"
 
 void MachineInstruction::RemoveOperand(std::size_t Index)
 {
@@ -27,14 +28,19 @@ void MachineInstruction::RemoveMemOperand()
     assert(!"Nothing was removed");
 }
 
-void MachineInstruction::AddRegister(uint64_t Reg)
+void MachineInstruction::AddRegister(uint64_t Reg, unsigned BitWidth)
 {
-    AddOperand(MachineOperand::CreateRegister(Reg));
+    AddOperand(MachineOperand::CreateRegister(Reg, BitWidth));
 }
 
-void MachineInstruction::AddImmediate(uint64_t Num)
+void MachineInstruction::AddVirtualRegister(uint64_t Reg, unsigned BitWidth)
 {
-    AddOperand(MachineOperand::CreateImmediate(Num));
+    AddOperand(MachineOperand::CreateVirtualRegister(Reg, BitWidth));
+}
+
+void MachineInstruction::AddImmediate(uint64_t Num, unsigned BitWidth)
+{
+    AddOperand(MachineOperand::CreateImmediate(Num, BitWidth));
 }
 
 void MachineInstruction::AddMemory(uint64_t Id)
@@ -42,9 +48,9 @@ void MachineInstruction::AddMemory(uint64_t Id)
     AddOperand(MachineOperand::CreateMemory(Id));
 }
 
-void MachineInstruction::AddStackAccess(uint64_t Slot, unsigned Size)
+void MachineInstruction::AddStackAccess(uint64_t Slot, unsigned Offset)
 {
-    AddOperand(MachineOperand::CreateStackAccess(Slot));
+    AddOperand(MachineOperand::CreateStackAccess(Slot, Offset));
 }
 
 void MachineInstruction::AddLabel(const char *Label)
@@ -52,7 +58,7 @@ void MachineInstruction::AddLabel(const char *Label)
     AddOperand(MachineOperand::CreateLabel(Label));
 }
 
-void MachineInstruction::Print() const
+void MachineInstruction::Print(TargetMachine *TM) const
 {
     std::string OpcodeStr;
 
@@ -94,6 +100,12 @@ void MachineInstruction::Print() const
         case OperationCode::Store:
             OpcodeStr = "Store";
             break;
+        case OperationCode::StackAddress:
+            OpcodeStr = "StackAddress";
+            break;
+        case OperationCode::LoadImm:
+            OpcodeStr = "LoadImm";
+            break;
         case OperationCode::Load:
             OpcodeStr = "Load";
             break;
@@ -108,13 +120,15 @@ void MachineInstruction::Print() const
             break;
 
         default:
+            OpcodeStr = TM->GetInstrDefs()->GetInstrString(Opcode);
             break;
     }
 
-    std::cout << OpcodeStr << "\t";
+    std::string Spaces = std::string(16 - OpcodeStr.length(), ' ');
+    std::cout << OpcodeStr << Spaces;
     for (std::size_t i = 0; i < Operands.size(); i++)
     {
-        Operands[i].Print();
+        Operands[i].Print(TM);
         if (i < Operands.size() - 1)
             std::cout << ", ";
     }

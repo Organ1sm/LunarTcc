@@ -4,6 +4,7 @@
 #include <functional>
 #include <string>
 #include <set>
+#include <vector>
 
 class TargetRegister
 {
@@ -14,6 +15,7 @@ class TargetRegister
     unsigned GetID() const { return ID; }
 
     void SetBitWidth(unsigned BitWidth) { this->BitWidth = BitWidth; }
+    unsigned GetBitWidth() const { return BitWidth; }
 
     void SetName(std::string &N) { this->Name = N; }
     void SetName(const char *N) { this->Name = std::string(N); }
@@ -22,14 +24,21 @@ class TargetRegister
     void SetAlias(const char *N) { AliasName = N; }
     std::string &GetAlias() { return AliasName; }
 
-    static TargetRegister
-        Create(unsigned ID, unsigned BitWidth, const char *Name, const char *Alias)
+    void SetSubRegs(std::vector<unsigned> &N) { SubRegisters = N; }
+    std::vector<unsigned> &GetSubRegs() { return SubRegisters; }
+
+    static TargetRegister Create(unsigned ID,
+                                 unsigned BitWidth,
+                                 const char *Name,
+                                 const char *Alias,
+                                 std::vector<unsigned> SubRegs = {})
     {
         TargetRegister NewReg;
         NewReg.SetID(ID);
         NewReg.SetBitWidth(BitWidth);
         NewReg.SetName(Name);
         NewReg.SetAlias(Alias);
+        NewReg.SetSubRegs(SubRegs);
 
         return NewReg;
     }
@@ -39,6 +48,7 @@ class TargetRegister
     unsigned BitWidth = 0;
     std::string Name;
     std::string AliasName;
+    std::vector<unsigned> SubRegisters;
 };
 
 class RegisterClass

@@ -19,6 +19,9 @@ class TargetMachine
     RegisterInfo *GetRegInfo() { return RegInfo.get(); }
     TargetInstructionLegalizer *GetLegalizer() { return Legalizer.get(); }
 
+    // default = 32
+    virtual uint8_t GetPointerSize() { return 32; }
+
     bool SelectInstruction(MachineInstruction *MI);
 
     virtual bool SelectAdd(MachineInstruction *MI) { return false; }
@@ -32,6 +35,7 @@ class TargetMachine
     virtual bool SelectLoadImm(MachineInstruction *MI) { return false; }
     virtual bool SelectLoad(MachineInstruction *MI) { return false; }
     virtual bool SelectStore(MachineInstruction *MI) { return false; }
+    virtual bool SelectStackAddress(MachineInstruction *MI) { return false; }
     virtual bool SelectBranch(MachineInstruction *MI) { return false; }
     virtual bool SelectJump(MachineInstruction *MI) { return false; }
     virtual bool SelectRet(MachineInstruction *MI) { return false; }

@@ -25,7 +25,10 @@ unsigned StackFrame::GetPosition(unsigned int ID)
             return Position;
 
         // NOTE: Hard coded 4 byte alignment
-        Position += 4;    // Entry.second -> object size
+        if (Entry.second >= 4)
+            Position += Entry.second;
+        else
+            Position += 4;    // Entry.second -> object size
     }
 
     return ~0;    // Error;

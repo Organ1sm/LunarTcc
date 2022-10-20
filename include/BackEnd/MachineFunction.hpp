@@ -35,7 +35,7 @@ class MachineFunction
 
     bool IsStackSlot(unsigned ID) { return SF.IsStackSlot(ID); }
 
-    void Print() const;
+    void Print(TargetMachine *TM) const;
 
     /// Get the next available virtual register.
     unsigned GetNextAvailableVirtualRegister();

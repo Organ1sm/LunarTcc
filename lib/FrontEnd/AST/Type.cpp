@@ -4,100 +4,25 @@
 
 #include "FrontEnd/AST/Type.hpp"
 
-std::string Type::ToString(const Type::VariantKind vk)
+Type::Type(Type::TypeKind tk) : Kind(tk)
 {
-    switch (vk)
+    switch (tk)
     {
-        case Double:
-            return "double";
-        case Int:
-            return "int";
-        case Char:
-            return "char";
-        case Void:
-            return "void";
-        case Invalid:
-            return "invalid";
+        case Array:
+        case Struct:
+        case Function:
+            Ty = Composite;
+            break;
+        case Simple:
         default:
-            assert(false && "Unknown type.");
+            Ty = Invalid;
             break;
     }
 }
 
-bool Type::IsImplicitlyCastable(const Type::VariantKind from, const Type::VariantKind to)
+Type::Type(Type t, std::vector<unsigned> d) : Type(t)
 {
-    return (from == Int && to == Double) || (from == Double && to == Int)
-           || (from == Char && to == Int) || (from == Int && to == Char);
-}
-
-std::string ArrayType::ToString() const
-{
-    auto TypeStr = Type::ToString(Ty);
-
-    for (auto Dimension : Dimensions)
-        TypeStr += "[" + std::to_string(Dimension) + "]";
-
-    return TypeStr;
-}
-
-std::string FunctionType::ToString() const
-{
-    auto TypeStr = Type::ToString(GetReturnType());
-    auto ArgSize = ArgumentTypes.size();
-
-    if (ArgSize != 0)
-        TypeStr += " (";
-
-    for (std::size_t i = 0; i < ArgSize; i++)
-    {
-        TypeStr += Type::ToString(ArgumentTypes[i]);
-        if (i == ArgSize - 1)
-            break;
-
-        TypeStr += ", ";
-    }
-
-    if (ArgSize != 0)
-        TypeStr += ")";
-
-    return TypeStr;
-}
-
-std::string ComplexType::ToString() const
-{
-    if (Kind == Function)
-    {
-        auto TyStr   = Type::ToString(Ty);
-        auto ArgSize = ArgumentTypes.size();
-        if (ArgSize > 0)
-            TyStr += " (";
-        for (std::size_t i = 0; i < ArgSize; i++)
-        {
-            TyStr += Type::ToString(ArgumentTypes[i]);
-            if (i + 1 < ArgSize)
-                TyStr += ",";
-            else
-                TyStr += ")";
-        }
-        return TyStr;
-    }
-    else if (Kind == Array)
-    {
-        auto TyStr = Type::ToString(Ty);
-
-        for (auto Dimension : Dimensions)
-            TyStr += "[" + std::to_string(Dimension) + "]";
-        return TyStr;
-    }
-    else
-    {
-        return Type::ToString(Ty);
-    }
-}
-
-ComplexType::ComplexType(Type t, std::vector<unsigned int> d) : Type(t)
-{
-    if (d.size() == 0)
+    if (d.empty())
     {
         Kind = Simple;
     }
@@ -108,14 +33,136 @@ ComplexType::ComplexType(Type t, std::vector<unsigned int> d) : Type(t)
     }
 }
 
-ComplexType::ComplexType(Type t, std::vector<VariantKind> a)
+Type::Type(Type t, std::vector<Type> a)
 {
-    Ty            = t.GetTypeVariant();
-    Kind          = Function;
-    ArgumentTypes = std::move(a);
+    Kind     = Function;
+    TypeList = std::move(a);
+    Ty       = t.GetTypeVariant();
 }
 
-bool operator==(const ComplexType &lhs, const ComplexType &rhs)
+Type::Type(Type &&ct)
+{
+    PointerLevel = ct.PointerLevel;
+    Ty           = ct.Ty;
+    Kind         = ct.Kind;
+    Dimensions   = std::move(ct.Dimensions);
+    TypeList     = std::move(ct.TypeList);
+    Name         = ct.Name;
+}
+
+Type &Type::operator=(Type &&ct)
+{
+    PointerLevel = ct.PointerLevel;
+    Ty           = ct.Ty;
+    Kind         = ct.Kind;
+    Dimensions   = std::move(ct.Dimensions);
+    TypeList     = std::move(ct.TypeList);
+    Name         = ct.Name;
+
+    return *this;
+}
+
+Type::Type(const Type &ct)
+{
+    PointerLevel = ct.PointerLevel;
+    Ty           = ct.Ty;
+    Kind         = ct.Kind;
+    Dimensions   = ct.Dimensions;
+    TypeList     = ct.TypeList;
+    Name         = ct.Name;
+}
+
+Type &Type::operator=(const Type &ct)
+{
+    PointerLevel = ct.PointerLevel;
+    Ty           = ct.Ty;
+    Kind         = ct.Kind;
+    Dimensions   = ct.Dimensions;
+    TypeList     = ct.TypeList;
+    Name         = ct.Name;
+
+    return *this;
+}
+
+std::vector<unsigned> &Type::GetDimensions()
+{
+    assert(IsArray() && "Must be an Array type to access Dimensions.");
+    return Dimensions;
+}
+
+std::vector<Type> &Type::GetArgTypes()
+{
+    assert(IsFunction() && "Must be a Function type to access TypeList.");
+    return TypeList;
+}
+
+void Type::DecrementPointerLevel()
+{
+    assert(PointerLevel > 0 && "Cannot decrement below 0");
+    PointerLevel--;
+}
+
+std::string Type::ToString(const Type &t)
+{
+    switch (t.GetTypeVariant())
+    {
+        case Double:
+            return "double";
+        case Int:
+            return "int";
+        case Char:
+            return "char";
+        case Void:
+            return "void";
+        case Composite:
+            return t.GetName();
+        case Invalid:
+            return "invalid";
+        default:
+            assert(false && "Unknown type.");
+            break;
+    }
+}
+
+std::string Type::ToString() const
+{
+    if (Kind == Function)
+    {
+        auto TyStr   = Type::ToString(*this);
+        auto ArgSize = TypeList.size();
+        if (ArgSize > 0)
+            TyStr += " (";
+        for (size_t i = 0; i < ArgSize; i++)
+        {
+            TyStr += Type::ToString(TypeList[i]);
+            if (i + 1 < ArgSize)
+                TyStr += ",";
+            else
+                TyStr += ")";
+        }
+        return TyStr;
+    }
+    else if (Kind == Array)
+    {
+        auto TyStr = Type::ToString(*this);
+
+        for (size_t i = 0; i < Dimensions.size(); i++)
+            TyStr += "[" + std::to_string(Dimensions[i]) + "]";
+        return TyStr;
+    }
+    else
+    {
+        return Type::ToString(*this);
+    }
+}
+
+bool Type::IsImplicitlyCastable(const Type::VariantKind from, const Type::VariantKind to)
+{
+    return (from == Int && to == Double) || (from == Double && to == Int)
+           || (from == Char && to == Int) || (from == Int && to == Char);
+}
+
+bool operator==(const Type &lhs, const Type &rhs)
 {
     bool result = lhs.Kind == rhs.Kind && lhs.Ty == rhs.Ty;
 
@@ -124,54 +171,16 @@ bool operator==(const ComplexType &lhs, const ComplexType &rhs)
 
     switch (lhs.Kind)
     {
-        case ComplexType::Function:
-            result = result && (lhs.ArgumentTypes == rhs.ArgumentTypes);
+        case Type::Function:
+            result = result && (lhs.TypeList == rhs.TypeList);
             break;
-        case ComplexType::Array:
+        case Type::Array:
             result = result && (lhs.Dimensions == rhs.Dimensions);
             break;
         default:
             break;
     }
     return result;
-}
-
-ComplexType::ComplexType(ComplexType &&ct)
-{
-    Ty           = ct.Ty;
-    Kind         = ct.Kind;
-    PointerLevel = ct.PointerLevel;
-
-    if (ct.Kind == Array)
-        Dimensions = std::move(ct.Dimensions);
-    else if (ct.Kind == Function)
-        ArgumentTypes = std::move(ct.ArgumentTypes);
-}
-
-ComplexType::ComplexType(const ComplexType &ct)
-{
-    Ty           = ct.Ty;
-    Kind         = ct.Kind;
-    PointerLevel = ct.PointerLevel;
-
-    if (ct.Kind == Array)
-        Dimensions = ct.Dimensions;
-    else if (ct.Kind == Function)
-        ArgumentTypes = ct.ArgumentTypes;
-}
-
-ComplexType &ComplexType::operator=(const ComplexType &ct)
-{
-    Ty           = ct.Ty;
-    Kind         = ct.Kind;
-    PointerLevel = ct.PointerLevel;
-
-    if (ct.Kind == Array)
-        Dimensions = ct.Dimensions;
-    else if (ct.Kind == Function)
-        ArgumentTypes = ct.ArgumentTypes;
-
-    return *this;
 }
 
 bool operator==(const ValueType &lhs, const ValueType &rhs)

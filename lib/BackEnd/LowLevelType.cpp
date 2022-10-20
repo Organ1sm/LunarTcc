@@ -25,7 +25,7 @@ std::string LowLevelType::ToString() const
     else if (Type == LowLevelType::FloatingPoint)
         str = "f";
     else if (Type == LowLevelType::Pointer)
-        return "p";
+        str = "p";
 
     str += std::to_string(BitWidth);
 

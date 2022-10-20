@@ -25,6 +25,6 @@ namespace AArch64
         unsigned GetStackRegister() override;
 
       private:
-        TargetRegister Registers[35];
+        TargetRegister Registers[67];
     };
 }    // namespace AArch64
