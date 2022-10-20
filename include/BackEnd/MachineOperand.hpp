@@ -16,7 +16,8 @@ class MachineOperand
         MemoryAddress,
         StackAccess,
         Paramter,
-        Label
+        Label,
+        FunctionName,
     };
 
     MachineOperand() {}
@@ -27,6 +28,7 @@ class MachineOperand
     void SetTypeToRegister() { Type = Register; }
     void SetTypeToParameter() { Type = Paramter; }
     void SetTypeToStackAccess() { Type = StackAccess; }
+    void SetTypeToFunctionName() { Type = FunctionName; }
     void SetTypeToVirtualRegister() { Type = VirtualRegister; }
 
     int64_t GetReg() const { return Value; }
@@ -42,6 +44,7 @@ class MachineOperand
     void SetType(LowLevelType LLT) { this->LLT = LLT; }
     LowLevelType GetType() const { return LLT; }
 
+    const char *GetFunctionName() { return BelongToLabel; }
     const char *GetLabel() { return BelongToLabel; }
     void SetLabel(const char *L) { BelongToLabel = L; }
 
@@ -53,6 +56,7 @@ class MachineOperand
     bool IsImmediate() const { return Type == IntImmediate; }
     bool IsParameter() const { return Type == Paramter; }
     bool IsVirtualReg() const { return Type == VirtualRegister; }
+    bool IsFunctionName() const { return Type == FunctionName; }
     bool IsStackAccess() const { return Type == StackAccess; }
 
     static MachineOperand CreateRegister(uint64_t Reg, unsigned BitWidth = 32);
@@ -62,6 +66,7 @@ class MachineOperand
     static MachineOperand CreateStackAccess(uint64_t Slot, int Offset = 0);
     static MachineOperand CreateParameter(uint64_t Val);
     static MachineOperand CreateLabel(const char *Label);
+    static MachineOperand CreateFunctionName(const char* Label);
 
     void Print(TargetMachine *TM) const;
 

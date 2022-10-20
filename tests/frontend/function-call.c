@@ -1,3 +1,7 @@
-int bar(int a) { return 1; }
+// RUN: AArch64
+// FUNC-DECL: int test()
+// TEST-CASE: test() -> 3
 
-int foo() { return bar(1 + 2); }
+int callee(int a) { return 1 + a; }
+
+int test() { return callee(2); }

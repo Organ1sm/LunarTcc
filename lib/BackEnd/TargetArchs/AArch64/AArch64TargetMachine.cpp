@@ -184,6 +184,21 @@ bool AArch64TargetMachine::SelectTrunc(MachineInstruction *MI)
     return false;
 }
 
+bool AArch64TargetMachine::SelectMov(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 2 && "MOV must have exactly 2 operands");
+
+    if (MI->GetOperand(1)->IsImmediate())
+    {
+        assert(IsUInt<16>(MI->GetOperand(1)->GetImmediate())
+               && "Invalid immediate value");
+        MI->SetOpcode(MOV_ri);
+    }
+    else
+        MI->SetOpcode(MOV_rr);
+
+    return true;
+}
 
 bool AArch64TargetMachine::SelectLoadImm(MachineInstruction *MI)
 {
@@ -292,6 +307,12 @@ bool AArch64TargetMachine::SelectBranch(MachineInstruction *MI)
 bool AArch64TargetMachine::SelectJump(MachineInstruction *MI)
 {
     MI->SetOpcode(B);
+    return true;
+}
+
+bool AArch64TargetMachine::SelectCall(MachineInstruction *MI)
+{
+    MI->SetOpcode(BL);
     return true;
 }
 
