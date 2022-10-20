@@ -79,11 +79,16 @@ void AssemblyEmitter::GenerateAssembly()
                             std::to_string(CurrentOperand->GetImmediate());
                         AssemblyTemplateStr.replace(DollarPos, 2, ImmStr);
                     }
-                    else if (CurrentOperand->IsLabel())
+                    // Label and FunctionName (func call) case
+                    else if (CurrentOperand->IsLabel()
+                             || CurrentOperand->IsFunctionName())
                     {
-                        std::string Label = ".L";
-                        Label.append(CurrentOperand->GetLabel());
-                        AssemblyTemplateStr.replace(DollarPos, 2, Label);
+                        std::string Str = "";
+                        if (CurrentOperand->IsLabel())
+                            Str += ".L";
+
+                        Str.append(CurrentOperand->GetLabel());
+                        AssemblyTemplateStr.replace(DollarPos, 2, Str);
                     }
                     else
                     {

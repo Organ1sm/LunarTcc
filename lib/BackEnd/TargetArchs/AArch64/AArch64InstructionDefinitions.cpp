@@ -1,13 +1,14 @@
 #include "BackEnd/TargetArchs/AArch64/AArch64InstructionDefinitions.hpp"
+#include <cassert>
 
 using namespace AArch64;
 AArch64InstructionDefinitions::AArch64InstructionDefinitions()
 {
     InstrEnumStrings = {"ADD_rrr", "ADD_rri", "AND_rri",  "SUB_rrr",  "SUB_rri", "SUBS",
                         "MUL_rri", "MUL_rrr", "SDIV_rri", "SDIV_rrr", "CMP_ri",  "CMP_rr",
-                        "CSET",    "SXTB",    "MOV_rc",   "LDR",      "LDRB",    "STR",
-                        "STRB",    "BEQ",     "BNE",      "BGE",      "BGT",     "BLE",
-                        "BLT",     "B",       "RET"};
+                        "CSET",    "SXTB",    "MOV_rc",   "MOV_rr",   "LDR",     "LDRB",
+                        "STR",     "STRB",    "BEQ",      "BNE",      "BGE",     "BGT",
+                        "BLE",     "BLT",     "B",        "BL",       "RET"};
 }
 
 AArch64InstructionDefinitions::IRToTargetInstrMap
@@ -104,6 +105,12 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             "mov\t$1, #$2",
             {GPR, UIMM16}
         };
+        ret[MOV_rr] = {
+            MOV_rr,
+            32,
+            "mov\t$1, #$2",
+            {GPR, GPR}
+        };
         ret[LDR] = {
             LDR,
             32,
@@ -139,6 +146,7 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
         ret[BEQ] = {BEQ, 32, "b.eq\t$1", {SIMM21_LSB0}};
         ret[BNE] = {BNE, 32, "b.ne\t$1", {SIMM21_LSB0}};
         ret[B]   = {B, 32, "b\t$1", {SIMM21_LSB0}};
+        ret[BL]  = {BL, 32, "bl\t$1", {SIMM21_LSB0}};
         ret[RET] = {RET, 32, "ret", {}, TargetInstruction::Return};
 
         return ret;
@@ -154,5 +162,6 @@ TargetInstruction *AArch64InstructionDefinitions::GetTargetInstr(unsigned int Op
 
 std::string AArch64InstructionDefinitions::GetInstrString(unsigned int index)
 {
+    assert(index < InstrEnumStrings.size() && "Out of bound access.");
     return InstrEnumStrings[index];
 }

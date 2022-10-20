@@ -40,7 +40,7 @@ class Instruction : public Value
         Ret,
 
         // Memory Operations.
-        Load = Ret + 2,
+        Load = Ret + 3,
         Store,
         StackAlloc,
         GetELemPtr,

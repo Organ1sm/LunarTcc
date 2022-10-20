@@ -38,6 +38,7 @@ class MachineInstruction
 
         // Moves and constant materializations
         LoadImm,
+        Mov,
 
         // Memory Access
         Load,
@@ -94,6 +95,7 @@ class MachineInstruction
     void AddMemory(uint64_t Id);
     void AddStackAccess(uint64_t Slot, unsigned Offset = 0);
     void AddLabel(const char *Label);
+    void AddFunctionName(const char *Name);
 
     bool IsFallThroughBranch() const { return Operands.size() == 2; }
     bool IsLoad() const { return Opcode == Load || (OtherAttributes & IsLOAD); }

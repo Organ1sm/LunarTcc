@@ -29,6 +29,47 @@ MachineInstruction
     return Add;
 }
 
+void PrologueEpilogInsertion::InsertLinkRegisterSave(MachineFunction &Func)
+{
+    MachineInstruction STR(MachineInstruction::Store, nullptr);
+
+    auto LROffset = Func.GetStackObjectPosition(TM->GetRegInfo()->GetLinkRegister());
+    auto SPReg    = TM->GetRegInfo()->GetStackRegister();
+    auto Dest     = TM->GetRegInfo()->GetLinkRegister();
+
+    LROffset = GetNextAlignedValue(LROffset, 16);
+
+    STR.AddRegister(Dest);
+    STR.AddRegister(SPReg);
+    STR.AddImmediate(LROffset);
+
+    if (!TM->SelectInstruction(&STR))
+        assert(!"Unable to select instruction");
+
+    // Stack adjusting instruction already inserted at this point so this have
+    // to be inserted after it, hence the position 1
+    Func.GetBasicBlocks().front().InsertInstr(STR, 1);
+}
+
+void PrologueEpilogInsertion::InsertLinkRegisterReload(MachineFunction &Func)
+{
+    MachineInstruction LOAD(MachineInstruction::Load, nullptr);
+    auto LROffset = Func.GetStackObjectPosition(TM->GetRegInfo()->GetLinkRegister());
+    LROffset      = GetNextAlignedValue(LROffset, 16);
+    auto SPReg    = TM->GetRegInfo()->GetStackRegister();
+    auto Dest     = TM->GetRegInfo()->GetLinkRegister();
+
+    LOAD.AddRegister(Dest);
+    LOAD.AddRegister(SPReg);
+    LOAD.AddImmediate(LROffset);
+
+    if (!TM->SelectInstruction(&LOAD))
+        assert(!"Unable to select instruction");
+
+    auto &LastBB = Func.GetBasicBlocks().back();
+    LastBB.InsertInstr(LOAD, LastBB.GetInstructions().size() - 1);
+}
+
 void PrologueEpilogInsertion::InsertStackAdjustmentUpward(MachineFunction &Func)
 {
     unsigned StackAlignment = TM->GetABI()->GetStackAlignment();
@@ -59,8 +100,20 @@ void PrologueEpilogInsertion::Run()
 {
     for (auto &Func : MIRM->GetFunctions())
     {
-        /// TODO: handle spilled objects when spilling is implemented
+        if (Func.IsCaller())
+            Func.GetStackFrame().InsertStackSlot(TM->GetRegInfo()->GetLinkRegister(), 16);
+
+        if (Func.GetStackFrameSize() == 0)
+            continue;
+
         InsertStackAdjustmentUpward(Func);
+
+        if (Func.IsCaller())
+        {
+            InsertLinkRegisterSave(Func);
+            InsertLinkRegisterReload(Func);
+        }
+
         InsertStackAdjustmentDownward(Func);
     }
 }

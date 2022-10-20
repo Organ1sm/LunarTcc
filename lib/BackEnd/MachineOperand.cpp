@@ -71,6 +71,15 @@ MachineOperand MachineOperand::CreateLabel(const char *Label)
     return MO;
 }
 
+MachineOperand MachineOperand::CreateFunctionName(const char *Label)
+{
+    MachineOperand MO;
+    MO.SetTypeToFunctionName();
+    MO.SetLabel(Label);
+
+    return MO;
+}
+
 void MachineOperand::Print(TargetMachine *TM) const
 {
     switch (this->Type)
@@ -104,6 +113,9 @@ void MachineOperand::Print(TargetMachine *TM) const
             break;
         case MachineOperand::Label:
             std::cout << "<" << BelongToLabel << ">";
+            break;
+        case MachineOperand::FunctionName:
+            std::cout << "@" << BelongToLabel;
             break;
         default:
             break;

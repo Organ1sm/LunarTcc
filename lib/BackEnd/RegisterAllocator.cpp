@@ -196,76 +196,71 @@ void RegisterAllocator::RunRA()
                 }
         // if there is nothing to spill then nothing todo
         if (RegistersToSpill.size() == 0)
-            continue;
-
-        for (auto Reg : RegistersToSpill)
-            // TODO: Size should be the spilled register size, not hardcoded
-            Func.InsertStackSlot(Reg, 4);
-
-        for (auto &BB : Func.GetBasicBlocks())
         {
-            auto &Instructions = BB.GetInstructions();
+            for (auto Reg : RegistersToSpill)
+                // TODO: Size should be the spilled register size, not hardcoded
+                Func.InsertStackSlot(Reg, 4);
 
-            for (size_t i = 0; i < Instructions.size(); i++)
+            for (auto &BB : Func.GetBasicBlocks())
             {
-                // Check operands which use the register (the first operand defining the
-                // reg the rest uses regs)
-                for (size_t OpIndex = 1; OpIndex < Instructions[i].GetOperands().size();
-                     OpIndex++)
-                {
-                    auto &Operand = Instructions[i].GetOperands()[OpIndex];
-                    auto UsedReg  = Operand.GetReg();
+                auto &Instructions = BB.GetInstructions();
 
-                    // if the used register is not spilled, then nothing to do
-                    if (RegistersToSpill.count(UsedReg) == 0)
+                for (size_t i = 0; i < Instructions.size(); i++)
+                {
+                    // Check operands which use the register (the first operand defining
+                    // the reg the rest uses regs)
+                    for (size_t OpIndex = 1;
+                         OpIndex < Instructions[i].GetOperands().size(); OpIndex++)
+                    {
+                        auto &Operand = Instructions[i].GetOperands()[OpIndex];
+                        auto UsedReg  = Operand.GetReg();
+
+                        // if the used register is not spilled, then nothing to do
+                        if (RegistersToSpill.count(UsedReg) == 0)
+                            continue;
+
+                        ////// Insert a LOAD
+
+                        // First make the operand into a physical register which using
+                        // the register used for the spilling
+                        Operand.SetTypeToRegister();
+                        Operand.SetReg(RegisterPool[OpIndex]);
+
+                        auto Load = MachineInstruction(MachineInstruction::Load, &BB);
+                        /// NOTE: 3 register left in pool using the 2nd and 3rd for uses
+                        Load.AddRegister(RegisterPool[OpIndex]);
+                        Load.AddStackAccess(UsedReg);
+                        TM->SelectInstruction(&Load);
+
+                        BB.InsertInstr(std::move(Load), i++);
+                    }
+
+                    /// Insert STORE if needed
+                    auto &Operand = Instructions[i].GetOperands()[0];
+                    auto DefReg   = Operand.GetReg();
+
+                    if (RegistersToSpill.count(DefReg) == 0)
                         continue;
 
-                    ////// Insert a LOAD
-
-                    // First make the operand into a physical register which using
-                    // the register used for the spilling
                     Operand.SetTypeToRegister();
-                    Operand.SetReg(RegisterPool[OpIndex]);
+                    Operand.SetReg(RegisterPool[0]);
 
-                    auto Load = MachineInstruction(MachineInstruction::Load, &BB);
-                    /// NOTE: 3 register left in pool using the 2nd and 3rd for uses
-                    Load.AddRegister(RegisterPool[OpIndex]);
-                    Load.AddStackAccess(UsedReg);
-                    TM->SelectInstruction(&Load);
+                    auto Store = MachineInstruction(MachineInstruction::Store, &BB);
 
-                    BB.InsertInstr(std::move(Load), i++);
+                    Store.AddStackAccess(DefReg);
+                    /// NOTE: 3 register left in pool using the 1st for def
+                    Store.AddRegister(RegisterPool[0]);
+                    TM->SelectInstruction(&Store);
+
+                    BB.InsertInstr(std::move(Store), ++i);
                 }
-
-                /// Insert STORE if needed
-                auto &Operand = Instructions[i].GetOperands()[0];
-                auto DefReg   = Operand.GetReg();
-
-                if (RegistersToSpill.count(DefReg) == 0)
-                    continue;
-
-                Operand.SetTypeToRegister();
-                Operand.SetReg(RegisterPool[0]);
-
-                auto Store = MachineInstruction(MachineInstruction::Store, &BB);
-
-                Store.AddStackAccess(DefReg);
-                /// NOTE: 3 register left in pool using the 1st for def
-                Store.AddRegister(RegisterPool[0]);
-                TM->SelectInstruction(&Store);
-
-                BB.InsertInstr(std::move(Store), ++i);
             }
         }
-    }
 
-    // FIXME: Move this out from here and make it a PostRA Pass
-    // After RA lower the stack accessing operands to their final
-    // form based on the final stack frame.
-    for (auto &Func : MIRM->GetFunctions())
-    {
-        unsigned StackFrameSize = Func.GetStackFrameSize();
-        StackFrameSize =
-            GetNextAlignedValue(StackFrameSize, TM->GetABI()->GetStackAlignment());
+
+        // FIXME: Move this out from here and make it a PostRA Pass
+        // After RA lower the stack accessing operands to their final
+        // form based on the final stack frame.
 
         for (auto &BB : Func.GetBasicBlocks())
             for (auto &Instr : BB.GetInstructions())
@@ -296,8 +291,9 @@ void RegisterAllocator::RunRA()
                     {
                         auto BaseReg = Operand.GetReg();
                         auto Offset  = 0;
-                        auto RegSize =
-                            TM->GetRegInfo()->GetRegister(AllocatedRegisters[BaseReg])->GetBitWidth();
+                        auto RegSize = TM->GetRegInfo()
+                                           ->GetRegister(AllocatedRegisters[BaseReg])
+                                           ->GetBitWidth();
 
 
                         Instr.RemoveMemOperand();

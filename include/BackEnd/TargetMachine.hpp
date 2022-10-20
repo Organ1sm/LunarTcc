@@ -32,10 +32,12 @@ class TargetMachine
     virtual bool SelectCmp(MachineInstruction *MI) { return false; }
     virtual bool SelectSExt(MachineInstruction *MI) { return false; }
     virtual bool SelectTrunc(MachineInstruction *MI) { return false; }
+    virtual bool SelectMov(MachineInstruction *MI) { return false; }
     virtual bool SelectLoadImm(MachineInstruction *MI) { return false; }
     virtual bool SelectLoad(MachineInstruction *MI) { return false; }
     virtual bool SelectStore(MachineInstruction *MI) { return false; }
     virtual bool SelectStackAddress(MachineInstruction *MI) { return false; }
+    virtual bool SelectCall(MachineInstruction *MI) { return false; }
     virtual bool SelectBranch(MachineInstruction *MI) { return false; }
     virtual bool SelectJump(MachineInstruction *MI) { return false; }
     virtual bool SelectRet(MachineInstruction *MI) { return false; }

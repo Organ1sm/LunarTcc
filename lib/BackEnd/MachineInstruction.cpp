@@ -58,6 +58,11 @@ void MachineInstruction::AddLabel(const char *Label)
     AddOperand(MachineOperand::CreateLabel(Label));
 }
 
+void MachineInstruction::AddFunctionName(const char *Name)
+{
+    AddOperand(MachineOperand::CreateFunctionName(Name));
+}
+
 void MachineInstruction::Print(TargetMachine *TM) const
 {
     std::string OpcodeStr;
@@ -103,11 +108,17 @@ void MachineInstruction::Print(TargetMachine *TM) const
         case OperationCode::StackAddress:
             OpcodeStr = "StackAddress";
             break;
+        case OperationCode::Mov:
+            OpcodeStr = "Mov";
+            break;
         case OperationCode::LoadImm:
             OpcodeStr = "LoadImm";
             break;
         case OperationCode::Load:
             OpcodeStr = "Load";
+            break;
+        case OperationCode::Call:
+            OpcodeStr = "Call";
             break;
         case OperationCode::Jump:
             OpcodeStr = "Jump";
