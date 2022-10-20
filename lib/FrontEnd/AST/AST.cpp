@@ -415,9 +415,14 @@ Value *ArrayExpression::IRCodegen(IRFactory *IRF)
     auto IndexValue = IndexExpression->IRCodegen(IRF);
 
     auto ArrayBaseType = BaseValue->GetType().GetBaseType();
-    // ArrayBaseType.IncrementPointerLevel();
+    ArrayBaseType.IncrementPointerLevel();
 
-    return nullptr;
+    auto GEP = IRF->CreateGEP(ArrayBaseType, BaseValue, IndexValue);
+
+    if (!GetLValueness())
+        return IRF->CreateLoad(ArrayBaseType, GEP);
+
+    return GEP;
 }
 
 Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)

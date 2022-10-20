@@ -95,4 +95,5 @@ void AssemblyEmitter::GenerateAssembly()
             }
         }
     }
+    std::cout << std::endl;
 }
