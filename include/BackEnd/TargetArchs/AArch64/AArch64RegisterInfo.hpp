@@ -22,6 +22,7 @@ namespace AArch64
         TargetRegister *GetRegisterByID(unsigned i) override;
 
         unsigned GetFrameRegister() override;
+        unsigned GetLinkRegister() override;
         unsigned GetStackRegister() override;
 
       private:

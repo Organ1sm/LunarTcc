@@ -6,6 +6,7 @@
 #include "BackEnd/MachineIRModule.hpp"
 #include "BackEnd/IRtoLLIR.hpp"
 #include "BackEnd/LowLevelType.hpp"
+#include "BackEnd/Support.hpp"
 #include "BackEnd/TargetMachine.hpp"
 #include "BackEnd/TargetInstructionLegalizer.hpp"
 #include "FrontEnd/AST/AST.hpp"
@@ -194,6 +195,58 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
         ADD.AddImmediate(ConstantIndexPart, Dest.GetSize());
 
         return ADD;
+    }
+    // Call Instruction: call Result functionName(param1, ...)
+    else if (auto I = dynamic_cast<CallInstruction *>(Instr); I != nullptr)
+    {
+        // The function has a call Instruction
+        ParentFunction->SetToCaller();
+
+        // insert copy/Mov -s for each paramter to move them to the right registers
+        // ignoring the case when there is too much paramter and has to pass
+        // some parameters on the stack
+
+        auto &TargetArgRegs   = TM->GetABI()->GetArgumentRegisters();
+        unsigned ParamCounter = 0;
+
+        for (auto *Param : I->GetArgs())
+        {
+            MachineInstruction Ins;
+
+            if (Param->GetTypeRef().IsStruct())
+            {
+                // how many register are used to pass this struct
+                unsigned StructBitSize = (Param->GetTypeRef().GetByteSize() * 8);
+                unsigned MaxRegSize    = TM->GetPointerSize();
+                unsigned RegsCount =
+                    GetNextAlignedValue(StructBitSize, MaxRegSize) / MaxRegSize;
+
+                for (std::size_t i = 0; i < RegsCount; i++)
+                {
+                    Ins = MachineInstruction(MachineInstruction::Load, BB);
+
+                    Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
+                                    TargetArgRegs[ParamCounter]->GetBitWidth());
+                    Ins.AddStackAccess(Param->GetID(), i * (TM->GetPointerSize() / 8));
+
+                    BB->InsertInstr(Ins);
+                    ParamCounter++;
+                }
+            }
+            else
+            {
+                Ins = MachineInstruction(MachineInstruction::Mov, BB);
+
+                Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
+                                TargetArgRegs[ParamCounter]->GetBitWidth());
+                Ins.AddOperand(GetMachineOperandFromValue(Param, TM));
+
+                BB->InsertInstr(Ins);
+                ParamCounter++;
+            }
+        }
+        ResultMI.AddFunctionName(I->GetName().c_str());
+
     }
     // Jump Instruction: Jump Label
     else if (auto I = dynamic_cast<JumpInstruction *>(Instr); I != nullptr)

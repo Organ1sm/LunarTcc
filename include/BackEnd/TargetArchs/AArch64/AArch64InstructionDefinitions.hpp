@@ -23,6 +23,7 @@ namespace AArch64
         CSET,
         SXTB,
         MOV_ri,
+        MOV_rr,
         LDR,
         LDRB,
         STR,
@@ -34,6 +35,7 @@ namespace AArch64
         BLE,
         BLT,
         B,
+        BL,
         RET,
     };
 

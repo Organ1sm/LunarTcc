@@ -19,14 +19,14 @@ unsigned StackFrame::GetPosition(unsigned int ID)
     assert(IsStackSlot(ID) && "Must be a valid stack slot ID.");
 
     unsigned Position = 0;
-    for (const auto &Entry : StackSlots)
+    for (const auto &[ObjectID, ObjectSize] : StackSlots)
     {
-        if (Entry.first == ID)
+        if (ObjectID == ID)
             return Position;
 
         // NOTE: Hard coded 4 byte alignment
-        if (Entry.second >= 4)
-            Position += Entry.second;
+        if (ObjectSize >= 4)
+            Position += ObjectSize;
         else
             Position += 4;    // Entry.second -> object size
     }

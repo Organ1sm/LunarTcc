@@ -14,9 +14,12 @@ AArch64TargetABI::AArch64TargetABI(RegisterInfo *RI)
         CallerSavedRegisters.push_back(RI->GetRegister(i));
         ReturnRegisters.push_back(RI->GetRegister(i));
     }
+
     // sp reg
     CalleeSavedRegisters.push_back(RI->GetRegister(RI->GetStackRegister()));
     // fp reg
+    CalleeSavedRegisters.push_back(RI->GetRegister(RI->GetFrameRegister()));
+    // lr reg
     CalleeSavedRegisters.push_back(RI->GetRegister(RI->GetFrameRegister()));
 
     // x19 - x28 regs

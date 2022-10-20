@@ -16,7 +16,9 @@ class PrologueEpilogInsertion
     void Run();
 
     MachineInstruction CreateAddInstruction(int64_t StackAdjustmentSize);
-    MachineInstruction CreateLoadInstruction(unsigned Source, int64_t Offset);
+
+    void InsertLinkRegisterSave(MachineFunction &Func);
+    void InsertLinkRegisterReload(MachineFunction &Func);
 
     void InsertStackAdjustmentUpward(MachineFunction &Func);
     void InsertStackAdjustmentDownward(MachineFunction &Func);

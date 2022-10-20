@@ -442,7 +442,6 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
     else
         assert(!"Invalid conversion.");
 
-
     return nullptr;
 }
 
@@ -585,6 +584,29 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
 
     if (L == nullptr || R == nullptr)
         return nullptr;
+
+
+    if (L->IsConstant() && !R->IsConstant())
+    {
+        // and if its a commutative operation
+        switch (GetOperationKind())
+        {
+                // then swap the operands, since most architecture supports immediate
+                // as the last operand.
+                // Ex.:
+                //      AArch64 add x0, x1, #123 not add x0, #123, x1
+            case Add:
+            case Mul:
+            case And:
+            case Equal:
+            case NotEqual:
+                std::swap(L, R);
+                break;
+            default:
+                break;
+        }
+    }
+
     switch (GetOperationKind())
     {
         case Add:

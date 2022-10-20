@@ -21,6 +21,9 @@ class MachineFunction
     std::string &GetName() { return Name; }
     void SetName(std::string &Name) { this->Name = Name; }
 
+    void SetToCaller() { HasCall = true; }
+    bool IsCaller() const { return HasCall; }
+
     void InsertStackSlot(unsigned ID, unsigned Size) { SF.InsertStackSlot(ID, Size); }
     void InsertParameter(unsigned ID, LowLevelType LLT)
     {
@@ -28,6 +31,7 @@ class MachineFunction
     }
 
     ParamList GetParameters() { return Parameters; }
+    StackFrame &GetStackFrame() { return SF; }
 
     unsigned GetStackFrameSize() { return SF.GetSize(); }
     unsigned GetStackObjectPosition(unsigned ID) { return SF.GetPosition(ID); }
@@ -46,4 +50,7 @@ class MachineFunction
     ParamList Parameters;
     BasicBlockList BasicBlocks;
     unsigned NextVirtualReg = 0;
+
+    /// Predicate to signal if the function is calling other functions or not
+    bool HasCall {false};
 };
