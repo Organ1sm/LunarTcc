@@ -17,7 +17,7 @@
 #include "MiddleEnd/IR/Module.hpp"
 
 
-MachineOperand GetMachineOperandFromValue(Value *Val, TargetMachine *TM)
+MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, TargetMachine *TM)
 {
     if (Val->IsRegister())
     {
@@ -106,31 +106,63 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
         if (I->GetSavedValue()->GetTypeRef().IsStruct()
             && !I->GetSavedValue()->GetTypeRef().IsPointer())
         {
-            unsigned RegSize = TM->GetPointerSize();
-            auto StructName =
-                static_cast<FunctionParameter *>(I->GetSavedValue())->GetName();
-
-            assert(!StructToRegMap[StructName].empty() && "Unknown struct name");
-
-            MachineInstruction CurrentStore;
-            unsigned Counter = 0;
-
-            // Create Store for the Register which holds the struct parts
-            for (auto ParamId : StructToRegMap[StructName])
+            if (auto FP = dynamic_cast<FunctionParameter *>(I->GetSavedValue());
+                FP != nullptr)
             {
-                CurrentStore = MachineInstruction(MachineInstruction::Store, BB);
+                unsigned RegSize = TM->GetPointerSize();
+                auto StructName  = FP->GetName();
 
-                CurrentStore.AddStackAccess(AddressReg, Counter * RegSize / 8);
-                CurrentStore.AddVirtualRegister(ParamId, RegSize);
+                assert(!StructToRegMap[StructName].empty() && "Unknown struct name");
 
-                Counter++;
+                MachineInstruction CurrentStore;
+                unsigned Counter = 0;
 
-                // insert all the stores but the last one, that will be the return value
-                if (Counter < StructToRegMap[StructName].size())
-                    BB->InsertInstr(CurrentStore);
+                // Create Store for the Register which holds the struct parts
+                for (auto ParamId : StructToRegMap[StructName])
+                {
+                    CurrentStore = MachineInstruction(MachineInstruction::Store, BB);
+
+                    CurrentStore.AddStackAccess(AddressReg, Counter * RegSize / 8);
+                    CurrentStore.AddVirtualRegister(ParamId, RegSize);
+
+                    Counter++;
+
+                    // insert all the stores but the last one, that will be the return
+                    // value
+                    if (Counter < StructToRegMap[StructName].size())
+                        BB->InsertInstr(CurrentStore);
+                }
+
+                return CurrentStore;
             }
+            // Handle other cases, like when the structure is a return value from a
+            // function
+            else
+            {
+                unsigned StructBitSize =
+                    (I->GetSavedValue()->GetTypeRef().GetByteSize() * 8);
+                unsigned MaxRegSize = TM->GetPointerSize();
+                unsigned RegsCount =
+                    GetNextAlignedValue(StructBitSize, MaxRegSize) / MaxRegSize;
 
-            return CurrentStore;
+                auto &RetRegs = TM->GetABI()->GetReturnRegisters();
+
+                assert(RegsCount <= RetRegs.size());
+
+                MachineInstruction Store;
+                for (std::size_t i = 0; i < RegsCount; i++)
+                {
+                    Store = MachineInstruction(MachineInstruction::Store, BB);
+
+                    Store.AddStackAccess(AddressReg, (TM->GetPointerSize() / 8) * i);
+                    Store.AddRegister(RetRegs[i]->GetID(), TM->GetPointerSize());
+
+                    if (i == (RegsCount - 1))
+                        return Store;
+
+                    BB->InsertInstr(Store);
+                }
+            }
         }
         else
         {
@@ -246,7 +278,6 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
             }
         }
         ResultMI.AddFunctionName(I->GetName().c_str());
-
     }
     // Jump Instruction: Jump Label
     else if (auto I = dynamic_cast<JumpInstruction *>(Instr); I != nullptr)
@@ -300,6 +331,65 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
     {
         auto Result = GetMachineOperandFromValue(I->GetRetVal(), TM);
         ResultMI.AddOperand(Result);
+
+
+        // insert load to load in the return val to the return registers
+        auto &TargetRetRegs = TM->GetABI()->GetReturnRegisters();
+        if (I->GetRetVal()->GetTypeRef().IsStruct())
+        {
+            // how many register are used to pass this struct
+            unsigned StructBitSize = (I->GetRetVal()->GetTypeRef().GetByteSize() * 8);
+            unsigned MaxRegSize    = TM->GetPointerSize();
+            unsigned RegsCount =
+                GetNextAlignedValue(StructBitSize, MaxRegSize) / MaxRegSize;
+
+            for (size_t i = 0; i < RegsCount; i++)
+            {
+                auto Instr = MachineInstruction(MachineInstruction::Load, BB);
+
+                Instr.AddRegister(TargetRetRegs[i]->GetID(),
+                                  TargetRetRegs[i]->GetBitWidth());
+                Instr.AddStackAccess(I->GetRetVal()->GetID(),
+                                     i * (TM->GetPointerSize() / 8));
+
+                BB->InsertInstr(Instr);
+            }
+        }
+        else if (I->GetRetVal()->IsConstant())
+        {
+            auto &RetRegs = TM->GetABI()->GetReturnRegisters();
+            auto LoadImm  = MachineInstruction(MachineInstruction::LoadImm, BB);
+
+            LoadImm.AddRegister(RetRegs[0]->GetID(), RetRegs[0]->GetBitWidth());
+            LoadImm.AddOperand(GetMachineOperandFromValue(I->GetRetVal(), TM));
+
+            BB->InsertInstr(LoadImm);
+        }
+    }
+    else if (auto I = dynamic_cast<MemoryCopyInstruction *>(Instr); I != nullptr)
+    {
+        // lower this into load and store pairs if used with structs lower then
+        // a certain size (for now be it the size which can be passed by value)
+        // otherwise create a call maybe to an intrinsic memcopy function
+        for (size_t i = 0; i < (I->GetSize() / /* TODO: use alignment here */ 4); i++)
+        {
+            auto Load    = MachineInstruction(MachineInstruction::Load, BB);
+            auto NewVReg = ParentFunction->GetNextAvailableVirtualRegister();
+            Load.AddRegister(NewVReg, /* TODO: use alignment here */ 32);
+            Load.AddStackAccess(I->GetSource()->GetID(),
+                                i * /* TODO: use alignment here */ 4);
+            BB->InsertInstr(Load);
+
+            auto Store = MachineInstruction(MachineInstruction::Store, BB);
+            Store.AddStackAccess(I->GetDestination()->GetID(),
+                                 i * /* TODO: use alignment here */ 4);
+            Store.AddRegister(NewVReg, /* TODO: use alignment here */ 32);
+            // TODO: Change the function so it does not return the instruction but
+            // insert it in the function so don't have to do these annoying returns
+            if (i == ((I->GetSize() / /* TODO: use alignment here */ 4) - 1))
+                return Store;
+            BB->InsertInstr(Store);
+        }
     }
     else
     {
