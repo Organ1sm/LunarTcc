@@ -357,6 +357,14 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
 
     {
         auto ArgIR = Arg->IRCodegen(IRF);
+        auto IRTy  = ArgIR->GetTypeRef();
+        auto ArgTy = Arg->GetResultType();
+
+        if (IRTy.IsStruct() && IRTy.IsPointer() && ArgTy.IsStruct()
+            && !ArgTy.IsPointerType())
+        {
+            ArgIR = IRF->CreateLoad(ArgIR->GetType(), ArgIR);
+        }
 
         Args.push_back(ArgIR);
     }
