@@ -280,6 +280,11 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
 
     switch (FuncType.GetReturnType())
     {
+        case Type::Composite:
+            if (FuncType.IsStruct())
+                ReturnType = GetIRTypeFromASTType(FuncType);
+            else 
+                assert(!"Unhandled Return Type.");
         case Type::Char:
             ReturnType = IRType(IRType::SInt, 8);
             break;
@@ -760,7 +765,6 @@ Type FunctionDeclaration::CreateType(const Type &t,
                                      const FunctionDeclaration::ParamVec &params)
 {
     Type funcType(t);
-    funcType.SetTypeKind(Type::Function);
 
     for (auto &Argument : params)
     {

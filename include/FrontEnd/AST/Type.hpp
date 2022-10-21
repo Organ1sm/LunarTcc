@@ -6,7 +6,7 @@
 #include <string>
 #include <cassert>
 
-/// TODO: The types here should be subdivided into categories as before, 
+/// TODO: The types here should be subdivided into categories as before,
 /// type class is too bloated.
 class Type
 {
@@ -24,7 +24,6 @@ class Type
     enum TypeKind {
         Simple,
         Array,
-        Function,
         Struct
     };
 
@@ -38,8 +37,8 @@ class Type
     Type(Type &&);
     Type &operator=(Type &&);
 
-    Type(const Type &);
-    Type &operator=(const Type &);
+    Type(const Type &)            = default;
+    Type &operator=(const Type &) = default;
 
     std::string GetName() const { return Name; }
     void SetName(std::string &n) { Name = n; }
@@ -56,6 +55,7 @@ class Type
     uint8_t GetPointerLevel() const { return PointerLevel; }
     void SetPointerLevel(uint8_t pl) { PointerLevel = pl; }
 
+    std::vector<Type> &GetParamList() { return ParamList; }
     std::vector<unsigned> &GetDimensions();
     std::vector<Type> &GetArgTypes();
 
@@ -65,7 +65,7 @@ class Type
     bool IsPointerType() const { return PointerLevel != 0; }
     bool IsSimpleType() const { return Kind == Simple; }
     bool IsArray() const { return Kind == Array; }
-    bool IsFunction() const { return Kind == Function; }
+    bool IsFunction() const { return ParamList.empty(); }
     bool IsStruct() const { return Kind == Struct; }
 
     friend bool operator==(const Type &lhs, const Type &rhs);
@@ -87,6 +87,7 @@ class Type
 
     TypeKind Kind;
     std::vector<Type> TypeList;
+    std::vector<Type> ParamList;
     std::vector<unsigned> Dimensions;
 };
 
