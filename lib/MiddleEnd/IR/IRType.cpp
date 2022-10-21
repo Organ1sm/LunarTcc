@@ -100,5 +100,5 @@ std::string IRType::AsString() const
     for (auto i = 0; i < PointerLevel; i++)
         PtrStr += "*";
 
-    return PtrStr + Str;
+    return Str + PtrStr;
 }
