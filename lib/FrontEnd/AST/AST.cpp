@@ -354,7 +354,12 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
     std::vector<Value *> Args;
 
     for (auto &Arg : Arguments)
-        Args.push_back(Arg->IRCodegen(IRF));
+
+    {
+        auto ArgIR = Arg->IRCodegen(IRF);
+
+        Args.push_back(ArgIR);
+    }
 
     auto ReturnType = GetResultType().GetReturnType();
 

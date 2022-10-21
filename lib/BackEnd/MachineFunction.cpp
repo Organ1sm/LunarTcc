@@ -2,15 +2,29 @@
 #include "BackEnd/MachineFunction.hpp"
 #include "BackEnd/MachineInstruction.hpp"
 
+void MachineFunction::InsertStackSlot(unsigned int ID, unsigned int Size)
+{
+    if (NextVirtualReg < ID)
+        NextVirtualReg = ID;
+
+    SF.InsertStackSlot(ID, Size);
+}
+
+void MachineFunction::InsertParameter(unsigned int ID, LowLevelType LLT)
+{
+    Parameters.push_back({ID, LLT});
+}
+
 unsigned MachineFunction::GetNextAvailableVirtualRegister()
 {
-    // If the next virtual register was computed already once, then just
-    // increment it
-    if (NextVirtualReg != 0)
-        return NextVirtualReg++;
-
     // If this function was called the first time then here the highest virtual
     // register ID is searched and NextVReg is set to that.
+    for (auto &[ParamID, ParamLLT] : Parameters)
+    {
+        if (ParamID > NextVirtualReg)
+            NextVirtualReg = ParamID;
+    }
+
     for (auto &BB : BasicBlocks)
     {
         for (auto &Instr : BB.GetInstructions())
@@ -23,7 +37,7 @@ unsigned MachineFunction::GetNextAvailableVirtualRegister()
         }
     }
 
-    return ++NextVirtualReg;
+    return NextVirtualReg + 1;
 }
 
 void MachineFunction::Print(TargetMachine *TM) const

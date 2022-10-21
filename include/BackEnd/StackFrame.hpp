@@ -11,6 +11,7 @@ class StackFrame
     StackFrame() {}
 
     unsigned GetSize() const { return ObjectSize; }
+    unsigned GetEntriesCount() const { return StackSlots.size(); }
 
     // FIXME: Size should be incremented way more sophistaced way. For
     // example having four 1 byte size objects on the stack, but we

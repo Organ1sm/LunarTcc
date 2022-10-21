@@ -125,6 +125,8 @@ console.print("|\t", len(failedTests), "   [red]FAIL[/red]", "\t\t|")
 console.print("---------------------------------\n")
 
 style = "bold yellow"
-print("Failed:")
+if len(failedTests) > 0:
+    print("Failed:")
+
 for case in failedTests:
     console.print("   ", case, style=style)
