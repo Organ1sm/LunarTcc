@@ -193,6 +193,19 @@ LoadInstruction *IRFactory::CreateLoad(IRType ResultType, Value *Source, Value *
     return InstPtr;
 }
 
+MemoryCopyInstruction *
+    IRFactory::CreateMemCopy(Value *Destination, Value *Source, std::size_t Bytes)
+{
+    auto Inst    = std::make_unique<MemoryCopyInstruction>(Destination, Source, Bytes,
+                                                        GetCurrentBB());
+    auto InstPtr = Inst.get();
+
+    Inst->SetId(ID++);
+    Insert(std::move(Inst));
+
+    return InstPtr;
+}
+
 CompareInstruction *IRFactory::CreateCmp(CompareInstruction::CompareRelation Relation,
                                          Value *LHS,
                                          Value *RHS)
