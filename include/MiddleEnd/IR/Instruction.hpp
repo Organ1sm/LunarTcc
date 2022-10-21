@@ -42,6 +42,7 @@ class Instruction : public Value
         // Memory Operations.
         Load = Ret + 3,
         Store,
+        MemCopy,
         StackAlloc,
         GetELemPtr,
 
@@ -293,6 +294,29 @@ class LoadInstruction : public Instruction
   private:
     Value *Source;
     Value *Offset;
+};
+
+class MemoryCopyInstruction : public Instruction
+{
+  public:
+    MemoryCopyInstruction(Value *Destination,
+                          Value *Source,
+                          std::size_t Bytes,
+                          BasicBlock *P)
+        : Instruction(Instruction::MemCopy, P, IRType()), Dest(Destination), Src(Source),
+          N(Bytes)
+    {}
+
+    Value *GetDestination() { return Dest; }
+    Value *GetSource() { return Src; }
+    std::size_t GetSize() const { return N; }
+
+    void Print() const;
+
+  private:
+    Value *Dest;
+    Value *Src;
+    std::size_t N;
 };
 
 #endif    // LUNARTCC_INSTRUCTION_HPP
