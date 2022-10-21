@@ -108,7 +108,7 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
         ret[MOV_rr] = {
             MOV_rr,
             32,
-            "mov\t$1, #$2",
+            "mov\t$1, $2",
             {GPR, GPR}
         };
         ret[LDR] = {

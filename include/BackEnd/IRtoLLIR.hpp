@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 
+class Value;
 class Module;
 class Function;
 class Instruction;
@@ -12,6 +13,7 @@ class TargetMachine;
 class MachineIRModule;
 class MachineFunction;
 class MachineBasicBlock;
+class MachineOperand;
 class MachineInstruction;
 
 class IRtoLLIR
@@ -20,6 +22,8 @@ class IRtoLLIR
     IRtoLLIR(Module &IRModule, MachineIRModule *TranslUnit, TargetMachine *TM)
         : IRM(IRModule), TU(TranslUnit), TM(TM)
     {}
+
+    MachineOperand GetMachineOperandFromValue(Value *Val, TargetMachine *TM);
 
     void GenerateLLIRFromIR();
 
