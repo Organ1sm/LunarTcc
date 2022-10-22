@@ -54,6 +54,9 @@ class IRFactory
     LoadInstruction *
         CreateLoad(IRType ResultType, Value *Source, Value *Offset = nullptr);
 
+    MemoryCopyInstruction *
+        CreateMemCopy(Value *Destination, Value *Source, std::size_t Bytes);
+
     CompareInstruction *
         CreateCmp(CompareInstruction::CompareRelation Relation, Value *LHS, Value *RHS);
 

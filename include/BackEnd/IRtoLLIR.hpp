@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 
+class Value;
 class Module;
 class Function;
 class Instruction;
@@ -12,6 +13,7 @@ class TargetMachine;
 class MachineIRModule;
 class MachineFunction;
 class MachineBasicBlock;
+class MachineOperand;
 class MachineInstruction;
 
 class IRtoLLIR
@@ -21,7 +23,10 @@ class IRtoLLIR
         : IRM(IRModule), TU(TranslUnit), TM(TM)
     {}
 
+    void Reset();
+
     void GenerateLLIRFromIR();
+    MachineOperand GetMachineOperandFromValue(Value *Val, MachineFunction *MF);
 
     MachineIRModule *GetMachineIRModule() { return TU; }
 
@@ -35,4 +40,12 @@ class IRtoLLIR
     TargetMachine *TM;
     MachineIRModule *TU;
     std::map<std::string, std::vector<unsigned>> StructToRegMap;
+
+    /// to keep track in which registers the struct is currently living
+    std::map<unsigned, std::vector<unsigned>> StructByIDToRegMap;
+
+    /// Keep track what IR virtual registers were mapped to what LLIR virtual
+    /// registers. This needed since while translating from IR to LLIR occasionally
+    /// new instructions are added with possible new virtual registers.
+    std::map<unsigned, unsigned> IRVregToLLIRVreg;
 };

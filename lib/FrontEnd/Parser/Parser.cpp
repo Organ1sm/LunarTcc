@@ -182,7 +182,7 @@ std::unique_ptr<Node> Parser::ParseExternalDeclaration()
 
     while (IsReturnTypeSpecifier(TokenKind) || lexer.Is(Token::Struct))
     {
-        if (lexer.Is(Token::Struct))
+        if (lexer.Is(Token::Struct) && lexer.LookAhead(3).GetKind() == Token::LeftBrace)
         {
             TU->AddDeclaration(ParseStructDeclaration());
             TokenKind = GetCurrentTokenKind();
@@ -250,7 +250,7 @@ std::unique_ptr<FunctionDeclaration>
 
     auto FuncType = FunctionDeclaration::CreateType(ReturnType, PL);
     auto NameStr  = Name.GetString();
-    InsertToSymbolTable(NameStr, Type(FuncType), true);
+    InsertToSymbolTable(NameStr, FuncType, true);
 
     /// Assume function is defined
     // TODO: planed to have function declaration.

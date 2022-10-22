@@ -10,7 +10,6 @@ Type::Type(Type::TypeKind tk) : Kind(tk)
     {
         case Array:
         case Struct:
-        case Function:
             Ty = Composite;
             break;
         case Simple:
@@ -35,9 +34,8 @@ Type::Type(Type t, std::vector<unsigned> d) : Type(t)
 
 Type::Type(Type t, std::vector<Type> a)
 {
-    Kind     = Function;
-    TypeList = std::move(a);
-    Ty       = t.GetTypeVariant();
+    ParamList = std::move(a);
+    Ty        = t.GetTypeVariant();
 }
 
 Type::Type(Type &&ct)
@@ -47,6 +45,7 @@ Type::Type(Type &&ct)
     Kind         = ct.Kind;
     Dimensions   = std::move(ct.Dimensions);
     TypeList     = std::move(ct.TypeList);
+    ParamList    = std::move(ct.ParamList);
     Name         = ct.Name;
 }
 
@@ -57,32 +56,12 @@ Type &Type::operator=(Type &&ct)
     Kind         = ct.Kind;
     Dimensions   = std::move(ct.Dimensions);
     TypeList     = std::move(ct.TypeList);
+    ParamList    = std::move(ct.ParamList);
     Name         = ct.Name;
 
     return *this;
 }
 
-Type::Type(const Type &ct)
-{
-    PointerLevel = ct.PointerLevel;
-    Ty           = ct.Ty;
-    Kind         = ct.Kind;
-    Dimensions   = ct.Dimensions;
-    TypeList     = ct.TypeList;
-    Name         = ct.Name;
-}
-
-Type &Type::operator=(const Type &ct)
-{
-    PointerLevel = ct.PointerLevel;
-    Ty           = ct.Ty;
-    Kind         = ct.Kind;
-    Dimensions   = ct.Dimensions;
-    TypeList     = ct.TypeList;
-    Name         = ct.Name;
-
-    return *this;
-}
 
 std::vector<unsigned> &Type::GetDimensions()
 {
@@ -90,11 +69,7 @@ std::vector<unsigned> &Type::GetDimensions()
     return Dimensions;
 }
 
-std::vector<Type> &Type::GetArgTypes()
-{
-    assert(IsFunction() && "Must be a Function type to access TypeList.");
-    return TypeList;
-}
+std::vector<Type> &Type::GetArgTypes() { return ParamList; }
 
 void Type::DecrementPointerLevel()
 {
@@ -126,15 +101,16 @@ std::string Type::ToString(const Type &t)
 
 std::string Type::ToString() const
 {
-    if (Kind == Function)
+    if (IsFunction())
     {
         auto TyStr   = Type::ToString(*this);
-        auto ArgSize = TypeList.size();
+        auto ArgSize = ParamList.size();
+
         if (ArgSize > 0)
             TyStr += " (";
         for (size_t i = 0; i < ArgSize; i++)
         {
-            TyStr += Type::ToString(TypeList[i]);
+            TyStr += Type::ToString(ParamList[i]);
             if (i + 1 < ArgSize)
                 TyStr += ",";
             else
@@ -142,7 +118,7 @@ std::string Type::ToString() const
         }
         return TyStr;
     }
-    else if (Kind == Array)
+    else if (IsArray())
     {
         auto TyStr = Type::ToString(*this);
 
@@ -171,9 +147,6 @@ bool operator==(const Type &lhs, const Type &rhs)
 
     switch (lhs.Kind)
     {
-        case Type::Function:
-            result = result && (lhs.TypeList == rhs.TypeList);
-            break;
         case Type::Array:
             result = result && (lhs.Dimensions == rhs.Dimensions);
             break;

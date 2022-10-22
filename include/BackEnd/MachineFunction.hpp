@@ -18,17 +18,17 @@ class MachineFunction
     void SetBasicBlocks(BasicBlockList BBS) { this->BasicBlocks = BBS; }
     BasicBlockList &GetBasicBlocks() { return BasicBlocks; }
 
+    unsigned GetNextVirtualReg() const { return NextVirtualReg; }
+    void SetNextVirtualReg(const unsigned r) { NextVirtualReg = r; }
+
     std::string &GetName() { return Name; }
     void SetName(std::string &Name) { this->Name = Name; }
 
     void SetToCaller() { HasCall = true; }
     bool IsCaller() const { return HasCall; }
 
-    void InsertStackSlot(unsigned ID, unsigned Size) { SF.InsertStackSlot(ID, Size); }
-    void InsertParameter(unsigned ID, LowLevelType LLT)
-    {
-        Parameters.push_back({ID, LLT});
-    }
+    void InsertStackSlot(unsigned ID, unsigned Size) ;
+    void InsertParameter(unsigned ID, LowLevelType LLT);
 
     ParamList GetParameters() { return Parameters; }
     StackFrame &GetStackFrame() { return SF; }

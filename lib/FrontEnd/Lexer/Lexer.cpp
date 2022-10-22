@@ -259,7 +259,7 @@ Token Lexer::LookAhead(unsigned n)
 {
     // fill in the TokenBuffer to have at least n element
     for (std::size_t i = TokenBuffer.size(); i < n; i++)
-        TokenBuffer.push_back(Lex());
+        TokenBuffer.push_back(Lex(true));
 
     return TokenBuffer[n - 1];
 }
@@ -275,11 +275,11 @@ bool Lexer::Is(Token::TokenKind tk)
 
 bool Lexer::IsNot(Token::TokenKind tk) { return !Is(tk); }
 
-Token Lexer::Lex()
+Token Lexer::Lex(bool LookAhead)
 {
     // if the TokenBuffer not empty then return the Token from there
     // and remove it from the stack
-    if (TokenBuffer.size() > 0)
+    if (TokenBuffer.size() > 0 && LookAhead == false)
     {
         auto CurrentToken = GetCurrentToken();
         ConsumeCurrentToken();
