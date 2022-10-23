@@ -21,11 +21,7 @@ class Type
         Double,
     };
 
-    enum TypeKind {
-        Simple,
-        Array,
-        Struct
-    };
+    enum TypeKind { Simple, Array, Struct };
 
     Type() : Kind(Simple), Ty(Invalid) {};
     Type(VariantKind vk) : Ty(vk), Kind(Simple) {}
@@ -110,25 +106,13 @@ class ValueType
     bool IsFloat() { return Kind == Float; }
     bool IsEmpty() { return Kind == Empty; }
 
-    unsigned GetIntVal()
-    {
-        assert(IsInt() && "Must be an integer type.");
-        return IntVal;
-    }
-    double GetFloatVal()
-    {
-        assert(IsFloat() && "Must be a float type.");
-        return FloatVal;
-    }
+    int GetIntVal();
+    double GetFloatVal();
 
     friend bool operator==(const ValueType &lhs, const ValueType &rhs);
 
   private:
-    enum ValueKind {
-        Empty,
-        Integer,
-        Float
-    };
+    enum ValueKind { Empty, Integer, Float };
     ValueKind Kind;
     union
     {
