@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <fmt/core.h>
 #include "MiddleEnd/IR/BasicBlock.hpp"
 
 Instruction *BasicBlock::Insert(std::unique_ptr<Instruction> Ins)
@@ -32,8 +33,10 @@ Instruction *BasicBlock::InsertSA(std::unique_ptr<Instruction> Ins)
 
 void BasicBlock::Print() const
 {
-    std::cout << "." << Name << ":" << std::endl;
+    fmt::print(".{}:\n", Name);
 
     for (auto &Instruction : Instructions)
         Instruction->Print();
+
+    fmt::print("\n\n");
 }

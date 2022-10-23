@@ -94,12 +94,9 @@ bool TargetInstructionLegalizer::Expand(MachineInstruction *MI)
 {
     switch (MI->GetOpcode())
     {
-        case MachineInstruction::Mod:
-            return ExpandMOD(MI);
-        case MachineInstruction::Store:
-            return ExpandSTORE(MI);
-        default:
-            break;
+        case MachineInstruction::Mod: return ExpandMOD(MI);
+        case MachineInstruction::Store: return ExpandSTORE(MI);
+        default: break;
     }
 
     return false;

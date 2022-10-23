@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include "BackEnd/StackFrame.hpp"
+#include "fmt/core.h"
 
 void StackFrame::InsertStackSlot(unsigned int ID, unsigned int Size)
 {
@@ -43,15 +44,15 @@ unsigned StackFrame::GetSize(unsigned int ID)
 
 void StackFrame::Print() const
 {
-    unsigned Num = 0;
+    unsigned Num         = 0;
+    std::string SFFormat = "\t\tPosition: {}, ID: {}, Size: {}\n";
 
-    std::cout << "\t\tFrameSize: " << ObjectSize << std::endl;
+    fmt::print("{:>14}: {}\n", "FrameSize", ObjectSize);
 
-    for (const auto &FrameObj : StackSlots)
+    for (const auto &[FrameObjID, FrameObjSize] : StackSlots)
     {
-        std::cout << "\t\tPosition: " << Num++ << ",  ID: " << FrameObj.first
-                  << ", Size: " << FrameObj.second << std::endl;
+        fmt::print(SFFormat, Num++, FrameObjID, FrameObjSize);
     }
 
-    std::cout << std::endl;
+    fmt::print("\n");
 }

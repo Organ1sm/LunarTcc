@@ -3,6 +3,7 @@
 //
 #include <iostream>
 #include "MiddleEnd/IR/Value.hpp"
+#include "fmt/core.h"
 
 std::string Value::ValueString() const
 {
@@ -17,9 +18,8 @@ std::string Constant::ValueString() const
         return std::to_string(std::get<uint64_t>(Val));
 }
 
-
 void GlobalVariable::Print() const
 {
-    std::cout << "global " << Name << " :" << GetType().AsString() << ";" << std::endl
-              << std::endl;
+    auto s = fmt::format("global {} :{};\n\n", Name, GetType().AsString());
+    fmt::print(s);
 }

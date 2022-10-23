@@ -4,6 +4,9 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <fmt/core.h>
+#include <fmt/color.h>
+#include "Utils/ErrorLogger.hpp"
 #include "BackEnd/MachineIRModule.hpp"
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include "FrontEnd/AST/AST.hpp"
@@ -20,6 +23,7 @@
 #include "BackEnd/RegisterAllocator.hpp"
 #include "BackEnd/TargetArchs/AArch64/AArch64TargetMachine.hpp"
 #include "BackEnd/TargetArchs/RISCV/RISCVTargetMachine.hpp"
+#include "fmt/format.h"
 
 
 bool getFileContent(const std::string &fileName, std::vector<std::string> &VecOfStrs)
@@ -28,7 +32,7 @@ bool getFileContent(const std::string &fileName, std::vector<std::string> &VecOf
 
     if (!in)
     {
-        std::cerr << "Cannot open the file: " << fileName << std::endl;
+        PrintError("Cannot open the file: '{}'\n", fileName);
         return false;
     }
 
@@ -89,7 +93,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                std::cerr << "Error: Unknown argument '" << argv[i] << "'" << std::endl;
+                PrintError("Error: Unknown argument `{}`\n", argv[i]);
                 return -1;
             }
         }
@@ -106,7 +110,7 @@ int main(int argc, char *argv[])
 
         while (t.GetKind() != Token::EndOfFile && t.GetKind() != Token::Invalid)
         {
-            std::cout << t.ToString() << std::endl;
+            fmt::print("{}\n", t.ToString());
             t = lexer.Lex();
         }
     }
@@ -139,9 +143,9 @@ int main(int argc, char *argv[])
 
     if (PrintBeforePasses)
     {
-        std::cout << "<<<<< Before Legalizer >>>>>" << std::endl << std::endl;
+        fmt::print(FMT_STRING("{:*^60}\n\n"), " Before Legalizer ");
         LLIRModule.Print(TM.get());
-        std::cout << std::endl;
+        fmt::print("\n");
     }
 
     MachineInstructionLegalizer Legalizer(&LLIRModule, TM.get());
@@ -149,9 +153,9 @@ int main(int argc, char *argv[])
 
     if (PrintBeforePasses)
     {
-        std::cout << "<<<<< Before Instruction Selection >>>>>" << std::endl << std::endl;
+        fmt::print(FMT_STRING("{:*^60}\n\n"), " Before Instruction Selection ");
         LLIRModule.Print(TM.get());
-        std::cout << std::endl;
+        fmt::print("\n");
     }
 
     InstructionSelection IS(&LLIRModule, TM.get());
@@ -159,9 +163,9 @@ int main(int argc, char *argv[])
 
     if (PrintBeforePasses)
     {
-        std::cout << "<<<<< Before Register Allocator >>>>>" << std::endl << std::endl;
+        fmt::print(FMT_STRING("{:*^60}\n\n"), " Before Register Allocate ");
         LLIRModule.Print(TM.get());
-        std::cout << std::endl;
+        fmt::print("\n");
     }
 
     RegisterAllocator RA(&LLIRModule, TM.get());
@@ -169,10 +173,9 @@ int main(int argc, char *argv[])
 
     if (PrintBeforePasses)
     {
-        std::cout << "<<<<< Before Prolgue/Epilog Insertion >>>>>" << std::endl
-                  << std::endl;
+        fmt::print(FMT_STRING("{:*^60}\n\n"), " Before Prolgue/Epilog Insertion ");
         LLIRModule.Print(TM.get());
-        std::cout << std::endl;
+        fmt::print("\n");
     }
 
     PrologueEpilogInsertion PEI(&LLIRModule, TM.get());
@@ -180,14 +183,13 @@ int main(int argc, char *argv[])
 
     if (PrintBeforePasses)
     {
-        std::cout << "<<<<< Before Emitting Assembly >>>>>" << std::endl << std::endl;
+        fmt::print(FMT_STRING("{:*^60}\n\n"), " Before Emitting Assembly ");
         LLIRModule.Print(TM.get());
-        std::cout << std::endl;
+        fmt::print("\n");
     }
 
     AssemblyEmitter AE(&LLIRModule, TM.get());
     AE.GenerateAssembly();
-
 
     return 0;
 }

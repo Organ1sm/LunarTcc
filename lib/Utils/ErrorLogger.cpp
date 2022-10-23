@@ -1,14 +1,14 @@
 #include <iostream>
 #include "Utils/ErrorLogger.hpp"
+#include "fmt/core.h"
 
 void PrintImpl(const char *str, unsigned int tab, bool newline)
 {
-    for (std::size_t i = 0; i < tab; i++)
-        std::cout << " ";
-    std::cout << str;
+    auto s = fmt::format("{:^{}}{}", "", tab, str);
+    fmt::print(s);
 
     if (newline)
-        std::cout << std::endl;
+        fmt::print("\n");
 }
 
 void Print(const char *str, unsigned int tab) { PrintImpl(str, tab); }

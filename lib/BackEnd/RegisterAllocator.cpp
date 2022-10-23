@@ -215,7 +215,8 @@ void RegisterAllocator::RunRA()
                     // Check operands which use the register (the first operand defining
                     // the reg the rest uses regs)
                     for (size_t OpIndex = 1;
-                         OpIndex < Instructions[i].GetOperands().size(); OpIndex++)
+                         OpIndex < Instructions[i].GetOperands().size();
+                         OpIndex++)
                     {
                         auto &Operand = Instructions[i].GetOperands()[OpIndex];
                         auto UsedReg  = Operand.GetReg();

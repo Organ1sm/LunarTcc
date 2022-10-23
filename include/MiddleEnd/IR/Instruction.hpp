@@ -61,11 +61,13 @@ class Instruction : public Value
     bool IsTerminator() const { return BasicBlockTerminator; }
 
     virtual void Print() const { assert(!"Cannot print base class."); }
+    virtual void PrintInst(const std::string Format = "") const;
 
   protected:
     InstructionKind InstKind;
     BasicBlock *Parent {nullptr};
     bool BasicBlockTerminator {false};
+    std::string InstFormat {"{:4}{:<10}"};
 };
 
 class BinaryInstruction : public Instruction
@@ -107,15 +109,7 @@ class UnaryInstruction : public Instruction
 class CompareInstruction : public Instruction
 {
   public:
-    enum CompareRelation : unsigned {
-        Invalid,
-        EQ,
-        NE,
-        LT,
-        GT,
-        LE,
-        GE
-    };
+    enum CompareRelation : unsigned { Invalid, EQ, NE, LT, GT, LE, GE };
 
     CompareInstruction(Value *L, Value *R, CompareRelation REL, BasicBlock *P)
         : Instruction(InstructionKind::Cmp, P, IRType(IRType::SInt, 1)), LHS(L), RHS(R),
@@ -303,19 +297,19 @@ class MemoryCopyInstruction : public Instruction
                           Value *Source,
                           std::size_t Bytes,
                           BasicBlock *P)
-        : Instruction(Instruction::MemCopy, P, IRType()), Dest(Destination), Src(Source),
-          N(Bytes)
+        : Instruction(Instruction::MemCopy, P, IRType()), Dest(Destination),
+          Source(Source), N(Bytes)
     {}
 
     Value *GetDestination() { return Dest; }
-    Value *GetSource() { return Src; }
+    Value *GetSource() { return Source; }
     std::size_t GetSize() const { return N; }
 
     void Print() const;
 
   private:
     Value *Dest;
-    Value *Src;
+    Value *Source;
     std::size_t N;
 };
 
