@@ -472,6 +472,10 @@ std::unique_ptr<Statement> Parser::ParseStatement()
 {
     if (lexer.Is(Token::If))
         return ParseIfStatement();
+    if (lexer.Is(Token::Switch))
+        return ParseSwitchStatement();
+    if (lexer.Is(Token::Break))
+        return ParseBreakStatement();
     if (lexer.Is(Token::While))
         return ParseWhileStatement();
     if (lexer.Is(Token::For))
@@ -483,6 +487,7 @@ std::unique_ptr<Statement> Parser::ParseStatement()
 
     return ParseExpressionStatement();
 }
+
 // <IfStatement> ::= if '(' <Expression> ')' <Statement> {else <Statement>}?
 std::unique_ptr<IfStatement> Parser::ParseIfStatement()
 {
@@ -501,6 +506,84 @@ std::unique_ptr<IfStatement> Parser::ParseIfStatement()
     }
 
     return IS;
+}
+
+// <SwitchStatement> ::= switch '(' <Expression> ')' '{'
+//                       'case' <Constant> ':' <Statement>*
+//                       'default' ':' <Statement>*
+//                       '}'
+std::unique_ptr<SwitchStatement> Parser::ParseSwitchStatement()
+{
+    std::unique_ptr<SwitchStatement> SS = std::make_unique<SwitchStatement>();
+
+    Expect(Token::Switch);
+    Expect(Token::LeftParen);
+
+    SS->SetCondition(std::move(ParseExpression()));
+
+    Expect(Token::RightParen);
+    Expect(Token::LeftBrace);
+
+    SwitchStatement::CasesDataVec CasesData;
+    unsigned FoundDefaults = 0;
+
+    while (lexer.Is(Token::Case) || lexer.Is(Token::Default))
+    {
+        const bool IsCase = lexer.Is(Token::Case);
+        Lex();    // eat 'case' or 'default'
+
+        std::unique_ptr<Expression> ConstExpr;
+
+        if (IsCase)
+        {
+            ConstExpr = ParseConstantExpression();
+            // For now if its not a constant then assuming its an enum const which is
+            // an identifier currently handled by the below function
+            // TODO: Move the handling of enum const to ParseConstantExpression maybe
+            // but, this would also need some caution
+            if (!ConstExpr)
+                ConstExpr = ParseIdentifierExpression();
+            // TODO: make it a semantic check and not assertion
+            assert(ConstExpr.get()->GetResultType().IsIntegerType()
+                   && "Case expression must be an integer type");
+        }
+
+        Expect(Token::Colon);
+
+        SwitchStatement::StmtsVec Statements;
+        while (lexer.IsNot(Token::RightBrace) && lexer.IsNot(Token::Case)
+               && lexer.IsNot(Token::Default))
+            Statements.push_back(std::move(ParseStatement()));
+
+        if (IsCase)
+        {
+            int CaseConstVal =
+                dynamic_cast<IntegerLiteralExpression *>(ConstExpr.get())->GetSIntValue();
+            CasesData.push_back({CaseConstVal, std::move(Statements)});
+        }
+        else
+        {
+            FoundDefaults++;
+            // TODO: Make it a semantic check
+            assert(FoundDefaults <= 1 && "Too much default case!");
+            SS->SetDefaultBody(std::move(Statements));
+        }
+    }
+
+    SS->SetCasesBodies(std::move(CasesData));
+
+    Expect(Token::RightBrace);
+
+    return SS;
+}
+
+// <BreakStatement> ::= 'break' ';'
+std::unique_ptr<BreakStatement> Parser::ParseBreakStatement()
+{
+    Expect(Token::Break);
+    Expect(Token::SemiColon);
+
+    return std::make_unique<BreakStatement>();
 }
 
 // <WhileStatement> ::= while '(' <Expression> ')' <Statement>
@@ -843,7 +926,22 @@ std::unique_ptr<Expression> Parser::ParseArrayExpression(std::unique_ptr<Express
 //                        | [0-9]+.[0-9]+
 std::unique_ptr<Expression> Parser::ParseConstantExpression()
 {
-    if (lexer.Is(Token::Integer))
+    if (lexer.Is(Token::Identifier))
+    {
+        auto Id    = Expect(Token::Identifier);
+        auto IdStr = Id.GetString();
+
+        if (auto SymEntry = SymTabStack.Contains(IdStr))
+        {
+            if (auto Val = std::get<2>(SymEntry.value()); !Val.IsEmpty())
+                return std::make_unique<IntegerLiteralExpression>(Val.GetIntVal());
+            else
+                assert(!"Not an enumerator constant");
+        }
+        else
+            assert(!"Not an enumerator constant");
+    }
+    else if (lexer.Is(Token::Integer))
         return std::make_unique<IntegerLiteralExpression>(ParseIntegerConstant());
     else
         return std::make_unique<FloatLiteralExpression>(ParseRealConstant());

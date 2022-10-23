@@ -48,6 +48,10 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
 
     {If,            "if"         },
     {Else,          "else"       },
+    {Switch,        "switch"     },
+    {Case,          "case"       },
+    {Default,       "default"    },
+    {Break,         "break"      },
     {For,           "for"        },
     {While,         "while"      },
     {Return,        "return"     },
