@@ -181,11 +181,19 @@ std::unique_ptr<Node> Parser::ParseExternalDeclaration()
     std::unique_ptr<TranslationUnit> TU = std::make_unique<TranslationUnit>();
     auto TokenKind                      = GetCurrentTokenKind();
 
-    while (IsReturnTypeSpecifier(TokenKind) || lexer.Is(Token::Struct))
+    while (IsReturnTypeSpecifier(TokenKind) || lexer.Is(Token::Struct)
+           || lexer.Is(Token::Enum))
     {
         if (lexer.Is(Token::Struct) && lexer.LookAhead(3).GetKind() == Token::LeftBrace)
         {
             TU->AddDeclaration(ParseStructDeclaration());
+            TokenKind = GetCurrentTokenKind();
+            continue;
+        }
+
+        if (lexer.Is(Token::Enum))
+        {
+            TU->AddDeclaration(ParseEnumDeclaration());
             TokenKind = GetCurrentTokenKind();
             continue;
         }
@@ -415,6 +423,40 @@ std::unique_ptr<StructDeclaration> Parser::ParseStructDeclaration()
 
     return std::make_unique<StructDeclaration>(Name, Members, type);
 }
+
+// <EnumDeclaration> ::= 'enum' '{' <Identifier> (, <Identifier>)* '}' ';'
+std::unique_ptr<EnumDeclaration> Parser::ParseEnumDeclaration()
+{
+    Expect(Token::Enum);
+    Expect(Token::LeftBrace);
+
+    EnumDeclaration::EnumList Enumerators;
+
+    int EnumCounter = 0;
+    do
+    {
+        if (lexer.Is(Token::Comma))
+            Lex();
+
+        auto Identifier = Expect(Token::Identifier);
+        Enumerators.push_back({Identifier.GetString(), EnumCounter});
+
+        // Insert into the symbol table and for now assign the index of the enum
+        // to it, not considering explicit assignments like "enum { A = 10 };"
+        InsertToSymbolTable(Identifier.GetString(),
+                            Type(Type::Int),
+                            false,
+                            ValueType((unsigned)EnumCounter));
+        EnumCounter++;
+    }
+    while (lexer.Is(Token::Comma));
+
+    Expect(Token::RightBrace);
+    Expect(Token::SemiColon);
+
+    return std::make_unique<EnumDeclaration>(Enumerators);
+}
+
 
 //=--------------------------------------------------------------------------=//
 //=------------------------- Parse Statement --------------------------------=//
@@ -696,6 +738,13 @@ std::unique_ptr<Expression> Parser::ParseIdentifierExpression()
 
     if (auto SymEntry = SymTabStack.Contains(IdStr))
     {
+        // If the symbol value is a know constant like in case of enumerators, then
+        // return just a constant expression
+        // TODO: Maybe do ths check earlier to save ourself from creating RE for
+        // nothing
+        if (auto Val = std::get<2>(SymEntry.value()); !Val.IsEmpty())
+            return std::make_unique<IntegerLiteralExpression>(Val.GetIntVal());
+
         auto Ty = std::get<1>(SymEntry.value());
         RE->SetResultType(Ty);
     }

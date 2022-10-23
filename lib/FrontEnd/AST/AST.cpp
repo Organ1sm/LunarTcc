@@ -333,6 +333,8 @@ Value *MemberDeclaration::IRCodegen(IRFactory *IRF) { return nullptr; }
 
 Value *StructDeclaration::IRCodegen(IRFactory *IRF) { return nullptr; }
 
+Value *EnumDeclaration::IRCodegen(IRFactory *IRF) { return nullptr; }
+
 Value *CallExpression::IRCodegen(IRFactory *IRF)
 {
     std::vector<Value *> Args;
@@ -687,6 +689,24 @@ void StructDeclaration::ASTDump(unsigned tab)
         M->ASTDump(tab + 2);
 }
 
+void EnumDeclaration::ASTDump(unsigned tab)
+{
+    auto HeaderStr      = fmt::format("EnumDeclaration `{}`", BaseType.ToString());
+    std::string BodyStr = "Enumerators ";
+
+    std::size_t LoopCounter = 0;
+    for (auto &[Enum, Val] : Enumerators)
+    {
+        BodyStr += fmt::format("`{}` = {}", Enum, Val);
+
+        if (++LoopCounter < Enumerators.size())
+            BodyStr += ", ";
+    }
+
+    PrintLn(HeaderStr.c_str(), tab);
+    PrintLn(BodyStr.c_str(), tab + 2);
+}
+
 void CompoundStatement::ASTDump(unsigned int tab)
 {
     PrintLn("CompoundStatement ", tab);
@@ -711,7 +731,9 @@ void IfStatement::ASTDump(unsigned int tab)
 
     Condition->ASTDump(tab + 2);
     IfBody->ASTDump(tab + 2);
-    ElseBody->ASTDump(tab + 2);
+
+    if (ElseBody)
+        ElseBody->ASTDump(tab + 2);
 }
 
 void WhileStatement::ASTDump(unsigned int tab)
