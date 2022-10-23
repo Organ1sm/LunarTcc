@@ -215,6 +215,39 @@ class IfStatement : public Statement
     std::unique_ptr<Statement> ElseBody;
 };
 
+class SwitchStatement : public Statement
+{
+  public:
+    using StmtsVec     = std::vector<std::unique_ptr<Statement>>;
+    using CasesDataVec = std::vector<std::pair<int, StmtsVec>>;
+
+    std::unique_ptr<Expression> &GetCondition() { return Condition; }
+    void SetCondition(std::unique_ptr<Expression> c) { Condition = std::move(c); }
+
+    CasesDataVec &GetCaseBodies() { return Cases; }
+    void SetCasesBodies(CasesDataVec c) { Cases = std::move(c); }
+
+    StmtsVec &GetDefaultBody() { return DefaultBody; }
+    void SetDefaultBody(StmtsVec db) { DefaultBody = std::move(db); }
+
+    void ASTDump(unsigned tab = 0) override;
+    Value *IRCodegen(IRFactory *IRF) override;
+
+  private:
+    std::unique_ptr<Expression> Condition;
+    CasesDataVec Cases;
+    StmtsVec DefaultBody;
+};
+
+class BreakStatement : public Statement
+{
+  public:
+    BreakStatement() = default;
+
+    void ASTDump(unsigned tab = 0) override { PrintLn("BreakStatement", tab); }
+    Value *IRCodegen(IRFactory *IRF) override { return nullptr; }
+};
+
 class WhileStatement : public Statement
 {
   public:
@@ -471,6 +504,7 @@ class IntegerLiteralExpression : public Expression
 {
   public:
     unsigned GetValue() { return IntValue; }
+    int64_t GetSIntValue() const { return IntValue; }
     void SetValue(unsigned v) { IntValue = v; }
 
     IntegerLiteralExpression() = delete;
