@@ -11,6 +11,7 @@
 
 #include "FrontEnd/Lexer/Token.hpp"
 #include "FrontEnd/AST/Type.hpp"
+#include "FrontEnd/Parser/Parser.hpp"
 #include "Utils/ErrorLogger.hpp"
 
 class Value;
@@ -96,6 +97,26 @@ class MemberDeclaration : public Statement
   private:
     std::string Name;
     Type AType;
+};
+
+class EnumDeclaration : public Statement
+{
+  public:
+    using EnumList = std::vector<std::pair<std::string, int>>;
+
+  public:
+    EnumDeclaration(Type &BT, EnumList Enumerators)
+        : BaseType(BT), Enumerators(std::move(Enumerators))
+    {}
+
+    EnumDeclaration(EnumList Enumerators) : Enumerators(std::move(Enumerators)) {}
+
+    void ASTDump(unsigned tab = 0) override;
+    Value *IRCodegen(IRFactory *IRF) override;
+
+  private:
+    Type BaseType {Type::Int};
+    EnumList Enumerators;
 };
 
 class StructDeclaration : public Statement
@@ -387,9 +408,7 @@ class UnaryExpression : public Expression
     using ExprPtr = std::unique_ptr<Expression>;
 
   public:
-    enum UnaryOperation {
-        DeRef
-    };
+    enum UnaryOperation { DeRef };
 
     UnaryExpression() = default;
     UnaryExpression(Token Op, ExprPtr E);

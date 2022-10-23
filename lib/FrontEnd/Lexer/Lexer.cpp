@@ -13,6 +13,7 @@ std::unordered_map<std::string, Token::TokenKind> Lexer::KeyWords =
         {"while",  Token::While },
         {"return", Token::Return},
         {"struct", Token::Struct},
+        {"enum",   Token::Enum  },
 };
 
 Lexer::Lexer(std::vector<std::string> &s)
@@ -152,21 +153,11 @@ std::optional<Token> Lexer::LexSymbol()
 
     switch (GetNextChar())
     {
-        case '.':
-            TokenKind = Token::Dot;
-            break;
-        case ',':
-            TokenKind = Token::Comma;
-            break;
-        case '+':
-            TokenKind = Token::Plus;
-            break;
-        case '-':
-            TokenKind = Token::Minus;
-            break;
-        case '*':
-            TokenKind = Token::Mul;
-            break;
+        case '.': TokenKind = Token::Dot; break;
+        case ',': TokenKind = Token::Comma; break;
+        case '+': TokenKind = Token::Plus; break;
+        case '-': TokenKind = Token::Minus; break;
+        case '*': TokenKind = Token::Mul; break;
         case '/':
             if (GetNextNthCharOnSameLine(1) == '/')
             {
@@ -178,9 +169,7 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::Div;
             }
             break;
-        case '%':
-            TokenKind = Token::Mod;
-            break;
+        case '%': TokenKind = Token::Mod; break;
         case '=':
             if (GetNextNthCharOnSameLine(1) == '=')
             {
@@ -192,12 +181,8 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::Assign;
             }
             break;
-        case '<':
-            TokenKind = Token::Less;
-            break;
-        case '>':
-            TokenKind = Token::Greater;
-            break;
+        case '<': TokenKind = Token::Less; break;
+        case '>': TokenKind = Token::Greater; break;
         case '!':
             if (GetNextNthCharOnSameLine(1) == '=')
             {
@@ -220,29 +205,14 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::And;
             }
             break;
-        case ';':
-            TokenKind = Token::SemiColon;
-            break;
-        case '(':
-            TokenKind = Token::LeftParen;
-            break;
-        case ')':
-            TokenKind = Token::RightParen;
-            break;
-        case '[':
-            TokenKind = Token::LeftBracket;
-            break;
-        case ']':
-            TokenKind = Token::RightBracket;
-            break;
-        case '{':
-            TokenKind = Token::LeftBrace;
-            break;
-        case '}':
-            TokenKind = Token::RightBrace;
-            break;
-        default:
-            return std::nullopt;
+        case ';': TokenKind = Token::SemiColon; break;
+        case '(': TokenKind = Token::LeftParen; break;
+        case ')': TokenKind = Token::RightParen; break;
+        case '[': TokenKind = Token::LeftBracket; break;
+        case ']': TokenKind = Token::RightBracket; break;
+        case '{': TokenKind = Token::LeftBrace; break;
+        case '}': TokenKind = Token::RightBrace; break;
+        default: return std::nullopt;
     }
 
     std::string_view StringValue {&Source[LineIndex][ColumnIndex], Size};

@@ -9,13 +9,10 @@ Type::Type(Type::TypeKind tk) : Kind(tk)
     switch (tk)
     {
         case Array:
-        case Struct:
-            Ty = Composite;
-            break;
+        case Struct: Ty = Composite; break;
+
         case Simple:
-        default:
-            Ty = Invalid;
-            break;
+        default: Ty = Invalid; break;
     }
 }
 
@@ -81,21 +78,14 @@ std::string Type::ToString(const Type &t)
 {
     switch (t.GetTypeVariant())
     {
-        case Double:
-            return "double";
-        case Int:
-            return "int";
-        case Char:
-            return "char";
-        case Void:
-            return "void";
-        case Composite:
-            return t.GetName();
-        case Invalid:
-            return "invalid";
-        default:
-            assert(false && "Unknown type.");
-            break;
+        case Double: return "double";
+        case Int: return "int";
+        case Char: return "char";
+        case Void: return "void";
+        case Composite: return t.GetName();
+        case Invalid: return "invalid";
+
+        default: assert(false && "Unknown type."); break;
     }
 }
 
@@ -147,13 +137,22 @@ bool operator==(const Type &lhs, const Type &rhs)
 
     switch (lhs.Kind)
     {
-        case Type::Array:
-            result = result && (lhs.Dimensions == rhs.Dimensions);
-            break;
-        default:
-            break;
+        case Type::Array: result = result && (lhs.Dimensions == rhs.Dimensions); break;
+        default: break;
     }
     return result;
+}
+
+int ValueType::GetIntVal()
+{
+    assert(IsInt() && "Must be an integer type.");
+    return IntVal;
+}
+
+double ValueType::GetFloatVal()
+{
+    assert(IsFloat() && "Must be a float type.");
+    return FloatVal;
 }
 
 bool operator==(const ValueType &lhs, const ValueType &rhs)
@@ -165,14 +164,9 @@ bool operator==(const ValueType &lhs, const ValueType &rhs)
 
     switch (lhs.Kind)
     {
-        case ValueType::Integer:
-            result = result && (lhs.IntVal == rhs.IntVal);
-            break;
-        case ValueType::Float:
-            result = result && (lhs.FloatVal == rhs.FloatVal);
-            break;
-        default:
-            break;
+        case ValueType::Integer: result = result && (lhs.IntVal == rhs.IntVal); break;
+        case ValueType::Float: result = result && (lhs.FloatVal == rhs.FloatVal); break;
+        default: break;
     }
     return result;
 }

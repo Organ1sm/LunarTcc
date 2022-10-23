@@ -16,6 +16,7 @@ class Declaration;
 class VariableDeclaration;
 class MemberDeclaration;
 class StructDeclaration;
+class EnumDeclaration;
 class FunctionDeclaration;
 class FunctionParameterDeclaration;
 
@@ -61,6 +62,7 @@ class Parser
     std::vector<std::unique_ptr<FunctionParameterDeclaration>> ParseParameterList();
     std::unique_ptr<MemberDeclaration> ParseMemberDeclaration();
     std::unique_ptr<StructDeclaration> ParseStructDeclaration();
+    std::unique_ptr<EnumDeclaration> ParseEnumDeclaration();
 
     Type ParseTypeSpecifier();
     Node ParseReturnTypeSpecifier();
