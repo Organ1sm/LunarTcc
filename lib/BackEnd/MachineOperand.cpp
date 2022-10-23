@@ -3,6 +3,8 @@
 #include "BackEnd/LowLevelType.hpp"
 #include "BackEnd/MachineOperand.hpp"
 #include "BackEnd/TargetMachine.hpp"
+#include "fmt/core.h"
+#include "fmt/format.h"
 
 MachineOperand MachineOperand::CreateRegister(uint64_t Reg, unsigned BitWidth)
 {
@@ -82,6 +84,7 @@ MachineOperand MachineOperand::CreateFunctionName(const char *Label)
 
 void MachineOperand::Print(TargetMachine *TM) const
 {
+    std::string OperandStr;
     switch (this->Type)
     {
         case MachineOperand::Register:
@@ -91,36 +94,35 @@ void MachineOperand::Print(TargetMachine *TM) const
                 std::string RegStr =
                     Reg->GetAlias() != "" ? Reg->GetAlias() : Reg->GetName();
 
-                std::cout << RegStr;
+                OperandStr = RegStr;
             }
             else
-                std::cout << "%" << Value;
+                OperandStr = fmt::format("%{}", Value);
             break;
         case MachineOperand::VirtualRegister:
-            std::cout << "%vr-" << Value;
+            OperandStr = fmt::format("%vr-{}", Value);
             break;
         case MachineOperand::MemoryAddress:
-            std::cout << "%ptr-vr-" << Value;
+            OperandStr = fmt::format("%vr-{}", Value);
             break;
         case MachineOperand::IntImmediate:
-            std::cout << static_cast<int64_t>(Value);
+            OperandStr = fmt::format("#{}", static_cast<int64_t>(Value));
             break;
         case MachineOperand::StackAccess:
-            std::cout << "stack" << Value << "+" << Offset;
+            OperandStr = fmt::format("stack{}+{}", Value, Offset);
             break;
-        case MachineOperand::Paramter:
-            std::cout << "@" << Value;
-            break;
+        case MachineOperand::Paramter: OperandStr = fmt::format("@{}", Value); break;
         case MachineOperand::Label:
-            std::cout << "<" << BelongToLabel << ">";
+            OperandStr = fmt::format("<{}>", BelongToLabel);
             break;
         case MachineOperand::FunctionName:
-            std::cout << "@" << BelongToLabel;
+            OperandStr = fmt::format("@{}", BelongToLabel);
             break;
-        default:
-            break;
+        default: break;
     }
 
+    fmt::print("{}", OperandStr);
+
     if (LLT.IsValid())
-        std::cout << "(" << LLT.ToString() << ")";
+        fmt::print("({})", LLT.ToString());
 }

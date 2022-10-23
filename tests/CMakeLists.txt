@@ -42,3 +42,5 @@ add_executable(
   ../lib/BackEnd/TargetArchs/RISCV/RISCVTargetABI.cpp
   ../lib/BackEnd/TargetArchs/RISCV/RISCVTargetMachine.cpp
 )
+
+target_link_libraries(LunarTcc PRIVATE fmt::fmt)

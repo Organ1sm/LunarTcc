@@ -1,6 +1,7 @@
 #include <iostream>
 #include "BackEnd/MachineFunction.hpp"
 #include "BackEnd/MachineInstruction.hpp"
+#include "fmt/core.h"
 
 void MachineFunction::InsertStackSlot(unsigned int ID, unsigned int Size)
 {
@@ -42,10 +43,12 @@ unsigned MachineFunction::GetNextAvailableVirtualRegister()
 
 void MachineFunction::Print(TargetMachine *TM) const
 {
-    std::cout << "Function: " << Name << std::endl;
-    std::cout << "\tStackFrame: " << std::endl;
+    fmt::print("Function: {}\n", Name);
+    fmt::print("{:^15}\n", "StackFrame:");
     SF.Print();
 
     for (auto &BB : BasicBlocks)
         BB.Print(TM);
+
+    fmt::print("\n\n");
 }

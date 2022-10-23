@@ -4,6 +4,8 @@
 #include "BackEnd/TargetInstruction.hpp"
 #include "BackEnd/MachineIRModule.hpp"
 #include "BackEnd/MachineBasicBlock.hpp"
+#include "fmt/color.h"
+#include "fmt/core.h"
 #include <iostream>
 #include <cassert>
 #include <string>
@@ -13,21 +15,21 @@ void AssemblyEmitter::GenerateAssembly()
 {
     for (auto &Func : MIRM->GetFunctions())
     {
-        std::cout << ".globl\t" << Func.GetName() << std::endl;
-        std::cout << Func.GetName() << ":" << std::endl;
+        fmt::print(".globl\t{}\n", Func.GetName());
+        fmt::print("{}:\n", Func.GetName());
 
         bool IsFirstBB = true;
 
         for (auto &BB : Func.GetBasicBlocks())
         {
             if (!IsFirstBB)
-                std::cout << ".L" << BB.GetName() << ":" << std::endl;
+                fmt::print(".L{}:\n", BB.GetName());
             else
                 IsFirstBB = false;
 
             for (auto &Instr : BB.GetInstructions())
             {
-                std::cout << "\t";
+                fmt::print("\t");
 
                 auto TargetInstr = TM->GetInstrDefs()->GetTargetInstr(Instr.GetOpcode());
                 assert(TargetInstr != nullptr && "Something went wrong here.");
@@ -39,7 +41,7 @@ void AssemblyEmitter::GenerateAssembly()
                 // continue.
                 if (OperandNumber == 0)
                 {
-                    std::cout << AssemblyTemplateStr << std::endl;
+                    fmt::print("{}\n", AssemblyTemplateStr);
                     continue;
                 }
 
@@ -96,9 +98,9 @@ void AssemblyEmitter::GenerateAssembly()
                     }
                 }
 
-                std::cout << AssemblyTemplateStr << std::endl;
+                fmt::print("{}\n", AssemblyTemplateStr);
             }
         }
     }
-    std::cout << std::endl;
+    fmt::print("\n");
 }

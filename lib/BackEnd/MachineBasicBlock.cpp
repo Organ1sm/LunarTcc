@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include "BackEnd/MachineBasicBlock.hpp"
+#include "fmt/core.h"
 
 void MachineBasicBlock::InsertInstr(MachineInstruction MI)
 {
@@ -79,11 +80,11 @@ auto MachineBasicBlock::ReplaceInstr(MachineInstruction MI,
 
 void MachineBasicBlock::Print(TargetMachine *TM) const
 {
-    std::cout << "%BB: " << Name << ":" << std::endl;
+    fmt::print("%BB: {}:\n", Name);
 
     for (auto &I : Instructions)
     {
-        std::cout << "\t";
+        fmt::print("\t");
         I.Print(TM);
     }
 }

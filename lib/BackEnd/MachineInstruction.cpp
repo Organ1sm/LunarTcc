@@ -3,6 +3,7 @@
 #include <iostream>
 #include "BackEnd/MachineInstruction.hpp"
 #include "BackEnd/TargetMachine.hpp"
+#include "fmt/core.h"
 
 void MachineInstruction::RemoveOperand(std::size_t Index)
 {
@@ -69,80 +70,38 @@ void MachineInstruction::Print(TargetMachine *TM) const
 
     switch (Opcode)
     {
-        case OperationCode::And:
-            OpcodeStr = "And ";
-            break;
-        case OperationCode::Or:
-            OpcodeStr = "Or  ";
-            break;
-        case OperationCode::Add:
-            OpcodeStr = "Add ";
-            break;
-        case OperationCode::Sub:
-            OpcodeStr = "Sub ";
-            break;
-        case OperationCode::Mul:
-            OpcodeStr = "Mul ";
-            break;
-        case OperationCode::Div:
-            OpcodeStr = "Div ";
-            break;
-        case OperationCode::Mod:
-            OpcodeStr = "Mod ";
-            break;
-        case OperationCode::Cmp:
-            OpcodeStr = "Cmp ";
-            break;
-        case OperationCode::SExt:
-            OpcodeStr = "SEXT";
-            break;
-        case OperationCode::ZExt:
-            OpcodeStr = "ZExt";
-            break;
-        case OperationCode::Trunc:
-            OpcodeStr = "Trunc";
-            break;
-        case OperationCode::Store:
-            OpcodeStr = "Store";
-            break;
-        case OperationCode::StackAddress:
-            OpcodeStr = "StackAddress";
-            break;
-        case OperationCode::Mov:
-            OpcodeStr = "Mov";
-            break;
-        case OperationCode::LoadImm:
-            OpcodeStr = "LoadImm";
-            break;
-        case OperationCode::Load:
-            OpcodeStr = "Load";
-            break;
-        case OperationCode::Call:
-            OpcodeStr = "Call";
-            break;
-        case OperationCode::Jump:
-            OpcodeStr = "Jump";
-            break;
-        case OperationCode::Branch:
-            OpcodeStr = "Branch";
-            break;
-        case OperationCode::Ret:
-            OpcodeStr = "Ret ";
-            break;
+        case OperationCode::And: OpcodeStr = "And"; break;
+        case OperationCode::Or: OpcodeStr = "Or"; break;
+        case OperationCode::Add: OpcodeStr = "Add"; break;
+        case OperationCode::Sub: OpcodeStr = "Sub"; break;
+        case OperationCode::Mul: OpcodeStr = "Mul"; break;
+        case OperationCode::Div: OpcodeStr = "Div"; break;
+        case OperationCode::Mod: OpcodeStr = "Mod"; break;
+        case OperationCode::Cmp: OpcodeStr = "Cmp"; break;
+        case OperationCode::SExt: OpcodeStr = "SEXT"; break;
+        case OperationCode::ZExt: OpcodeStr = "ZExt"; break;
+        case OperationCode::Trunc: OpcodeStr = "Trunc"; break;
+        case OperationCode::Store: OpcodeStr = "Store"; break;
+        case OperationCode::StackAddress: OpcodeStr = "StackAddress"; break;
+        case OperationCode::Mov: OpcodeStr = "Mov"; break;
+        case OperationCode::LoadImm: OpcodeStr = "LoadImm"; break;
+        case OperationCode::Load: OpcodeStr = "Load"; break;
+        case OperationCode::Call: OpcodeStr = "Call"; break;
+        case OperationCode::Jump: OpcodeStr = "Jump"; break;
+        case OperationCode::Branch: OpcodeStr = "Branch"; break;
+        case OperationCode::Ret: OpcodeStr = "Ret "; break;
 
-        default:
-            OpcodeStr = TM->GetInstrDefs()->GetInstrString(Opcode);
-            break;
+        default: OpcodeStr = TM->GetInstrDefs()->GetInstrString(Opcode); break;
     }
 
-    std::string Spaces = std::string(16 - OpcodeStr.length(), ' ');
-    std::cout << OpcodeStr << Spaces;
+    fmt::print("{:<{}}", OpcodeStr, 14);
+
     for (std::size_t i = 0; i < Operands.size(); i++)
     {
         Operands[i].Print(TM);
         if (i < Operands.size() - 1)
-            std::cout << ", ";
+            fmt::print(", ");
     }
 
-    std::cout << std::endl;
+    fmt::print("\n");
 }
