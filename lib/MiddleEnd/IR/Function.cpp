@@ -4,6 +4,8 @@
 #include <iostream>
 #include "MiddleEnd/IR/Function.hpp"
 #include "MiddleEnd/IR/IRType.hpp"
+#include "fmt/color.h"
+#include "fmt/core.h"
 
 Function::Function(const std::string &Name, IRType RT) : Name(Name), ReturnType(RT)
 {
@@ -45,32 +47,31 @@ void Function::Insert(std::unique_ptr<FunctionParameter> FP)
 
 void Function::Print() const
 {
-    std::cout << "func " << Name << " (";
+    auto size         = Parameters.size();
+    bool HasParameter = !((size == 1) && (Parameters[0]->GetType().IsVoid()));
 
-    auto size = Parameters.size();
+    auto FDStr = "func {n} ({a}) -> {r} :\n";
+    std::string ArgsStr {""};
+    std::string ReturnTyStr {""};
 
-    bool NoParameter = (size == 1) && (Parameters[0]->GetType().IsVoid());
-
-    if (!NoParameter)
+    if (HasParameter)
     {
         for (auto i = 0; i < size; i++)
         {
-            std::cout << Parameters[i]->ValueString() << " :";
-            std::cout << Parameters[i]->GetType().AsString();
+            ArgsStr += Parameters[i]->ValueString() + " :";
+            ArgsStr += Parameters[i]->GetType().AsString();
 
             if (i + 1 < size)
-                std::cout << ", ";
+                ArgsStr += ", ";
         }
     }
 
-    std::cout << ")";
-
     if (!ReturnType.IsVoid())
-        std::cout << " -> " << ReturnType.AsString() << " ";
+        ReturnTyStr = ReturnType.AsString();
 
-    std::cout << ":" << std::endl;
+    fmt::print(FDStr, fmt::arg("n", Name), fmt::arg("a", ArgsStr),
+               fmt::arg("r", ReturnTyStr));
 
     for (auto &BB : BasicBlocks)
         BB->Print();
-    std::cout << std::endl;
 }

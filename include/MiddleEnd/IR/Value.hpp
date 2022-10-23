@@ -12,15 +12,7 @@
 class Value
 {
   public:
-    enum VKind {
-        Invalid = 1,
-        None,
-        Register,
-        Label,
-        Const,
-        Param,
-        GlobalVar
-    };
+    enum VKind { Invalid = 1, None, Register, Label, Const, Param, GlobalVar };
 
     Value() : Kind(Invalid) {}
     Value(VKind VK) : Kind(VK) {}

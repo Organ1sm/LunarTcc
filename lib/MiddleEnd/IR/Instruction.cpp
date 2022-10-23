@@ -5,6 +5,8 @@
 #include <iostream>
 #include "MiddleEnd/IR/Instruction.hpp"
 #include "MiddleEnd/IR/BasicBlock.hpp"
+#include "fmt/color.h"
+#include "fmt/core.h"
 
 std::string &JumpInstruction::GetTargetLabelName() { return Target->GetName(); }
 
@@ -80,19 +82,33 @@ std::string Instruction::AsString(Instruction::InstructionKind IK)
     }
 }
 
+void Instruction::PrintInst(const std::string Context) const
+{
+    fmt::print(fmt::emphasis::bold | fg(fmt::color::green),
+               InstFormat,
+               "",
+               Context.empty() ? AsString(InstKind) : AsString(InstKind) + "." + Context);
+}
+
 void BinaryInstruction::Print() const
 {
-    std::cout << "\t" << AsString(InstKind) << "\t";
-    std::cout << ValueString() << ", ";
-    std::cout << LHS->ValueString() << ", ";
-    std::cout << RHS->ValueString() << std::endl;
+    std::string Format = "{Dest}, {L}, {R}\n";
+
+    PrintInst();
+    fmt::print(Format,
+               fmt::arg("Dest", ValueString()),
+               fmt::arg("L", LHS->ValueString()),
+               fmt::arg("R", RHS->ValueString()));
 }
 
 void UnaryInstruction::Print() const
 {
-    std::cout << "\t" << AsString(InstKind) << "\t";
-    std::cout << ValueString() << ", ";
-    std::cout << Op->ValueString() << std::endl;
+    std::string Format = "{Dest}, {Op}\n";
+
+    PrintInst();
+    fmt::print(Format,
+               fmt::arg("Dest", ValueString()),
+               fmt::arg("Op", Op->ValueString()));
 }
 
 const char *CompareInstruction::GetRelationString() const
@@ -145,97 +161,123 @@ void CompareInstruction::InvertRelation()
 
 void CompareInstruction::Print() const
 {
-    std::cout << "\t" << AsString(InstKind) << "." << GetRelationString() << "\t";
-    std::cout << ValueString() << ", ";
-    std::cout << LHS->ValueString() << ", ";
-    std::cout << RHS->ValueString() << std::endl;
+    std::string Format = "{Value}, {L}, {R}\n";
+
+    PrintInst(GetRelationString());
+    fmt::print(Format,
+               fmt::arg("Value", ValueString()),
+               fmt::arg("L", LHS->ValueString()),
+               fmt::arg("R", RHS->ValueString()));
 }
 
 void CallInstruction::Print() const
 {
-    std::cout << "\t" << AsString(InstKind) << "\t";
+    std::string Format = "{RetValue}, {FuncName}({Args})\n";
+    std::string RetValue {};
+    std::string ArgsStr {};
 
     if (!ValueType.IsVoid())
-        std::cout << ValueString() << ", ";
-
-    std::cout << Name << "(";
+        RetValue = ValueString();
 
     int i = 0;
     for (auto Arg : Arguments)
     {
         if (i > 0)
-            std::cout << ", ";
+            ArgsStr += ", ";
 
-        std::cout << Arg->ValueString();
+        ArgsStr += Arg->ValueString();
         i++;
     }
 
-    std::cout << ")" << std::endl;
+    PrintInst();
+    fmt::print(Format,
+               fmt::arg("RetValue", RetValue),
+               fmt::arg("FuncName", Name),
+               fmt::arg("Args", ArgsStr));
 }
 
 void JumpInstruction::Print() const
 {
-    std::cout << "\t" << AsString(InstKind) << "\t";
-    std::cout << "<" << Target->GetName() << ">" << std::endl;
+    std::string Format = "<{Label}>\n";
+
+    PrintInst();
+    fmt::print(Format, fmt::arg("Label", Target->GetName()));
 }
 
 void BranchInstruction::Print() const
 {
-    std::cout << "\t" << AsString(InstKind) << "\t";
-    std::cout << Condition->ValueString() << ", ";
-    std::cout << "<" << TrueTarget->GetName() << ">";
+    std::string Format = "{Condition}, <{TrueTarget}>{FalseTarget}\n";
+    std::string FTStr {};
 
     if (FalseTarget)
-        std::cout << ", <" << FalseTarget->GetName() << ">";
+        FTStr += ", <" + FalseTarget->GetName() + ">";
 
-    std::cout << std::endl;
+    PrintInst();
+    fmt::print(Format,
+               fmt::arg("Condition", Condition->ValueString()),
+               fmt::arg("TrueTarget", TrueTarget->GetName()),
+               fmt::arg("FalseTarget", FTStr));
 }
 
 void ReturnInstruction::Print() const
 {
-    std::cout << "\t" << AsString(InstKind) << "\t";
-    std::cout << ReturnVal->ValueString() << std::endl;
+    std::string Format = "{Value}";
+
+    PrintInst();
+    fmt::print(Format, fmt::arg("Value", ReturnVal->ValueString()));
 }
 
 void StackAllocationInstruction::Print() const
 {
-    std::cout << "\t" << AsString(InstKind) << "\t";
-    std::cout << ValueString() << std::endl;
+    std::string Format = "{Dest}\n";
+
+    PrintInst();
+    fmt::print(Format, fmt::arg("Dest", ValueString()));
 }
 
 void GetElemPointerInstruction::Print() const
 {
-    std::cout << "\t" << AsString(InstKind) << "\t";
-    std::cout << ValueString() << ", ";
-    std::cout << Source->ValueString();
+    auto Format = "{Dest}, {Source}, {Index}\n";
 
-    std::string Str = ", ";
-    Str += Index->ValueString();
-
-    std::cout << Str << std::endl;
+    PrintInst();
+    fmt::print(Format,
+               fmt::arg("Dest", ValueString()),
+               fmt::arg("Source", Source->ValueString()),
+               fmt::arg("Index", Index->ValueString()));
 }
 
 void StoreInstruction::Print() const
 {
-    std::cout << "\t" << AsString(InstKind) << "\t";
-    std::cout << "[" << Destination->ValueString() << "], ";
-    std::cout << Source->ValueString() << std::endl;
+    std::string Format = "[{Dest}], {Source}\n";
+
+    PrintInst();
+    fmt::print(Format,
+               fmt::arg("Dest", Destination->ValueString()),
+               fmt::arg("Source", Source->ValueString()));
 }
 
 void LoadInstruction::Print() const
 {
-    std::cout << "\t" << AsString(InstKind) << '\t';
-    std::cout << ValueString() << ", ";
-    std::cout << "[" << Source->ValueString();
+    std::string Format = "{Dest}, [{Source}{Offset}]\n";
+    std::string OffsetStr {};
+
     if (Offset)
-        std::cout << " + " << Offset->ValueString();
-    std::cout << "]" << std::endl;
+        OffsetStr += " + " + Offset->ValueString();
+
+    PrintInst();
+    fmt::print(Format,
+               fmt::arg("Dest", ValueString()),
+               fmt::arg("Source", Source->ValueString()),
+               fmt::arg("Offset", OffsetStr));
 }
 
 void MemoryCopyInstruction::Print() const
 {
-    std::cout << "\t" << AsString(InstKind) << "\t";
-    std::cout << Dest->ValueString() << ", ";
-    std::cout << Src->ValueString() << ", ";
-    std::cout << N << std::endl;
+    std::string Format = "{Dest}, {Source}, {Number}\n";
+
+    PrintInst();
+    fmt::print(Format,
+               fmt::arg("Dest", Dest->ValueString()),
+               fmt::arg("Source", Source->ValueString()),
+               fmt::arg("Number", N));
 }

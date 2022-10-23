@@ -62,8 +62,10 @@ Instruction *IRFactory::CreateAnd(Value *LHS, Value *RHS)
 
 UnaryInstruction *IRFactory::CreateMov(Value *Operand, uint8_t BitWidth)
 {
-    auto Inst = std::make_unique<UnaryInstruction>(
-        Instruction::Mov, IRType::CreateInt(BitWidth), Operand, GetCurrentBB());
+    auto Inst = std::make_unique<UnaryInstruction>(Instruction::Mov,
+                                                   IRType::CreateInt(BitWidth),
+                                                   Operand,
+                                                   GetCurrentBB());
 
     Inst->SetId(ID++);
     auto InstPtr = Inst.get();
@@ -75,8 +77,10 @@ UnaryInstruction *IRFactory::CreateMov(Value *Operand, uint8_t BitWidth)
 
 UnaryInstruction *IRFactory::CreateSExt(Value *Operand, uint8_t BitWidth)
 {
-    auto Inst = std::make_unique<UnaryInstruction>(
-        Instruction::SExt, IRType::CreateInt(BitWidth), Operand, GetCurrentBB());
+    auto Inst = std::make_unique<UnaryInstruction>(Instruction::SExt,
+                                                   IRType::CreateInt(BitWidth),
+                                                   Operand,
+                                                   GetCurrentBB());
 
     Inst->SetId(ID++);
     auto InstPtr = Inst.get();
@@ -88,8 +92,10 @@ UnaryInstruction *IRFactory::CreateSExt(Value *Operand, uint8_t BitWidth)
 
 UnaryInstruction *IRFactory::CreateTrunc(Value *Operand, uint8_t BitWidth)
 {
-    auto Inst = std::make_unique<UnaryInstruction>(
-        Instruction::Trunc, IRType::CreateInt(BitWidth), Operand, GetCurrentBB());
+    auto Inst = std::make_unique<UnaryInstruction>(Instruction::Trunc,
+                                                   IRType::CreateInt(BitWidth),
+                                                   Operand,
+                                                   GetCurrentBB());
 
     Inst->SetId(ID++);
     auto InstPtr = Inst.get();
@@ -103,7 +109,8 @@ UnaryInstruction *IRFactory::CreateFloatToInt(Value *Operand, uint8_t FloatBitWi
 {
     auto Inst = std::make_unique<UnaryInstruction>(Instruction::FloatToInt,
                                                    IRType::CreateFloat(FloatBitWidth),
-                                                   Operand, GetCurrentBB());
+                                                   Operand,
+                                                   GetCurrentBB());
     Inst->SetId(ID++);
     auto InstPtr = Inst.get();
     Insert(std::move(Inst));
@@ -115,7 +122,8 @@ UnaryInstruction *IRFactory::CreateIntToFloat(Value *Operand, uint8_t IntBitWidt
 {
     auto Inst = std::make_unique<UnaryInstruction>(Instruction::IntToFloat,
                                                    IRType::CreateFloat(IntBitWidth),
-                                                   Operand, GetCurrentBB());
+                                                   Operand,
+                                                   GetCurrentBB());
     Inst->SetId(ID++);
     auto InstPtr = Inst.get();
     Insert(std::move(Inst));
@@ -149,7 +157,8 @@ ReturnInstruction *IRFactory::CreateRet(Value *ReturnVal)
 
 StackAllocationInstruction *IRFactory::CreateSA(std::string Indentifier, IRType Type)
 {
-    auto Inst    = std::make_unique<StackAllocationInstruction>(Indentifier, Type,
+    auto Inst    = std::make_unique<StackAllocationInstruction>(Indentifier,
+                                                             Type,
                                                              CurrentModule.GetBB(0));
     auto InstPtr = Inst.get();
 
@@ -162,7 +171,9 @@ StackAllocationInstruction *IRFactory::CreateSA(std::string Indentifier, IRType 
 GetElemPointerInstruction *
     IRFactory::CreateGEP(IRType ResultType, Value *Source, Value *Index)
 {
-    auto Inst    = std::make_unique<GetElemPointerInstruction>(ResultType, Source, Index,
+    auto Inst    = std::make_unique<GetElemPointerInstruction>(ResultType,
+                                                            Source,
+                                                            Index,
                                                             GetCurrentBB());
     auto InstPtr = Inst.get();
 
@@ -196,7 +207,9 @@ LoadInstruction *IRFactory::CreateLoad(IRType ResultType, Value *Source, Value *
 MemoryCopyInstruction *
     IRFactory::CreateMemCopy(Value *Destination, Value *Source, std::size_t Bytes)
 {
-    auto Inst    = std::make_unique<MemoryCopyInstruction>(Destination, Source, Bytes,
+    auto Inst    = std::make_unique<MemoryCopyInstruction>(Destination,
+                                                        Source,
+                                                        Bytes,
                                                         GetCurrentBB());
     auto InstPtr = Inst.get();
 

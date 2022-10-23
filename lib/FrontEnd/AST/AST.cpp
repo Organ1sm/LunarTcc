@@ -59,17 +59,11 @@ static IRType GetIRTypeFromVK(Type::VariantKind VK)
 {
     switch (VK)
     {
-        case Type::Char:
-            return IRType(IRType::SInt, 8);
-        case Type::Int:
-            return IRType(IRType::SInt);
-        case Type::Double:
-            return IRType(IRType::FP, 64);
-        case Type::Composite:
-            return IRType(IRType::Struct);
-        default:
-            assert(!"Invalid type.");
-            break;
+        case Type::Char: return IRType(IRType::SInt, 8);
+        case Type::Int: return IRType(IRType::SInt);
+        case Type::Double: return IRType(IRType::FP, 64);
+        case Type::Composite: return IRType(IRType::Struct);
+        default: assert(!"Invalid type."); break;
     }
 }
 
@@ -285,21 +279,11 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
                 ReturnType = GetIRTypeFromASTType(FuncType);
             else
                 assert(!"Unhandled Return Type.");
-        case Type::Char:
-            ReturnType = IRType(IRType::SInt, 8);
-            break;
-        case Type::Int:
-            ReturnType = IRType(IRType::SInt);
-            break;
-        case Type::Double:
-            ReturnType = IRType(IRType::FP, 64);
-            break;
-        case Type::Void:
-            ReturnType = IRType(IRType::None);
-            break;
-        default:
-            assert(!"Invalid function return type.");
-            break;
+        case Type::Char: ReturnType = IRType(IRType::SInt, 8); break;
+        case Type::Int: ReturnType = IRType(IRType::SInt); break;
+        case Type::Double: ReturnType = IRType(IRType::FP, 64); break;
+        case Type::Void: ReturnType = IRType(IRType::None); break;
+        default: assert(!"Invalid function return type."); break;
     }
 
     IRF->CreateNewFunction(Name, ReturnType);
@@ -376,15 +360,9 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
 
     switch (ReturnType)
     {
-        case Type::Int:
-            ReturnIRType = IRType(IRType::SInt);
-            break;
-        case Type::Double:
-            ReturnIRType = IRType(IRType::FP, 64);
-            break;
-        case Type::Void:
-            ReturnIRType = IRType(IRType::None, 0);
-            break;
+        case Type::Int: ReturnIRType = IRType(IRType::SInt); break;
+        case Type::Double: ReturnIRType = IRType(IRType::FP, 64); break;
+        case Type::Void: ReturnIRType = IRType(IRType::None, 0); break;
         case Type::Composite:
             {
                 ReturnIRType = GetIRTypeFromASTType(GetResultType());
@@ -395,8 +373,7 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
                 StructTemp = IRF->CreateSA(Name + ".temp", ReturnIRType);
                 break;
             }
-        default:
-            break;
+        default: break;
     }
 
     // in case if the ret type was a struct, so StructTemp not nullptr
@@ -642,39 +619,24 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
             case Mul:
             case And:
             case Equal:
-            case NotEqual:
-                std::swap(L, R);
-                break;
-            default:
-                break;
+            case NotEqual: std::swap(L, R); break;
+            default: break;
         }
     }
 
     switch (GetOperationKind())
     {
-        case Add:
-            return IRF->CreateAdd(L, R);
-        case Sub:
-            return IRF->CreateSub(L, R);
-        case Mul:
-            return IRF->CreateMul(L, R);
-        case Div:
-            return IRF->CreateDiv(L, R);
-        case Mod:
-            return IRF->CreateMod(L, R);
-        case And:
-            return IRF->CreateAnd(L, R);
-        case Equal:
-            return IRF->CreateCmp(CompareInstruction::EQ, L, R);
-        case Less:
-            return IRF->CreateCmp(CompareInstruction::LT, L, R);
-        case Greater:
-            return IRF->CreateCmp(CompareInstruction::GT, L, R);
-        case NotEqual:
-            return IRF->CreateCmp(CompareInstruction::NE, L, R);
-        default:
-            assert(!"Unhandled binary instruction type");
-            break;
+        case Add: return IRF->CreateAdd(L, R);
+        case Sub: return IRF->CreateSub(L, R);
+        case Mul: return IRF->CreateMul(L, R);
+        case Div: return IRF->CreateDiv(L, R);
+        case Mod: return IRF->CreateMod(L, R);
+        case And: return IRF->CreateAnd(L, R);
+        case Equal: return IRF->CreateCmp(CompareInstruction::EQ, L, R);
+        case Less: return IRF->CreateCmp(CompareInstruction::LT, L, R);
+        case Greater: return IRF->CreateCmp(CompareInstruction::GT, L, R);
+        case NotEqual: return IRF->CreateCmp(CompareInstruction::NE, L, R);
+        default: assert(!"Unhandled binary instruction type"); break;
     }
 }
 
@@ -739,12 +701,14 @@ void CompoundStatement::ASTDump(unsigned int tab)
 void ExpressionStatement::ASTDump(unsigned int tab)
 {
     PrintLn("ExpressionStatement ", tab);
+
     Expr->ASTDump(tab + 2);
 }
 
 void IfStatement::ASTDump(unsigned int tab)
 {
     PrintLn("IfStatement ", tab);
+
     Condition->ASTDump(tab + 2);
     IfBody->ASTDump(tab + 2);
     ElseBody->ASTDump(tab + 2);
@@ -753,6 +717,7 @@ void IfStatement::ASTDump(unsigned int tab)
 void WhileStatement::ASTDump(unsigned int tab)
 {
     PrintLn("WhileStatement ", tab);
+
     Condition->ASTDump(tab + 2);
     Body->ASTDump(tab + 2);
 }
@@ -770,6 +735,7 @@ void ForStatement::ASTDump(unsigned int tab)
 void ReturnStatement::ASTDump(unsigned int tab)
 {
     PrintLn("ReturnStatement ", tab);
+
     if (ReturnValue)
         ReturnValue.value()->ASTDump(tab + 2);
 }
@@ -821,35 +787,20 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
 {
     switch (Operation.GetKind())
     {
-        case Token::Assign:
-            return Assign;
-        case Token::Plus:
-            return Add;
-        case Token::Minus:
-            return Sub;
-        case Token::Mul:
-            return Mul;
-        case Token::Div:
-            return Div;
-        case Token::Mod:
-            return Mod;
-        case Token::And:
-            return And;
-        case Token::Not:
-            return Not;
-        case Token::Equal:
-            return Equal;
-        case Token::Less:
-            return Less;
-        case Token::Greater:
-            return Greater;
-        case Token::NotEqual:
-            return NotEqual;
-        case Token::LogicalAnd:
-            return LogicalAnd;
-        default:
-            assert(false && "Invalid binary Operator kind.");
-            break;
+        case Token::Assign: return Assign;
+        case Token::Plus: return Add;
+        case Token::Minus: return Sub;
+        case Token::Mul: return Mul;
+        case Token::Div: return Div;
+        case Token::Mod: return Mod;
+        case Token::And: return And;
+        case Token::Not: return Not;
+        case Token::Equal: return Equal;
+        case Token::Less: return Less;
+        case Token::Greater: return Greater;
+        case Token::NotEqual: return NotEqual;
+        case Token::LogicalAnd: return LogicalAnd;
+        default: assert(false && "Invalid binary Operator kind."); break;
     }
 }
 
@@ -880,11 +831,8 @@ UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
 {
     switch (Operation.GetKind())
     {
-        case Token::Mul:
-            return UnaryOperation::DeRef;
-        default:
-            assert(!"Invalid unary operator kind.");
-            break;
+        case Token::Mul: return UnaryOperation::DeRef;
+        default: assert(!"Invalid unary operator kind."); break;
     }
 }
 

@@ -498,7 +498,7 @@ void IRtoLLIR::GenerateLLIRFromIR()
     for (auto &Func : IRM.GetFunctions())
     {
         Reset();
-        
+
         auto NewMachineFunc = MachineFunction {};
         std::vector<MachineBasicBlock> MBBs;
 

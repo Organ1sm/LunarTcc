@@ -1,6 +1,7 @@
 #include "FrontEnd/Parser/Parser.hpp"
 #include "FrontEnd/AST/AST.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
+#include "Utils/ErrorLogger.hpp"
 
 bool Parser::IsTypeSpecifier(Token::TokenKind tk)
 {
@@ -9,11 +10,9 @@ bool Parser::IsTypeSpecifier(Token::TokenKind tk)
         case Token::Char:
         case Token::Int:
         case Token::Double:
-        case Token::Struct:
-            return true;
+        case Token::Struct: return true;
 
-        default:
-            break;
+        default: break;
     }
 
     return false;
@@ -23,11 +22,9 @@ static bool IsUnaryOperator(Token::TokenKind tk)
 {
     switch (tk)
     {
-        case Token::Mul:
-            return true;
+        case Token::Mul: return true;
 
-        default:
-            break;
+        default: break;
     }
 
     return false;
@@ -43,18 +40,10 @@ Type Parser::ParseType(Token::TokenKind tk)
     Type Result;
     switch (tk)
     {
-        case Token::Void:
-            Result.SetTypeVariant(Type::Void);
-            break;
-        case Token::Char:
-            Result.SetTypeVariant(Type::Char);
-            break;
-        case Token::Int:
-            Result.SetTypeVariant(Type::Int);
-            break;
-        case Token::Double:
-            Result.SetTypeVariant(Type::Double);
-            break;
+        case Token::Void: Result.SetTypeVariant(Type::Void); break;
+        case Token::Char: Result.SetTypeVariant(Type::Char); break;
+        case Token::Int: Result.SetTypeVariant(Type::Int); break;
+        case Token::Double: Result.SetTypeVariant(Type::Double); break;
         case Token::Struct:
             {
                 Lex();    // eat 'struct'
@@ -65,9 +54,7 @@ Type Parser::ParseType(Token::TokenKind tk)
                 Result = std::get<0>(UserDefinedTypes[Name]);
                 break;
             }
-        default:
-            assert(!"Unknown token kind.");
-            break;
+        default: assert(!"Unknown token kind."); break;
     }
 
     return Result;
@@ -75,33 +62,43 @@ Type Parser::ParseType(Token::TokenKind tk)
 
 static void UndefinedSymbolError(Token sym, Lexer &L)
 {
-    std::cout << ":" << sym.GetLine() + 1 << ":" << sym.GetColumn() + 1 << ": error: "
-              << "Undefined symbol '" << sym.GetString() << "'." << std::endl
-              << "\t\t" << L.GetSource()[sym.GetLine()].substr(sym.GetColumn())
-              << std::endl
-              << std::endl;
+    static std::string Format = ": {}:{}: error: Undefined Symbol `{}`.\n\t\t{}\n\n";
+
+    PrintError(Format,
+               sym.GetLine() + 1,
+               sym.GetColumn() + 1,
+               sym.GetString(),
+               L.GetSource()[sym.GetLine()].substr(sym.GetColumn()));
 }
 
 static void ArrayTypeMismatchError(Token Sym, Type Actual)
 {
-    std::cout << Sym.GetLine() + 1 << ":" << Sym.GetColumn() + 1 << " error: "
-              << " FuncType mismatch `" << Sym.GetString() << "` type is `"
-              << Actual.ToString() << "`, it is not an array type." << std::endl;
+    static std::string Format =
+        ": {}:{}: error: Function Type Mismatch `{}` , type is `{}`, it is not an array type.\n";
+
+    PrintError(Format,
+               Sym.GetLine() + 1,
+               Sym.GetColumn() + 1,
+               Sym.GetString(),
+               Actual.ToString());
 }
 
 void static EmitError(const std::string &msg, Lexer &L)
 {
-    std::cout << ":" << L.GetLine() << ": error: " << msg << std::endl
-              << "\t\t" << L.GetSource()[L.GetLine() - 1] << std::endl
-              << std::endl;
+    static std::string Format = ": {}: error: `{}`.\n\t\t{}\n\n";
+
+    PrintError(Format, L.GetLine(), msg, L.GetSource()[L.GetLine() - 1]);
 }
 
 void static EmitError(const std::string &msg, Lexer &L, Token &T)
 {
-    std::cout << ":" << T.GetLine() + 1 << ":" << T.GetColumn() + 1 << ": error: " << msg
-              << std::endl
-              << "\t\t" << L.GetSource()[T.GetLine()] << std::endl
-              << std::endl;
+    static std::string Format = ": {}:{}: error: `{}`.\n\t\t{}\n\n";
+
+    PrintError(Format,
+               T.GetLine() + 1,
+               T.GetColumn() + 1,
+               msg,
+               L.GetSource()[T.GetLine()]);
 }
 
 Token Parser::Expect(Token::TokenKind TKind)
@@ -110,11 +107,15 @@ Token Parser::Expect(Token::TokenKind TKind)
 
     if (t.GetKind() != TKind)
     {
-        std::cout << ":" << t.GetLine() + 1 << ":" << t.GetColumn() + 1
-                  << ": error: Unexpected symbol `" << t.GetString() << "`. Expected is `"
-                  << Token::ToString(TKind) << "`."
-                  << "\t\t" << lexer.GetSource()[t.GetLine()] << std::endl
-                  << std::endl;
+        std::string Format =
+            ": {}:{}: error: Unexpected Symbol `{}`. Expected is `{}`.\t\t {}\n\n";
+
+        PrintError(Format,
+                   t.GetLine() + 1,
+                   t.GetColumn() + 1,
+                   t.GetString(),
+                   Token::ToString(TKind),
+                   lexer.GetSource()[t.GetLine()]);
     }
 
     return t;
@@ -617,29 +618,20 @@ static int GetBinOpPrecedence(Token::TokenKind TK)
 {
     switch (TK)
     {
-        case Token::Assign:
-            return 10;
-        case Token::LogicalAnd:
-            return 20;
-        case Token::And:
-            return 30;
+        case Token::Assign: return 10;
+        case Token::LogicalAnd: return 20;
+        case Token::And: return 30;
         case Token::Equal:
-        case Token::NotEqual:
-            return 40;
+        case Token::NotEqual: return 40;
         case Token::Less:
-        case Token::Greater:
-            return 50;
+        case Token::Greater: return 50;
         case Token::Plus:
-        case Token::Minus:
-            return 60;
+        case Token::Minus: return 60;
         case Token::Mul:
         case Token::Div:
-        case Token::Mod:
-            return 70;
-        case Token::Not:
-            return 80;
-        default:
-            return -1;
+        case Token::Mod: return 70;
+        case Token::Not: return 80;
+        default: return -1;
     }
 }
 
@@ -761,8 +753,9 @@ std::unique_ptr<Expression> Parser::ParseCallExpression(Token Id)
                 // Cast if allowed
                 if (Type::IsImplicitlyCastable(CallArgType,
                                                FuncArgTypes[i].GetTypeVariant()))
-                    CallArgs[i] = std::make_unique<ImplicitCastExpression>(
-                        std::move(CallArgs[i]), FuncArgTypes[i]);
+                    CallArgs[i] =
+                        std::make_unique<ImplicitCastExpression>(std::move(CallArgs[i]),
+                                                                 FuncArgTypes[i]);
                 else    // otherwise its an error
                     EmitError("argument type mismatch", lexer);
             }
@@ -829,7 +822,8 @@ std::unique_ptr<Expression>
             && !dynamic_cast<ArrayExpression *>(LeftExpression.get())
             && !dynamic_cast<StructMemberReference *>(LeftExpression.get()))
         {
-            EmitError("lvalue required as left operand of assignment", lexer,
+            EmitError("lvalue required as left operand of assignment",
+                      lexer,
                       BinaryOperator);
         }
 
@@ -876,7 +870,8 @@ std::unique_ptr<Expression>
                     EmitError("FuncType mismatch", lexer, BinaryOperator);
                 else
                     RightExpression = std::make_unique<ImplicitCastExpression>(
-                        std::move(RightExpression), LeftType);
+                        std::move(RightExpression),
+                        LeftType);
             }
             /// Otherwise cast the one with lower conversion rank to higher one .
             else
@@ -887,22 +882,26 @@ std::unique_ptr<Expression>
                 // if LHS needs the conversion.
                 if (LeftType != DesiredType)
                     LeftExpression = std::make_unique<ImplicitCastExpression>(
-                        std::move(LeftExpression), DesiredType);
+                        std::move(LeftExpression),
+                        DesiredType);
                 else
                     RightExpression = std::make_unique<ImplicitCastExpression>(
-                        std::move(RightExpression), DesiredType);
+                        std::move(RightExpression),
+                        DesiredType);
             }
         }
         /// mod operation
         else if (BinaryOperator.GetKind() == Token::Mod)
         {
             if (LeftType != Type::Int || RightType != Type::Int)
-                EmitError("Mod Operator can only operator on integers", lexer,
+                EmitError("Mod Operator can only operator on integers",
+                          lexer,
                           BinaryOperator);
         }
 
-        LeftExpression = std::make_unique<BinaryExpression>(
-            std::move(LeftExpression), BinaryOperator, std::move(RightExpression));
+        LeftExpression = std::make_unique<BinaryExpression>(std::move(LeftExpression),
+                                                            BinaryOperator,
+                                                            std::move(RightExpression));
     }
 }
 
@@ -917,10 +916,9 @@ void Parser::InsertToSymbolTable(const std::string &SymbolName,
     SymbolTableStack::Entry SymEntry(SymbolName, SymType, SymValue);
     if (SymTabStack.ContainsInCurrentScope(SymEntry))
     {
-        std::cout << "Error: Symbol '" + SymbolName + "' with type '" + SymType.ToString()
-                         + "' is already defined."
-                  << std::endl
-                  << std::endl;
+        PrintError("Error: Symbol `{}` with type `{}` is already defined.\n\n",
+                   SymbolName,
+                   SymType.ToString());
     }
     else
     {
