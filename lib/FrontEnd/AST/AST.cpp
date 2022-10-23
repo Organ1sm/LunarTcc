@@ -1,8 +1,10 @@
 #include "FrontEnd/AST/AST.hpp"
+#include "MiddleEnd/IR/BasicBlock.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
 #include "MiddleEnd/IR/IRType.hpp"
 #include "MiddleEnd/IR/Instruction.hpp"
 #include "Utils/ErrorLogger.hpp"
+#include "fmt/core.h"
 #include <cassert>
 #include <memory>
 
@@ -161,6 +163,90 @@ Value *IfStatement::IRCodegen(IRFactory *IRF)
     }
 
     IRF->InsertBB(std::move(IfEnd));
+    return nullptr;
+}
+
+//   # generate code for Condition
+//   cmp.eq $cmp_res1, %Condition, case1_const
+//   br $cmp_res1, <case1_body>
+//   cmp.eq $cmp_res2, %Condition, case2_const
+//   br $cmp_res2, <case2_body>
+//   ...
+//   cmp.eq $cmp_resN, %Condition, caseN_const
+//   br $cmp_resN, <caseN_body>
+//   j <default_case>
+//
+// <case1_body>
+//   # generate case1 body
+//   # create "j <switch_end>" when break is used
+// ...
+// <caseN_body>
+//   # generate caseN body
+//   # create "j <switch_end>" when break is used
+// <default_case>
+//   # generate default case body
+// <switch_end>
+
+Value *SwitchStatement::IRCodegen(IRFactory *IRF)
+{
+    const auto FuncPtr = IRF->GetCurrentFunction();
+    auto SwitchEnd     = std::make_unique<BasicBlock>("switch_end", FuncPtr);
+    auto DefaultCase   = std::make_unique<BasicBlock>("switch_default", FuncPtr);
+
+    auto Cond = Condition->IRCodegen(IRF);
+
+    std::vector<std::unique_ptr<BasicBlock>> CaseBodies;
+
+    for (auto &[Const, Statements] : Cases)
+        if (!Statements.empty())
+            CaseBodies.push_back(std::make_unique<BasicBlock>("switch_case", FuncPtr));
+
+    // because of the fallthrough mechanism multiple cases could use the same name
+    // code block, CaseIdx keep track the current target basic block so falling
+    // through cases could refer to it
+    std::size_t CaseIndex = 0;
+    for (auto &[Const, Statements] : Cases)
+    {
+        auto CmpRes = IRF->CreateCmp(CompareInstruction::EQ,
+                                     Cond,
+                                     IRF->GetConstant((uint64_t)Const));
+        IRF->CreateBranch(CmpRes, CaseBodies[CaseIndex].get());
+
+        if (!Statements.empty())
+            ++CaseIndex;
+    }
+
+    IRF->CreateJump(DefaultCase.get());
+
+    // Generating the bodies for the cases
+    for (auto &[Const, Statements] : Cases)
+    {
+        if (!Statements.empty())
+        {
+            IRF->InsertBB(std::move(CaseBodies.front()));
+
+            for (auto &Statement : Statements)
+            {
+                Statement->IRCodegen(IRF);
+
+                // If the statement is a "break" then insert jump to the default case
+                // here, since cannot generate that jump simply, it would require context
+                if (auto Break = dynamic_cast<BreakStatement *>(Statement.get());
+                    Break != nullptr)
+                    IRF->CreateJump(SwitchEnd.get());
+            }
+
+            CaseBodies.erase(CaseBodies.begin());
+        }
+    }
+
+    // Generate default case
+    IRF->InsertBB(std::move(DefaultCase));
+    for (auto &Statement : DefaultBody)
+        Statement->IRCodegen(IRF);
+
+    IRF->InsertBB(std::move(SwitchEnd));
+
     return nullptr;
 }
 
@@ -734,6 +820,28 @@ void IfStatement::ASTDump(unsigned int tab)
 
     if (ElseBody)
         ElseBody->ASTDump(tab + 2);
+}
+
+void SwitchStatement::ASTDump(unsigned int tab)
+{
+    PrintLn("SwitchStatement", tab);
+
+    Condition->ASTDump(tab + 2);
+
+    for (auto &[CaseConst, CaseBody] : Cases)
+    {
+        auto Str = fmt::format("Case `{}`", CaseConst);
+        PrintLn(Str.c_str(), tab + 2);
+
+        for (auto &CaseStmt : CaseBody)
+            CaseStmt->ASTDump(tab + 4);
+    }
+
+    if (!DefaultBody.empty())
+        PrintLn("DefaultCase", tab + 2);
+
+    for (auto &DefaultStmt : DefaultBody)
+        DefaultStmt->ASTDump(tab + 4);
 }
 
 void WhileStatement::ASTDump(unsigned int tab)
