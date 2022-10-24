@@ -55,25 +55,28 @@ class Expression : public Node
 class VariableDeclaration : public Statement
 {
   public:
-    std::string &GetName() { return Name; }
-    void SetName(std::string &name) { Name = name; }
-
-    Type GetType() { return AType; }
-    void SetType(Type t) { AType = t; }
-
     VariableDeclaration(std::string &Name, Type Ty, std::vector<unsigned> Dim)
         : Name(Name), AType(Ty, std::move(Dim))
     {}
 
     VariableDeclaration(std::string &Name, Type Ty) : Name(Name), AType(Ty) {}
 
-    void ASTDump(unsigned int tab = 0) override;
+    std::unique_ptr<Expression> &GetInitExpr() { return Init; }
+    void SetInitExpr(std::unique_ptr<Expression> e) { Init = std::move(e); }
 
+    std::string &GetName() { return Name; }
+    void SetName(std::string &name) { Name = name; }
+
+    Type GetType() { return AType; }
+    void SetType(Type t) { AType = t; }
+
+    void ASTDump(unsigned int tab = 0) override;
     Value *IRCodegen(IRFactory *IRF) override;
 
   private:
     std::string Name;
     Type AType;
+    std::unique_ptr<Expression> Init {nullptr};
 };
 
 class MemberDeclaration : public Statement

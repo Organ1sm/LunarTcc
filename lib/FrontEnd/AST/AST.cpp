@@ -411,9 +411,13 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
     if (IRF->IsGlobalScope())
         return IRF->CreateGlobalVar(Name, VarType);
 
-    /// Othewise we are in a localscope of a function.
+    /// Othewise we are in a local scope of a function.
     /// Allocate space on stack and update the local symbol Table.
     auto SA = IRF->CreateSA(Name, VarType);
+
+    if (Init)
+        IRF->CreateStore(Init->IRCodegen(IRF), SA);
+
     IRF->AddToSymbolTable(Name, SA);
 
     return SA;
@@ -783,6 +787,9 @@ void VariableDeclaration::ASTDump(unsigned tab)
     Print("VariableDeclaration ", tab);
     Print(TypeStr.c_str());
     PrintLn(NameStr.c_str());
+
+    if (Init)
+        Init->ASTDump(tab + 2);
 }
 
 void MemberDeclaration::ASTDump(unsigned tab)
