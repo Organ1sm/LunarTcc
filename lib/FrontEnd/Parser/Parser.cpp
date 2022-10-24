@@ -3,6 +3,7 @@
 #include "MiddleEnd/IR/IRFactory.hpp"
 #include "Utils/ErrorLogger.hpp"
 #include "fmt/core.h"
+#include <algorithm>
 #include <memory>
 
 bool Parser::IsTypeSpecifier(Token::TokenKind tk)
@@ -46,16 +47,15 @@ Type Parser::ParseType(Token::TokenKind tk)
         case Token::Char: Result.SetTypeVariant(Type::Char); break;
         case Token::Int: Result.SetTypeVariant(Type::Int); break;
         case Token::Double: Result.SetTypeVariant(Type::Double); break;
-        case Token::Struct:
-            {
-                Lex();    // eat 'struct'
+        case Token::Struct: {
+            Lex();    // eat 'struct'
 
-                auto CurrentTK   = lexer.GetCurrentToken();
-                std::string Name = CurrentTK.GetString();
+            auto CurrentTK   = lexer.GetCurrentToken();
+            std::string Name = CurrentTK.GetString();
 
-                Result = std::get<0>(UserDefinedTypes[Name]);
-                break;
-            }
+            Result = std::get<0>(UserDefinedTypes[Name]);
+            break;
+        }
         default: assert(!"Unknown token kind."); break;
     }
 
@@ -336,7 +336,7 @@ Node Parser::ParseReturnTypeSpecifier() { return Node(); }
 
 
 // <VaraibleDeclaration> ::= <TypeSpecifier> <Identifier>
-//                           {'[' <IntegerConstant> ]'}* ';'
+//                           {'[' <IntegerConstant> ]'}* { = <Expression> } ';'
 std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration()
 {
     auto Ty = ParseTypeSpecifier();
@@ -361,11 +361,24 @@ std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration()
     if (!Dimensions.empty())
         Ty = Type(Ty, Dimensions);
 
-    Expect(Token::SemiColon);
-
     InsertToSymbolTable(Name, Ty);
 
-    return std::make_unique<VariableDeclaration>(Name, Ty, Dimensions);
+    // If the variable initialized
+    std::unique_ptr<Expression> InitExpr {nullptr};
+    if (lexer.Is(Token::Assign))
+    {
+        Lex();    // eat `=`
+        InitExpr = ParseExpression();
+    }
+
+    Expect(Token::SemiColon);
+
+    auto VD = std::make_unique<VariableDeclaration>(Name, Ty, Dimensions);
+
+    if (InitExpr)
+        VD->SetInitExpr(std::move(InitExpr));
+
+    return VD;
 }
 
 std::unique_ptr<MemberDeclaration> Parser::ParseMemberDeclaration()
