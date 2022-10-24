@@ -51,6 +51,7 @@ class IRType
     bool IsInt() const { return IsSInt() || IsUInt(); }
     bool IsPointer() const { return PointerLevel > 0; }
     bool IsStruct() const { return Kind == Struct; }
+    bool IsArray() const { return !Dimensions.empty(); }
 
     std::size_t GetBitSize() const { return BitWidth; }
     std::size_t GetByteSize() const;

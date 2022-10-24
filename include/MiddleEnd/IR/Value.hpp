@@ -32,6 +32,7 @@ class Value
     bool IsRegister() const { return Kind == Register; }
     bool IsParameter() const { return Kind == Param; }
     bool IsIntType() const { return ValueType.IsInt(); }
+    bool IsGlobalVar() const { return Kind == GlobalVar; }
 
     virtual std::string ValueString() const;
 
@@ -76,12 +77,22 @@ class GlobalVariable : public Value
   public:
     GlobalVariable() = delete;
     GlobalVariable(std::string Name, IRType T) : Value(Value::GlobalVar, T), Name(Name) {}
+    GlobalVariable(std::string Name, IRType T, std::vector<uint64_t> InitList)
+        : Value(Value::GlobalVar, T), Name(Name), InitList(std::move(InitList))
+    {}
 
-    std::string ValueString() const override { return "@" + Name; }
+    void SetName(std::string N) { Name = N; }
+    std::string &GetName() { return Name; }
+
+    std::vector<uint64_t> &GetInitList() { return InitList; }
+
+
+    std::string ValueString() const override;
     void Print() const;
 
   private:
     std::string Name;
+    std::vector<uint64_t> InitList;
 };
 
 #endif    // LUNARTCC_VALUE_HPP
