@@ -52,8 +52,10 @@ class Type
     void SetPointerLevel(uint8_t pl) { PointerLevel = pl; }
 
     std::vector<Type> &GetParamList() { return ParamList; }
-    std::vector<unsigned> &GetDimensions();
     std::vector<Type> &GetArgTypes();
+
+    std::vector<unsigned> &GetDimensions();
+    void SetDimensions(std::vector<unsigned> D);
 
     void IncrementPointerLevel() { PointerLevel++; }
     void DecrementPointerLevel();
