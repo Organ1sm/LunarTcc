@@ -40,6 +40,8 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Not,           "!"          },
     {Dot,           "."          },
 
+    {Inc,           "++"         },
+    {Dec,           "--"         },
     {Equal,         "=="         },
     {NotEqual,      "!="         },
     {LogicalAnd,    "&&"         },

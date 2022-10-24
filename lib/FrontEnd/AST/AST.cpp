@@ -38,13 +38,17 @@ BinaryExpression::BinaryExpression(BinaryExpression::ExprPtr L,
 UnaryExpression::UnaryExpression(Token Op, UnaryExpression::ExprPtr E)
     : Operation(Op), Expr(std::move(E))
 {
-    if (GetOperationKind() == UnaryOperation::DeRef)
+    switch (GetOperationKind())
     {
-        ResultType = Expr->GetResultType();
-        ResultType.DecrementPointerLevel();
+        case UnaryOperation::DeRef:
+            ResultType = Expr->GetResultType();
+            ResultType.DecrementPointerLevel();
+            break;
+        case UnaryOperation::PostIncrement:
+        case UnaryOperation::PostDecrement: ResultType = Expr->GetResultType(); break;
+
+        default: assert(!"Unimplemented!");
     }
-    else
-        assert(!"Unimplemented!");
 }
 
 //=--------------------------------------------------------------------------=//
@@ -451,16 +455,15 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
         case Type::Int: ReturnIRType = IRType(IRType::SInt); break;
         case Type::Double: ReturnIRType = IRType(IRType::FP, 64); break;
         case Type::Void: ReturnIRType = IRType(IRType::None, 0); break;
-        case Type::Composite:
-            {
-                ReturnIRType = GetIRTypeFromASTType(GetResultType());
+        case Type::Composite: {
+            ReturnIRType = GetIRTypeFromASTType(GetResultType());
 
-                // If the return type is a struct, then also make a stack allocation
-                // to use that as a temporary, where the result would be copied to after
-                // the call
-                StructTemp = IRF->CreateSA(Name + ".temp", ReturnIRType);
-                break;
-            }
+            // If the return type is a struct, then also make a stack allocation
+            // to use that as a temporary, where the result would be copied to after
+            // the call
+            StructTemp = IRF->CreateSA(Name + ".temp", ReturnIRType);
+            break;
+        }
         default: break;
     }
 
@@ -557,16 +560,24 @@ Value *StructMemberReference::IRCodegen(IRFactory *IRF)
     auto ExprType  = BaseValue->GetType();
 
     assert(ExprType.IsStruct());
+    assert(ExprType.GetMemberTypes().size() > MemberIndex);
 
     auto IndexValue = IRF->GetConstant((uint64_t)MemberIndex);
-    auto GEP        = IRF->CreateGEP(ExprType, BaseValue, IndexValue);
+
+    // The result type is a pointer to the member type.
+    // Ex:
+    //    referred member is an i32 than an i32*.
+    auto ResultType = ExprType.GetMemberTypes()[MemberIndex];
+    ResultType.IncrementPointerLevel();
+
+    auto GEP = IRF->CreateGEP(ResultType, BaseValue, IndexValue);
 
     if (GetLValueness())
         return GEP;
 
-    auto ResultType = GetIRTypeFromASTType(this->GetResultType());
+    auto ResultIRType = GetIRTypeFromASTType(this->GetResultType());
 
-    return IRF->CreateLoad(ResultType, GEP);
+    return IRF->CreateLoad(ResultIRType, GEP);
 }
 
 Value *IntegerLiteralExpression::IRCodegen(IRFactory *IRF)
@@ -583,14 +594,33 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
 {
     auto E = Expr->IRCodegen(IRF);
 
-    if (GetOperationKind() == UnaryOperation::DeRef)
+    switch (GetOperationKind())
     {
-        auto ResultType = E->GetType();
-        return IRF->CreateLoad(ResultType, E);
-    }
-    else
-    {
-        assert(!"Unimplemented");
+        case UnaryOperation::DeRef: {
+            auto ResultType = E->GetType();
+            return IRF->CreateLoad(ResultType, E);
+        }
+        case UnaryOperation::PostDecrement:
+        case UnaryOperation::PostIncrement: {
+            // make the assumption that the expression E is an LValue
+            // which means its basically a pointer, so it
+            // requires a load first for addition to work
+            auto LoadedValType = E->GetTypeRef();
+            LoadedValType.DecrementPointerLevel();
+
+            auto LoadedExpr = IRF->CreateLoad(LoadedValType, E);
+
+            Instruction *AddOrSub;
+            if (GetOperationKind() == PostIncrement)
+                AddOrSub = IRF->CreateAdd(LoadedExpr, IRF->GetConstant((uint64_t)1));
+            else
+                AddOrSub = IRF->CreateSub(LoadedExpr, IRF->GetConstant((uint64_t)1));
+
+            IRF->CreateStore(AddOrSub, E);
+
+            return LoadedExpr;
+        }
+        default: assert(!"Unimplemented");
     }
 
     return nullptr;
@@ -962,6 +992,9 @@ UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
     switch (Operation.GetKind())
     {
         case Token::Mul: return UnaryOperation::DeRef;
+        case Token::Inc: return UnaryOperation::PostIncrement;
+        case Token::Dec: return UnaryOperation::PostDecrement;
+
         default: assert(!"Invalid unary operator kind."); break;
     }
 }

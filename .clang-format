@@ -32,7 +32,7 @@ BitFieldColonSpacing: Both
 
 BreakBeforeBraces: Custom
 BraceWrapping:
-  AfterCaseLabel: true
+  AfterCaseLabel: false
   AfterClass: true
   AfterControlStatement: true
   AfterEnum: false
@@ -73,7 +73,7 @@ EmptyLineBeforeAccessModifier: LogicalBlock
 
 FixNamespaceComments: true
 
-IndentCaseBlocks: true
+IndentCaseBlocks: false
 IndentCaseLabels: true
 IndentExternBlock: AfterExternBlock
 IndentGotoLabels: true
