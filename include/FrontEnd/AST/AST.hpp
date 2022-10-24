@@ -55,11 +55,14 @@ class Expression : public Node
 class VariableDeclaration : public Statement
 {
   public:
+    VariableDeclaration(std::string &Name, Type Ty) : Name(Name), AType(Ty) {}
     VariableDeclaration(std::string &Name, Type Ty, std::vector<unsigned> Dim)
         : Name(Name), AType(Ty, std::move(Dim))
     {}
 
-    VariableDeclaration(std::string &Name, Type Ty) : Name(Name), AType(Ty) {}
+    VariableDeclaration(std::string &Name, Type Ty, std::unique_ptr<Expression> E)
+        : Name(Name), AType(Ty), Init(std::move(E))
+    {}
 
     std::unique_ptr<Expression> &GetInitExpr() { return Init; }
     void SetInitExpr(std::unique_ptr<Expression> e) { Init = std::move(e); }
@@ -507,8 +510,10 @@ class IntegerLiteralExpression : public Expression
 {
   public:
     unsigned GetValue() { return IntValue; }
-    int64_t GetSIntValue() const { return IntValue; }
     void SetValue(unsigned v) { IntValue = v; }
+
+    int64_t GetSIntValue() const { return IntValue; }
+    uint64_t GetUIntValue() const { return IntValue; }
 
     IntegerLiteralExpression() = delete;
     IntegerLiteralExpression(unsigned v) : IntValue(v) { SetResultType(Type(Type::Int)); }
@@ -573,6 +578,23 @@ class ImplicitCastExpression : public Expression
 
   private:
     std::unique_ptr<Expression> CastableExpression;
+};
+
+class InitializerListExpression : public Expression
+{
+    using ExprVec = std::vector<std::unique_ptr<Expression>>;
+
+  public:
+    InitializerListExpression(ExprVec EV) : Expressions(std::move(EV)) {}
+
+    ExprVec &GetExprList() { return Expressions; }
+    void SetExprList(ExprVec &e) { Expressions = std::move(e); }
+
+    void ASTDump(unsigned tab = 0) override;
+    Value *IRCodegen(IRFactory *IRF) override { return nullptr; }
+
+  private:
+    ExprVec Expressions;
 };
 
 class TranslationUnit : public Statement

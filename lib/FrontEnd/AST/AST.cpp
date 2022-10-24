@@ -408,6 +408,7 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
         VarType.SetDimensions(AType.GetDimensions());
 
     // If we are in global scope, then its a global variable Declaration
+    std::vector<uint64_t> InitList;
     if (IRF->IsGlobalScope())
         return IRF->CreateGlobalVar(Name, VarType);
 
@@ -1087,4 +1088,12 @@ void ImplicitCastExpression::ASTDump(unsigned int tab)
     PrintLn(Str.c_str());
 
     CastableExpression->ASTDump(tab + 2);
+}
+
+void InitializerListExpression::ASTDump(unsigned int tab)
+{
+    PrintLn("InitializerListExpression", tab);
+
+    for (auto &E : Expressions)
+        E->ASTDump(tab + 2);
 }

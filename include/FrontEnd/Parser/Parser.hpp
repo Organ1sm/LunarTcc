@@ -86,6 +86,7 @@ class Parser
     ExprPtr ParseUnaryExpression();
     ExprPtr ParseBinaryExpression();
     ExprPtr ParsePrimaryExpression();
+    ExprPtr ParseInitializerListExpression();
     ExprPtr ParseIdentifierExpression();
     ExprPtr ParseConstantExpression();
     ExprPtr ParseBinaryExpressionRHS(int Precedence,

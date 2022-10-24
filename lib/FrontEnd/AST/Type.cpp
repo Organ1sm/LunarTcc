@@ -66,6 +66,12 @@ std::vector<unsigned> &Type::GetDimensions()
     return Dimensions;
 }
 
+void Type::SetDimensions(std::vector<unsigned> D)
+{
+    Kind       = Type::Array;
+    Dimensions = std::move(D);
+}
+
 std::vector<Type> &Type::GetArgTypes() { return ParamList; }
 
 void Type::DecrementPointerLevel()
