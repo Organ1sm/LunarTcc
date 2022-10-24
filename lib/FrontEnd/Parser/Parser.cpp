@@ -2,6 +2,8 @@
 #include "FrontEnd/AST/AST.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
 #include "Utils/ErrorLogger.hpp"
+#include "fmt/core.h"
+#include <memory>
 
 bool Parser::IsTypeSpecifier(Token::TokenKind tk)
 {
@@ -62,7 +64,7 @@ Type Parser::ParseType(Token::TokenKind tk)
 
 static void UndefinedSymbolError(Token sym, Lexer &L)
 {
-    static std::string Format = ": {}:{}: error: Undefined Symbol `{}`.\n\t\t{}\n\n";
+    static std::string Format = ">  {}:{}: error: Undefined Symbol `{}`.\n\t\t{}\n\n";
 
     PrintError(Format,
                sym.GetLine() + 1,
@@ -74,7 +76,7 @@ static void UndefinedSymbolError(Token sym, Lexer &L)
 static void ArrayTypeMismatchError(Token Sym, Type Actual)
 {
     static std::string Format =
-        ": {}:{}: error: Function Type Mismatch `{}` , type is `{}`, it is not an array type.\n";
+        ">  {}:{}: error: Function Type Mismatch `{}` , type is `{}`, it is not an array type.\n";
 
     PrintError(Format,
                Sym.GetLine() + 1,
@@ -85,14 +87,14 @@ static void ArrayTypeMismatchError(Token Sym, Type Actual)
 
 void static EmitError(const std::string &msg, Lexer &L)
 {
-    static std::string Format = ": {}: error: `{}`.\n\t\t{}\n\n";
+    static std::string Format = ">  {}: error: `{}`.\n\t\t{}\n\n";
 
     PrintError(Format, L.GetLine(), msg, L.GetSource()[L.GetLine() - 1]);
 }
 
 void static EmitError(const std::string &msg, Lexer &L, Token &T)
 {
-    static std::string Format = ": {}:{}: error: `{}`.\n\t\t{}\n\n";
+    static std::string Format = ">  {}:{}: error: `{}`.\n\t\t{}\n\n";
 
     PrintError(Format,
                T.GetLine() + 1,
@@ -108,7 +110,7 @@ Token Parser::Expect(Token::TokenKind TKind)
     if (t.GetKind() != TKind)
     {
         std::string Format =
-            ": {}:{}: error: Unexpected Symbol `{}`. Expected is `{}`.\t\t {}\n\n";
+            ">  {}:{}: error: Unexpected Symbol `{}`. Expected is `{}`. \"{}\"\n\n";
 
         PrintError(Format,
                    t.GetLine() + 1,
@@ -692,17 +694,47 @@ std::unique_ptr<Expression> Parser::ParseExpression() { return ParseBinaryExpres
 //                       | <PostFixExpression> '(' <Arguments> ')'
 //                       | <PostFixExpression> '[' <Expression> ']'
 //                       | <PostFixExpression> '.' <Identifier>
+
+static bool IsPostfixOperator(Token TK)
+{
+    switch (TK.GetKind())
+    {
+        case Token::Inc:
+        case Token::Dec:
+        case Token::LeftParen:
+        case Token::LeftBracket:
+        case Token::Dot: return true;
+
+        default: break;
+    }
+
+    return false;
+}
+
+// <PostFixExpression> ::= <PrimaryExpression>
+//                       | <PostFixExpression> '++'
+//                       | <PostFixExpression> '--'
+//                       | <PostFixExpression> '(' <Arguments> ')'
+//                       | <PostFixExpression> '[' <Expression> ']'
+//                       | <PostFixExpression> '.' <Identifier>
 std::unique_ptr<Expression> Parser::ParsePostFixExpression()
 {
     auto CurrentToken = lexer.GetCurrentToken();
     auto Expr         = ParsePrimaryExpression();
     assert(Expr && "Cannot be NULL");
 
-    while (lexer.Is(Token::LeftParen) || lexer.Is(Token::LeftBracket)
-           || lexer.Is(Token::Dot))
+    while (IsPostfixOperator(lexer.GetCurrentToken()))
     {
+        if (lexer.Is(Token::Inc) || lexer.Is(Token::Dec))
+        {
+            auto Operation = lexer.GetCurrentToken();
+
+            Lex();
+            Expr->SetLValueness(true);
+            Expr = std::make_unique<UnaryExpression>(Operation, std::move(Expr));
+        }
         // Parse a CallExpression here
-        if (lexer.Is(Token::LeftParen))
+        else if (lexer.Is(Token::LeftParen))
         {
             Expr = ParseCallExpression(CurrentToken);
         }
@@ -974,9 +1006,9 @@ std::unique_ptr<Expression>
                       BinaryOperator);
         }
 
-        /// If it's an Assign BinaryOperator and the left hand side is an ArrayExpression
-        /// or ReferenceExpression, then it's an LValue.
-        /// This can reduces one time load instruction generate for global Variable.
+        /// If it's an Assign BinaryOperator and the left hand side is an
+        /// ArrayExpression or ReferenceExpression, then it's an LValue. This can
+        /// reduces one time load instruction generate for global Variable.
 
         /// Fixme: Should be solved in a better ways. Seems like LLVM using
         /// ImplicitCastExpression for this purpose as well.
