@@ -27,6 +27,8 @@ class Module
     void AddFunction(Function F);
     std::vector<Function> &GetFunctions() { return Functions; }
 
+    std::vector<std::unique_ptr<Value>> &GetGlobalVars() { return GlobalVars; }
+
     void AddGlobalVar(std::unique_ptr<Value> GV);
     bool IsGlobalVar(Value *V) const;
 

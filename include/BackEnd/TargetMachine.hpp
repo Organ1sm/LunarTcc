@@ -37,6 +37,7 @@ class TargetMachine
     virtual bool SelectLoad(MachineInstruction *MI) { return false; }
     virtual bool SelectStore(MachineInstruction *MI) { return false; }
     virtual bool SelectStackAddress(MachineInstruction *MI) { return false; }
+    virtual bool SelectGlobalAddress(MachineInstruction *MI) { return false; }
     virtual bool SelectCall(MachineInstruction *MI) { return false; }
     virtual bool SelectBranch(MachineInstruction *MI) { return false; }
     virtual bool SelectJump(MachineInstruction *MI) { return false; }

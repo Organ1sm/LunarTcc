@@ -31,6 +31,7 @@ add_executable(
   ../lib/BackEnd/StackFrame.cpp
   ../lib/BackEnd/LowLevelType.cpp
   ../lib/BackEnd/TargetMachine.cpp
+  ../lib/BackEnd/GlobalData.cpp
   ../lib/BackEnd/TargetInstructionLegalizer.cpp
   ../lib/BackEnd/TargetArchs/AArch64/AArch64TargetABI.cpp
   ../lib/BackEnd/TargetArchs/AArch64/AArch64TargetMachine.cpp
