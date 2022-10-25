@@ -5,6 +5,7 @@ project(
   LANGUAGES CXX
 )
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=mold")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 include(FetchContent)

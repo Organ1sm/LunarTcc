@@ -18,6 +18,7 @@ class MachineOperand
         Paramter,
         Label,
         FunctionName,
+        GlobalSymbol,
     };
 
     MachineOperand() {}
@@ -30,6 +31,7 @@ class MachineOperand
     void SetTypeToStackAccess() { Type = StackAccess; }
     void SetTypeToFunctionName() { Type = FunctionName; }
     void SetTypeToVirtualRegister() { Type = VirtualRegister; }
+    void SetTypeToGlobalSymbol() { Type = GlobalSymbol; }
 
     int64_t GetReg() const { return Value; }
     uint64_t GetSlot() const { return Value; }
@@ -48,6 +50,9 @@ class MachineOperand
     const char *GetLabel() { return BelongToLabel; }
     void SetLabel(const char *L) { BelongToLabel = L; }
 
+    std::string &GetGlobalSymbol() { return GlobalSym; }
+    void SetGlobalSymbol(const std::string &GS) { GlobalSym = GS; }
+
     unsigned GetSize() { return LLT.GetBitWidth(); }
 
     bool IsLabel() const { return Type == Label; }
@@ -58,6 +63,7 @@ class MachineOperand
     bool IsVirtualReg() const { return Type == VirtualRegister; }
     bool IsFunctionName() const { return Type == FunctionName; }
     bool IsStackAccess() const { return Type == StackAccess; }
+    bool IsGlobalSymbol() const { return Type == GlobalSymbol; }
 
     static MachineOperand CreateRegister(uint64_t Reg, unsigned BitWidth = 32);
     static MachineOperand CreateImmediate(uint64_t Val, unsigned BitWidth = 32);
@@ -66,7 +72,8 @@ class MachineOperand
     static MachineOperand CreateStackAccess(uint64_t Slot, int Offset = 0);
     static MachineOperand CreateParameter(uint64_t Val);
     static MachineOperand CreateLabel(const char *Label);
-    static MachineOperand CreateFunctionName(const char* Label);
+    static MachineOperand CreateFunctionName(const char *Label);
+    static MachineOperand CreateGlobalSymbol(std::string &Symbol);
 
     void Print(TargetMachine *TM) const;
 
@@ -76,4 +83,5 @@ class MachineOperand
     uint64_t Value            = ~0;
     const char *BelongToLabel = nullptr;
     LowLevelType LLT;
+    std::string GlobalSym;
 };

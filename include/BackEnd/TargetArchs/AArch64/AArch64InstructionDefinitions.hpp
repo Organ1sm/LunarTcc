@@ -24,6 +24,7 @@ namespace AArch64
         SXTB,
         MOV_ri,
         MOV_rr,
+        ADRP,
         LDR,
         LDRB,
         STR,

@@ -4,7 +4,7 @@
 
 int global;
 
-int foo()
+int test()
 {
     global = 123;
     return global;

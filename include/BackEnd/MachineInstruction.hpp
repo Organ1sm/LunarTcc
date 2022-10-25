@@ -45,22 +45,12 @@ class MachineInstruction
         Store,
         StackAlloc,
         StackAddress,
+        GlobalAddress,
     };
 
-    enum CmpRelation {
-        Invalid,
-        EQ,
-        NE,
-        LT,
-        GT,
-        LE,
-        GE
-    };
+    enum CmpRelation { Invalid, EQ, NE, LT, GT, LE, GE };
 
-    enum Flags : unsigned {
-        IsLOAD  = 1,
-        IsSTORE = 1 << 1
-    };
+    enum Flags : unsigned { IsLOAD = 1, IsSTORE = 1 << 1 };
 
     MachineInstruction() {}
     MachineInstruction(unsigned Opcode, MachineBasicBlock *Parent)
@@ -68,14 +58,9 @@ class MachineInstruction
     {
         switch (Opcode)
         {
-            case Load:
-                AddAttribute(IsLOAD);
-                break;
-            case Store:
-                AddAttribute(IsSTORE);
-                break;
-            default:
-                break;
+            case Load: AddAttribute(IsLOAD); break;
+            case Store: AddAttribute(IsSTORE); break;
+            default: break;
         }
     }
 
@@ -108,11 +93,13 @@ class MachineInstruction
     void AddStackAccess(uint64_t Slot, unsigned Offset = 0);
     void AddLabel(const char *Label);
     void AddFunctionName(const char *Name);
+    void AddGlobalSymbol(std::string Symbol);
 
     bool IsFallThroughBranch() const { return Operands.size() == 2; }
     bool IsLoad() const { return Opcode == Load || (OtherAttributes & IsLOAD); }
     bool IsStore() const { return Opcode == Store || (OtherAttributes & IsSTORE); }
     bool IsLoadOrStore() const { return IsLoad() || IsStore(); }
+    bool IsAlreadySelected() const { return Opcode < 65536; }
 
     void Print(TargetMachine *MI) const;
 

@@ -64,6 +64,11 @@ void MachineInstruction::AddFunctionName(const char *Name)
     AddOperand(MachineOperand::CreateFunctionName(Name));
 }
 
+void MachineInstruction::AddGlobalSymbol(std::string Symbol)
+{
+    AddOperand(MachineOperand::CreateGlobalSymbol(Symbol));
+}
+
 void MachineInstruction::Print(TargetMachine *TM) const
 {
     std::string OpcodeStr;
@@ -83,6 +88,7 @@ void MachineInstruction::Print(TargetMachine *TM) const
         case OperationCode::Trunc: OpcodeStr = "Trunc"; break;
         case OperationCode::Store: OpcodeStr = "Store"; break;
         case OperationCode::StackAddress: OpcodeStr = "StackAddress"; break;
+        case OperationCode::GlobalAddress: OpcodeStr = "GlobalAddress"; break;
         case OperationCode::Mov: OpcodeStr = "Mov"; break;
         case OperationCode::LoadImm: OpcodeStr = "LoadImm"; break;
         case OperationCode::Load: OpcodeStr = "Load"; break;

@@ -17,15 +17,21 @@ AArch64TargetMachine::AArch64TargetMachine()
     this->RegInfo   = std::make_unique<AArch64RegisterInfo>();
     this->ABI       = std::make_unique<AArch64TargetABI>(this->RegInfo.get());
     this->InstrDefs = std::make_unique<AArch64InstructionDefinitions>();
-    this->Legalizer = std::make_unique<AArch64InstructionLegalizer>();
+    this->Legalizer = std::make_unique<AArch64InstructionLegalizer>(this);
 }
 
 bool AArch64TargetMachine::SelectAdd(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 3 && "Add must have 3 operands");
 
+    if (auto Symbol = MI->GetOperand(2); Symbol->IsGlobalSymbol())
+    {
+        MI->SetOpcode(ADD_rri);
+        return true;
+    }
+
     // If last operand is an immediate then selec "addi";
-    if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
+    else if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
     {
         // FIXME: Since currently ADD used for adjusting the stack in the prolog,
         // therefore its possible that the immediate is negative. In that case for
