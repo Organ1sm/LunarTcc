@@ -109,11 +109,32 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
     // Store Instruction: Store [Address], Src
     else if (auto I = dynamic_cast<StoreInstruction *>(Instr); I != nullptr)
     {
-        assert(I->GetMemoryLocation()->IsRegister() && "Must be a register");
+        assert(I->GetMemoryLocation()->IsRegister()
+               || I->GetMemoryLocation()->IsGlobalVar() && "Forbidden destination");
+
+        unsigned GlobAddrReg;
+        unsigned AddressReg;
+
+        if (I->GetMemoryLocation()->IsGlobalVar())
+        {
+            auto GlobalAddress =
+                MachineInstruction(MachineInstruction::GlobalAddress, BB);
+
+            GlobAddrReg = ParentFunction->GetNextAvailableVirtualRegister();
+            GlobalAddress.AddVirtualRegister(GlobAddrReg, TM->GetPointerSize());
+            GlobalAddress.AddGlobalSymbol(
+                ((GlobalVariable *)I->GetMemoryLocation())->GetName());
+
+            BB->InsertInstr(GlobalAddress);
+            AddressReg = GlobAddrReg;
+        }
+        else
+        {
+            AddressReg = I->GetMemoryLocation()->GetID();
+        }
 
         ResultMI.AddAttribute(MachineInstruction::IsSTORE);
 
-        auto AddressReg = I->GetMemoryLocation()->GetID();
         if (IRVregToLLIRVreg.count(AddressReg) > 0)
             AddressReg = IRVregToLLIRVreg[AddressReg];
 
@@ -193,12 +214,30 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
     // Load Instruction: Load Dest, [Address]
     else if (auto I = dynamic_cast<LoadInstruction *>(Instr); I != nullptr)
     {
-        assert(I->GetMemoryLocation()->IsRegister() && "Must be a register");
+        assert(I->GetMemoryLocation()->IsRegister()
+               || I->GetMemoryLocation()->IsGlobalVar() && "Forbidden destination");
+
+        unsigned GlobAddrReg;
+        unsigned AddressReg;
+        if (I->GetMemoryLocation()->IsGlobalVar())
+        {
+            auto GlobalAddress =
+                MachineInstruction(MachineInstruction::GlobalAddress, BB);
+
+            GlobAddrReg = ParentFunction->GetNextAvailableVirtualRegister();
+            GlobalAddress.AddVirtualRegister(GlobAddrReg, TM->GetPointerSize());
+            GlobalAddress.AddGlobalSymbol(
+                ((GlobalVariable *)I->GetMemoryLocation())->GetName());
+
+            BB->InsertInstr(GlobalAddress);
+            AddressReg = GlobAddrReg;
+        }
+        else
+            AddressReg = I->GetMemoryLocation()->GetID();
 
         ResultMI.AddAttribute(MachineInstruction::IsLOAD);
         ResultMI.AddOperand(GetMachineOperandFromValue((Value *)I, ParentFunction));
 
-        auto AddressReg = I->GetMemoryLocation()->GetID();
         if (IRVregToLLIRVreg.count(AddressReg) > 0)
             AddressReg = IRVregToLLIRVreg[AddressReg];
 
@@ -240,16 +279,23 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
     //   ADD Dest, Dest, idx
     else if (auto I = dynamic_cast<GetElemPointerInstruction *>(Instr); I != nullptr)
     {
-        auto SA = MachineInstruction(MachineInstruction::StackAddress, BB);
+        MachineInstruction GlobalInst;
+
+        const bool IsGlobal = I->GetSource()->IsGlobalVar();
+
+        if (IsGlobal)
+            GlobalInst = MachineInstruction(MachineInstruction::GlobalAddress, BB);
+        else
+            GlobalInst = MachineInstruction(MachineInstruction::StackAddress, BB);
 
         auto Dest = GetMachineOperandFromValue((Value *)I, ParentFunction);
-        SA.AddOperand(Dest);
+        GlobalInst.AddOperand(Dest);
 
-        auto AddressReg = I->GetSource()->GetID();
-        assert(ParentFunction->IsStackSlot(AddressReg) && "Must be stack slot");
-        SA.AddStackAccess(AddressReg);
+        if (IsGlobal)
+            GlobalInst.AddGlobalSymbol(((GlobalVariable *)I->GetSource())->GetName());
+        else
+            GlobalInst.AddStackAccess(I->GetSource()->GetID());
 
-        BB->InsertInstr(SA);
 
         auto &SourceType           = I->GetSource()->GetTypeRef();
         unsigned ConstantIndexPart = 0;
@@ -264,10 +310,11 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
         else
             assert(!"Unimplemented for expression indexes");
 
-        // FIXME: For unknown reason this not work as expected. Investigate it!
         // If there is nothing to add, then exit now
-        //    if (ConstantIndexPart == 0)
-        //      return SA;
+        if (ConstantIndexPart == 0)
+            return GlobalInst;
+
+        BB->InsertInstr(GlobalInst);
 
         auto ADD = MachineInstruction(MachineInstruction::Add, BB);
         ADD.AddOperand(Dest);
@@ -539,5 +586,54 @@ void IRtoLLIR::GenerateLLIRFromIR()
 
             BBCounter++;
         }
+    }
+
+    for (auto &GlobalVar : IRM.GetGlobalVars())
+    {
+        auto Name = ((GlobalVariable *)GlobalVar.get())->GetName();
+        auto Size = GlobalVar->GetTypeRef().GetByteSize();
+
+        auto GD        = GlobalData(Name, Size);
+        auto &InitList = ((GlobalVariable *)GlobalVar.get())->GetInitList();
+
+        if (GlobalVar->GetTypeRef().IsStruct() || GlobalVar->GetTypeRef().IsArray())
+        {
+            // If the init list is empty, then just allocate Size amount of zeros
+            if (InitList.empty())
+                GD.InsertAllocation(Size, 0);
+            // if the list is not empty then allocate the appropriate type of memories
+            // with initialization
+            else
+            {
+                // struct case
+                if (GlobalVar->GetTypeRef().IsStruct())
+                {
+                    size_t InitListIndex = 0;
+                    for (auto &MemberType : GlobalVar->GetTypeRef().GetMemberTypes())
+                    {
+                        assert(InitListIndex < InitList.size());
+                        GD.InsertAllocation(MemberType.GetByteSize(),
+                                            InitList[InitListIndex]);
+                        InitListIndex++;
+                    }
+                }
+                // array case
+                else
+                {
+                    const auto Size = GlobalVar->GetTypeRef().GetBaseType().GetByteSize();
+                    for (auto InitVal : InitList)
+                        GD.InsertAllocation(Size, InitVal);
+                }
+            }
+        }
+        // scalar case
+        else if (InitList.empty())
+            GD.InsertAllocation(Size, 0);
+        else
+        {
+            GD.InsertAllocation(Size, InitList[0]);
+        }
+
+        TU->AddGlobalData(GD);
     }
 }

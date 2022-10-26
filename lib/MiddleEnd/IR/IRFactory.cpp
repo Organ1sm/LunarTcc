@@ -262,6 +262,16 @@ GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier, IRType Type)
     return GlobalVar;
 }
 
+GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier,
+                                           IRType Type,
+                                           std::vector<uint64_t> InitList)
+{
+    auto GlobalVar = new GlobalVariable(Identifier, Type, std::move(InitList));
+    GlobalVar->SetId(ID++);
+
+    return GlobalVar;
+}
+
 void IRFactory::CreateNewFunction(std::string &Name, IRType ReturnType)
 {
     CurrentModule.AddFunction(std::move(Function(Name, ReturnType)));

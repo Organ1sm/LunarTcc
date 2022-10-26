@@ -40,7 +40,7 @@ bool getFileContent(const std::string &fileName, std::vector<std::string> &VecOf
 
     while (std::getline(in, str))
     {
-        VecOfStrs.push_back(str);
+        VecOfStrs.push_back(std::move(str));
     }
 
     in.close();
@@ -127,6 +127,7 @@ int main(int argc, char *argv[])
         AST->ASTDump();
 
     AST->IRCodegen(&IRF);
+    
     if (DumpIR)
         IRModule.Print();
 

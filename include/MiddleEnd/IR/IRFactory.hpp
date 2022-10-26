@@ -5,6 +5,7 @@
 #ifndef LUNARTCC_IRFACTORY_HPP
 #define LUNARTCC_IRFACTORY_HPP
 
+#include <cstdint>
 #include <memory>
 #include <map>
 #include "MiddleEnd/IR/Instruction.hpp"
@@ -66,6 +67,9 @@ class IRFactory
         CreateBranch(Value *Condition, BasicBlock *True, BasicBlock *False = nullptr);
 
     GlobalVariable *CreateGlobalVar(std::string &Identifier, IRType Type);
+    GlobalVariable *CreateGlobalVar(std::string &Identifier,
+                                    IRType Type,
+                                    std::vector<uint64_t> InitList);
 
     void CreateNewFunction(std::string &Name, IRType ReturnType);
     void AddGlobalVariable(Value *GlobalValue);

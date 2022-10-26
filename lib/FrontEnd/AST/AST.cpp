@@ -408,8 +408,37 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
         VarType.SetDimensions(AType.GetDimensions());
 
     // If we are in global scope, then its a global variable Declaration
+    std::vector<uint64_t> InitList;
     if (IRF->IsGlobalScope())
-        return IRF->CreateGlobalVar(Name, VarType);
+    {
+        // if the initialization is done by an initializer.
+        // FIXME: assuming 1 dimensional init list like "{ 1, 2 }", add support
+        // for more complex case like "{ { 1, 2 }, { 3, 4 } }"
+
+        if (auto InitListExpr = dynamic_cast<InitializerListExpression *>(Init.get());
+            InitListExpr != nullptr)
+        {
+            for (auto &Expr : InitListExpr->GetExprList())
+            {
+                if (auto ConstantExpr =
+                        dynamic_cast<IntegerLiteralExpression *>(Expr.get());
+                    ConstantExpr != nullptr)
+                    InitList.push_back(ConstantExpr->GetUIntValue());
+                else
+                    assert(!"Other types unhandled yet.");
+            }
+        }
+        else
+        {
+            if (auto ConstantExpr = dynamic_cast<IntegerLiteralExpression *>(Init.get());
+                ConstantExpr != nullptr)
+            {
+                InitList.push_back(ConstantExpr->GetUIntValue());
+            }
+        }
+
+        return IRF->CreateGlobalVar(Name, VarType, std::move(InitList));
+    }
 
     /// Othewise we are in a local scope of a function.
     /// Allocate space on stack and update the local symbol Table.
@@ -488,7 +517,7 @@ Value *ReferenceExpression::IRCodegen(IRFactory *IRF)
 {
     auto Local = IRF->GetSymbolValue(Identifier);
 
-    if (this->GetResultType().IsStruct())
+    if (Local && this->GetResultType().IsStruct())
         return Local;
 
     if (Local)
@@ -500,9 +529,10 @@ Value *ReferenceExpression::IRCodegen(IRFactory *IRF)
     }
 
     auto GV = IRF->GetGlobalVar(Identifier);
+    assert(GV && "Cannot be null.");
 
     // If Lvalue, then return as a ptr to the global value.
-    if (GetLValueness())
+    if (GetLValueness() || this->GetResultType().IsStruct())
         return GV;
 
     return IRF->CreateLoad(GV->GetType(), GV);
@@ -563,6 +593,7 @@ Value *StructMemberReference::IRCodegen(IRFactory *IRF)
     auto BaseValue = StructTypedExpression->IRCodegen(IRF);
     auto ExprType  = BaseValue->GetType();
 
+    assert(BaseValue && "Cannot be null.");
     assert(ExprType.IsStruct());
     assert(ExprType.GetMemberTypes().size() > MemberIndex);
 
@@ -1087,4 +1118,12 @@ void ImplicitCastExpression::ASTDump(unsigned int tab)
     PrintLn(Str.c_str());
 
     CastableExpression->ASTDump(tab + 2);
+}
+
+void InitializerListExpression::ASTDump(unsigned int tab)
+{
+    PrintLn("InitializerListExpression", tab);
+
+    for (auto &E : Expressions)
+        E->ASTDump(tab + 2);
 }

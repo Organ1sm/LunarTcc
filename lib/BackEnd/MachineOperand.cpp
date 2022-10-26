@@ -82,6 +82,15 @@ MachineOperand MachineOperand::CreateFunctionName(const char *Label)
     return MO;
 }
 
+MachineOperand MachineOperand::CreateGlobalSymbol(std::string &Symbol)
+{
+    MachineOperand MO;
+    MO.SetTypeToGlobalSymbol();
+    MO.SetGlobalSymbol(Symbol);
+
+    return MO;
+}
+
 void MachineOperand::Print(TargetMachine *TM) const
 {
     std::string OperandStr;
@@ -118,6 +127,10 @@ void MachineOperand::Print(TargetMachine *TM) const
         case MachineOperand::FunctionName:
             OperandStr = fmt::format("@{}", BelongToLabel);
             break;
+        case MachineOperand::GlobalSymbol:
+            OperandStr = fmt::format("@{}", GlobalSym);
+            break;
+
         default: break;
     }
 

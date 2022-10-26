@@ -82,14 +82,18 @@ void AssemblyEmitter::GenerateAssembly()
                         AssemblyTemplateStr.replace(DollarPos, 2, ImmStr);
                     }
                     // Label and FunctionName (func call) case
-                    else if (CurrentOperand->IsLabel()
+                    else if (CurrentOperand->IsLabel() || CurrentOperand->IsGlobalSymbol()
                              || CurrentOperand->IsFunctionName())
                     {
                         std::string Str = "";
                         if (CurrentOperand->IsLabel())
                             Str += ".L";
 
-                        Str.append(CurrentOperand->GetLabel());
+                        if (!CurrentOperand->IsGlobalSymbol())
+                            Str.append(CurrentOperand->GetLabel());
+                        else
+                            Str.append(CurrentOperand->GetGlobalSymbol());
+
                         AssemblyTemplateStr.replace(DollarPos, 2, Str);
                     }
                     else
@@ -101,6 +105,9 @@ void AssemblyEmitter::GenerateAssembly()
                 fmt::print("{}\n", AssemblyTemplateStr);
             }
         }
+        fmt::print("\n");
     }
-    fmt::print("\n");
+
+    for (auto &GlobalData : MIRM->GetGlobalDatas())
+        GlobalData.Print();
 }

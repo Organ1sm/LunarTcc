@@ -13,14 +13,16 @@ console = Console()
 def CreateFile(fileName, context):
     textFile = open(fileName, "w")
     n = textFile.write(context)
-
     textFile.close()
 
 
 def CleanTestCacheFile():
-    os.remove("testMain.c")
-    os.remove("test.s")
-    os.remove("test")
+    if os.path.exists("testMain.c"):
+        os.remove("testMain.c")
+    if os.path.exists("test.s"):
+        os.remove("test.s")
+    if os.path.exists("test"):
+        os.remove("test")
 
 
 def CheckAndCompileFile(fileName):
@@ -87,7 +89,7 @@ def CheckAndCompileFile(fileName):
             return False, True
 
         retCode = subprocess.run([RunCommand + Arch, "test"]).returncode
-        if retCode == 0:
+        if retCode != 1:
             CleanTestCacheFile()
             return False, True
 

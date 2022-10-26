@@ -9,6 +9,8 @@ void InstructionSelection::InstrSelect()
     {
         for (auto &MBB : MFunc.GetBasicBlocks())
             for (auto &Instr : MBB.GetInstructions())
-                this->TM->SelectInstruction(&Instr);
+                // Skip selection if already selected
+                if (!Instr.IsAlreadySelected())
+                    this->TM->SelectInstruction(&Instr);
     }
 }

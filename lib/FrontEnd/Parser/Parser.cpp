@@ -229,12 +229,27 @@ std::unique_ptr<Node> Parser::ParseExternalDeclaration()
                 Lex();    // consume ','
             }
 
+            if (!Dimensions.empty())
+                Ty.SetDimensions(std::move(Dimensions));
+
+            // If the variable initialized
+            std::unique_ptr<Expression> InitExpr {nullptr};
+            if (lexer.Is(Token::Assign))
+            {
+                Lex();
+
+                if (lexer.Is(Token::LeftBrace))
+                    InitExpr = ParseInitializerListExpression();
+                else
+                    InitExpr = ParseExpression();
+            }
+
             Expect(Token::SemiColon);
 
-            InsertToSymbolTable(NameStr, Type(Ty, Dimensions));
+            InsertToSymbolTable(NameStr, Ty);
 
             TU->AddDeclaration(
-                std::make_unique<VariableDeclaration>(NameStr, Ty, Dimensions));
+                std::make_unique<VariableDeclaration>(NameStr, Ty, std::move(InitExpr)));
         }
 
         TokenKind = GetCurrentTokenKind();
@@ -368,7 +383,10 @@ std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration()
     if (lexer.Is(Token::Assign))
     {
         Lex();    // eat `=`
-        InitExpr = ParseExpression();
+        if (lexer.Is(Token::LeftBrace))
+            InitExpr = ParseInitializerListExpression();
+        else
+            InitExpr = ParseExpression();
     }
 
     Expect(Token::SemiColon);
@@ -885,6 +903,29 @@ std::unique_ptr<Expression> Parser::ParseIdentifierExpression()
         UndefinedSymbolError(Id, lexer);
 
     return RE;
+}
+
+// <InitializerListExpression> ::= '{' <ConstantExpression>
+//                                     {',' <ConstantExpression> }* '}'
+std::unique_ptr<Expression> Parser::ParseInitializerListExpression()
+{
+    Expect(Token::LeftBrace);
+
+    auto CE = ParseConstantExpression();
+    assert(CE && "Cannot be null");
+
+    std::vector<ExprPtr> ExprList;
+    ExprList.push_back(std::move(CE));
+
+    while (lexer.Is(Token::Comma))
+    {
+        Lex();    // eat ','
+        ExprList.push_back(std::move(ParseConstantExpression()));
+    }
+
+    Expect(Token::RightBrace);
+
+    return std::make_unique<InitializerListExpression>(std::move(ExprList));
 }
 
 std::unique_ptr<Expression> Parser::ParseCallExpression(Token Id)
