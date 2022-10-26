@@ -788,7 +788,11 @@ static int GetBinOpPrecedence(Token::TokenKind TK)
 {
     switch (TK)
     {
-        case Token::Assign: return 10;
+        case Token::Assign:
+        case Token::PlusEqual:
+        case Token::MinusEuqal:
+        case Token::MulEqual:
+        case Token::DivEqual: return 10;
         case Token::LogicalAnd: return 20;
         case Token::And: return 30;
         case Token::Equal:

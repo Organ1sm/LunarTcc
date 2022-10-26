@@ -445,7 +445,6 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
         {
             ArgIR = IRF->CreateLoad(ArgIR->GetType(), ArgIR);
         }
-
         Args.push_back(ArgIR);
     }
 
@@ -721,6 +720,43 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         return R;
     }
 
+    if (GetOperationKind() == AddAssign || GetOperationKind() == SubAssign
+        || GetOperationKind() == MulAssign || GetOperationKind() == DivAssign)
+    {
+        // Assignment right associative so generate R first
+        auto R = Rhs->IRCodegen(IRF);
+        auto L = Lhs->IRCodegen(IRF);
+
+        if (L == nullptr || R == nullptr)
+            return nullptr;
+
+        if (R->GetTypeRef().IsStruct())
+        {
+            IRF->CreateMemCopy(L, R, R->GetTypeRef().GetByteSize());
+        }
+        else
+        {
+            Instruction *OperationResult {nullptr};
+
+            switch (GetOperationKind())
+            {
+                case AddAssign: OperationResult = IRF->CreateAdd(L, R); break;
+                case SubAssign: OperationResult = IRF->CreateSub(L, R); break;
+                case MulAssign: OperationResult = IRF->CreateMul(L, R); break;
+                case DivAssign: OperationResult = IRF->CreateDiv(L, R); break;
+                default: assert(!"Unreachable");
+            }
+
+            auto Load = dynamic_cast<LoadInstruction *>(L);
+            assert(Load);
+
+            IRF->CreateStore(OperationResult, Load->GetMemoryLocation());
+
+            return OperationResult;
+        }
+    }
+
+
     auto L = Lhs->IRCodegen(IRF);
     auto R = Rhs->IRCodegen(IRF);
 
@@ -955,6 +991,10 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
     switch (Operation.GetKind())
     {
         case Token::Assign: return Assign;
+        case Token::PlusEqual: return AddAssign;
+        case Token::MinusEuqal: return SubAssign;
+        case Token::MulEqual: return MulAssign;
+        case Token::DivEqual: return DivAssign;
         case Token::Plus: return Add;
         case Token::Minus: return Sub;
         case Token::Mul: return Mul;
