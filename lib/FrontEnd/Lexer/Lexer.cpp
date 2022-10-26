@@ -165,6 +165,11 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::Inc;
                 Size      = 2;
             }
+            else if (GetNextNthCharOnSameLine(1) == '=')
+            {
+                TokenKind = Token::PlusEqual;
+                Size      = 2;
+            }
             else
                 TokenKind = Token::Plus;
             break;
@@ -174,14 +179,31 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::Dec;
                 Size      = 2;
             }
+            else if (GetNextNthCharOnSameLine(1) == '=')
+            {
+                TokenKind = Token::MinusEuqal;
+                Size      = 2;
+            }
             else
                 TokenKind = Token::Minus;
             break;
-        case '*': TokenKind = Token::Mul; break;
+        case '*':
+            if (GetNextNthCharOnSameLine(1) == '=')
+            {
+                TokenKind = Token::MulEqual;
+                Size      = 2;
+            }
+            TokenKind = Token::Mul;
+            break;
         case '/':
             if (GetNextNthCharOnSameLine(1) == '/')
             {
                 TokenKind = Token::SingleComment;
+                Size      = 2;
+            }
+            else if (GetNextNthCharOnSameLine(1) == '=')
+            {
+                TokenKind = Token::DivEqual;
                 Size      = 2;
             }
             else

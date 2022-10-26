@@ -58,11 +58,11 @@ class Token
         NotEqual,        // !=
         LogicalAnd,      // &&
         LogicalOr,       // ||
-        MulAssign,       // *=
-        DivAssign,       // /=
-        ModAssign,       // %=
-        AddAssign,       // +=
-        SubAssign,       // -=
+        MulEqual,        // *=
+        DivEqual,        // /=
+        ModEqual,        // %=
+        PlusEqual,       // +=
+        MinusEuqal,      // -=
         LeftAssign,      // <<=
         RightAssign,     // >>=
         XorAssign,       // ^=
