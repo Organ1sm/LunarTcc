@@ -402,7 +402,11 @@ class BinaryExpression : public Expression
 
   public:
     enum BinaryOperation {
-        Assign,    // a = b
+        Assign,       // a = b
+        AddAssign,    // a += b
+        SubAssign,    // a -= b
+        MulAssign,    // a *= b
+        DivAssign,    // a /= b
         Add,
         Sub,
         Mul,
