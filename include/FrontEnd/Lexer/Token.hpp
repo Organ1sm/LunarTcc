@@ -105,6 +105,7 @@ class Token
         Struct,
         Union,
         Enum,
+        TypeDef,
         Inline,
         Sizeof,
 

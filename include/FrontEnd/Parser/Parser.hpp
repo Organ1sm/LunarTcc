@@ -1,5 +1,4 @@
-#ifndef LUNARTCC_PARSER_H
-#define LUNARTCC_PARSER_H
+#pragma once
 
 #include <cassert>
 #include <stack>
@@ -46,14 +45,17 @@ class Parser
     Token Lex() { return lexer.Lex(); }
     Token Expect(Token::TokenKind Token);
 
+    Token GetCurrentToken() { return lexer.GetCurrentToken(); }
     Token::TokenKind GetCurrentTokenKind() { return lexer.GetCurrentToken().GetKind(); }
 
     unsigned ParseIntegerConstant();
     double ParseRealConstant();
 
+    unsigned ParseQualifiers();
     Type ParseType(Token::TokenKind tk);
-    bool IsTypeSpecifier(Token::TokenKind tk);
-    bool IsReturnTypeSpecifier(Token::TokenKind tk);
+    bool IsTypeSpecifier(Token T);
+    bool IsReturnTypeSpecifier(Token T);
+    bool IsQualifer(Token::TokenKind tk);
 
     std::unique_ptr<Node> ParseTranslationUnit();
     std::unique_ptr<Node> ParseExternalDeclaration();
@@ -63,7 +65,7 @@ class Parser
     std::unique_ptr<FunctionParameterDeclaration> ParseParameterDeclaration();
     std::vector<std::unique_ptr<FunctionParameterDeclaration>> ParseParameterList();
     std::unique_ptr<MemberDeclaration> ParseMemberDeclaration();
-    std::unique_ptr<StructDeclaration> ParseStructDeclaration();
+    std::unique_ptr<StructDeclaration> ParseStructDeclaration(unsigned Qualifiers = 0);
     std::unique_ptr<EnumDeclaration> ParseEnumDeclaration();
 
     Type ParseTypeSpecifier();
@@ -105,9 +107,9 @@ class Parser
     // Type name to type, and the list of names for the struct field
     std::map<std::string, std::tuple<Type, std::vector<std::string>>> UserDefinedTypes;
 
+    /// Mapping identifiers to types. Eg: "typedef int i32" -> {"i32", Type::Int}
+    std::map<std::string, Type> TypeDefinitions;
+
     /// Used for determining if implicit cast need or not in return statements
     Type CurrentFuncRetType {Type::Invalid};
 };
-
-
-#endif

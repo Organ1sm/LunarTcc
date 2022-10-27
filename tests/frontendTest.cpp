@@ -91,6 +91,13 @@ int main(int argc, char *argv[])
                 PrintBeforePasses = true;
                 continue;
             }
+            else if (!option.compare("debug"))
+            {
+                DumpTokens        = true;
+                DumpAst           = true;
+                DumpIR            = true;
+                PrintBeforePasses = true;
+            }
             else
             {
                 PrintError("Error: Unknown argument `{}`\n", argv[i]);
@@ -127,7 +134,7 @@ int main(int argc, char *argv[])
         AST->ASTDump();
 
     AST->IRCodegen(&IRF);
-    
+
     if (DumpIR)
         IRModule.Print();
 

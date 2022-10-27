@@ -67,6 +67,7 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Char,          "char"       },
     {Struct,        "struct"     },
     {Enum,          "enum"       },
+    {TypeDef,       "typedef"    },
 };
 
 std::string Token::ToString(Token::TokenKind tk)
