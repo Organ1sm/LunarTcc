@@ -92,7 +92,15 @@ void AssemblyEmitter::GenerateAssembly()
                         if (!CurrentOperand->IsGlobalSymbol())
                             Str.append(CurrentOperand->GetLabel());
                         else
+                        {
                             Str.append(CurrentOperand->GetGlobalSymbol());
+                            bool Flag = AssemblyTemplateStr[DollarPos - 1] == '#';
+                            if (DollarPos > 0 && Flag)
+                            {
+                                AssemblyTemplateStr.erase(DollarPos - 1);
+                                DollarPos--;
+                            }
+                        }
 
                         AssemblyTemplateStr.replace(DollarPos, 2, Str);
                     }
@@ -107,6 +115,8 @@ void AssemblyEmitter::GenerateAssembly()
         }
         fmt::print("\n");
     }
+    if (!MIRM->GetGlobalDatas().empty())
+        fmt::print(".section .data\n");
 
     for (auto &GlobalData : MIRM->GetGlobalDatas())
         GlobalData.Print();

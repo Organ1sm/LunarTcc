@@ -131,12 +131,12 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
         else
         {
             AddressReg = I->GetMemoryLocation()->GetID();
+            if (IRVregToLLIRVreg.count(AddressReg) > 0)
+                AddressReg = IRVregToLLIRVreg[AddressReg];
         }
 
         ResultMI.AddAttribute(MachineInstruction::IsSTORE);
 
-        if (IRVregToLLIRVreg.count(AddressReg) > 0)
-            AddressReg = IRVregToLLIRVreg[AddressReg];
 
         if (ParentFunction->IsStackSlot(AddressReg))
             ResultMI.AddStackAccess(AddressReg);
@@ -233,13 +233,14 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
             AddressReg = GlobAddrReg;
         }
         else
+        {
             AddressReg = I->GetMemoryLocation()->GetID();
+            if (IRVregToLLIRVreg.count(AddressReg) > 0)
+                AddressReg = IRVregToLLIRVreg[AddressReg];
+        }
 
         ResultMI.AddAttribute(MachineInstruction::IsLOAD);
         ResultMI.AddOperand(GetMachineOperandFromValue((Value *)I, ParentFunction));
-
-        if (IRVregToLLIRVreg.count(AddressReg) > 0)
-            AddressReg = IRVregToLLIRVreg[AddressReg];
 
         if (ParentFunction->IsStackSlot(AddressReg))
             ResultMI.AddStackAccess(AddressReg);
