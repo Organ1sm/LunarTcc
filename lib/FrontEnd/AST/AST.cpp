@@ -369,10 +369,12 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
                 ReturnType = GetIRTypeFromASTType(FuncType);
             else
                 assert(!"Unhandled Return Type.");
+            break;
         case Type::Char: ReturnType = IRType(IRType::SInt, 8); break;
         case Type::Int: ReturnType = IRType(IRType::SInt); break;
         case Type::Double: ReturnType = IRType(IRType::FP, 64); break;
         case Type::Void: ReturnType = IRType(IRType::None); break;
+
         default: assert(!"Invalid function return type."); break;
     }
 

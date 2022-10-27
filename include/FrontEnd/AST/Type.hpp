@@ -63,7 +63,7 @@ class Type
     bool IsPointerType() const { return PointerLevel != 0; }
     bool IsSimpleType() const { return Kind == Simple; }
     bool IsArray() const { return Kind == Array; }
-    bool IsFunction() const { return ParamList.empty(); }
+    bool IsFunction() const { return !ParamList.empty(); }
     bool IsStruct() const { return Kind == Struct; }
     bool IsIntegerType() const { return Ty == Char || Ty == Int; }
 
