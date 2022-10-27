@@ -40,6 +40,10 @@ UnaryExpression::UnaryExpression(Token Op, UnaryExpression::ExprPtr E)
 {
     switch (GetOperationKind())
     {
+        case UnaryOperation::Address:
+            ResultType = Expr->GetResultType();
+            ResultType.IncrementPointerLevel();
+            break;
         case UnaryOperation::DeRef:
             ResultType = Expr->GetResultType();
             ResultType.DecrementPointerLevel();
@@ -606,6 +610,13 @@ Value *StructMemberReference::IRCodegen(IRFactory *IRF)
     auto ResultType = ExprType.GetMemberTypes()[MemberIndex];
     ResultType.IncrementPointerLevel();
 
+    auto BaseType = BaseValue->GetType();
+    while (BaseType.GetPointerLevel() > 1)
+    {
+        BaseValue = IRF->CreateLoad(BaseType, BaseValue);
+        BaseType  = BaseValue->GetType();
+    }
+
     auto GEP = IRF->CreateGEP(ResultType, BaseValue, IndexValue);
 
     if (GetLValueness())
@@ -628,10 +639,29 @@ Value *FloatLiteralExpression::IRCodegen(IRFactory *IRF)
 
 Value *UnaryExpression::IRCodegen(IRFactory *IRF)
 {
-    auto E = Expr->IRCodegen(IRF);
+    Value *E {nullptr};
+
+    if (GetOperationKind() != UnaryOperation::Address)
+        E = Expr->IRCodegen(IRF);
 
     switch (GetOperationKind())
     {
+        case UnaryOperation::Address: {
+            auto RefExpr = dynamic_cast<ReferenceExpression *>(Expr.get());
+            assert(RefExpr);
+
+            auto ReferEE = RefExpr->GetIdentifier();
+            auto Res     = IRF->GetSymbolValue(ReferEE);
+
+            if (!Res)
+            {
+                Res = IRF->GetGlobalVar(ReferEE);
+                Res->GetTypeRef().IncrementPointerLevel();
+            }
+
+            return Res;
+        }
+
         case UnaryOperation::DeRef: {
             auto ResultType = E->GetType();
             return IRF->CreateLoad(ResultType, E);
@@ -1059,6 +1089,7 @@ void BinaryExpression::ASTDump(unsigned int tab)
 void StructMemberReference::ASTDump(unsigned tab)
 {
     auto Str = "'" + ResultType.ToString() + "' ";
+    // Todo: if it's struct pointer, should output `-> member`
     Str += "'." + MemberIdentifier + "'";
 
     Print("StructMemberReference ", tab);
@@ -1071,6 +1102,7 @@ UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
 {
     switch (Operation.GetKind())
     {
+        case Token::And: return UnaryOperation::Address;
         case Token::Mul: return UnaryOperation::DeRef;
         case Token::Inc: return UnaryOperation::PostIncrement;
         case Token::Dec: return UnaryOperation::PostDecrement;

@@ -46,6 +46,8 @@ class MachineInstruction
         StackAlloc,
         StackAddress,
         GlobalAddress,
+
+        InvalidOp,
     };
 
     enum CmpRelation { Invalid, EQ, NE, LT, GT, LE, GE };
@@ -100,11 +102,12 @@ class MachineInstruction
     bool IsStore() const { return Opcode == Store || (OtherAttributes & IsSTORE); }
     bool IsLoadOrStore() const { return IsLoad() || IsStore(); }
     bool IsAlreadySelected() const { return Opcode < 65536; }
+    bool IsInvalid() const { return Opcode == InvalidOp; }
 
     void Print(TargetMachine *MI) const;
 
   private:
-    unsigned Opcode = 0;
+    unsigned Opcode {InvalidOp};
 
     // Capture things like the relation for compare instructions
     unsigned Attributes      = 0;

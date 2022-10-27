@@ -186,6 +186,11 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::Dec;
                 Size      = 2;
             }
+            else if (GetNextNthCharOnSameLine(1) == '>')
+            {
+                TokenKind = Token::Arrow;
+                Size      = 2;
+            }
             else if (GetNextNthCharOnSameLine(1) == '=')
             {
                 TokenKind = Token::MinusEuqal;
