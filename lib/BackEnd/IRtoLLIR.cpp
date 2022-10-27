@@ -280,22 +280,24 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
     //   ADD Dest, Dest, idx
     else if (auto I = dynamic_cast<GetElemPointerInstruction *>(Instr); I != nullptr)
     {
-        MachineInstruction GlobalInst;
+        MachineInstruction GoalInst;
 
         const bool IsGlobal = I->GetSource()->IsGlobalVar();
+        const bool IsStack  = ParentFunction->IsStackSlot(I->GetSource()->GetID());
+        const bool IsReg    = !IsGlobal && !IsStack;
 
         if (IsGlobal)
-            GlobalInst = MachineInstruction(MachineInstruction::GlobalAddress, BB);
-        else
-            GlobalInst = MachineInstruction(MachineInstruction::StackAddress, BB);
+            GoalInst = MachineInstruction(MachineInstruction::GlobalAddress, BB);
+        else if (IsStack)
+            GoalInst = MachineInstruction(MachineInstruction::StackAddress, BB);
 
         auto Dest = GetMachineOperandFromValue((Value *)I, ParentFunction);
-        GlobalInst.AddOperand(Dest);
+        GoalInst.AddOperand(Dest);
 
         if (IsGlobal)
-            GlobalInst.AddGlobalSymbol(((GlobalVariable *)I->GetSource())->GetName());
-        else
-            GlobalInst.AddStackAccess(I->GetSource()->GetID());
+            GoalInst.AddGlobalSymbol(((GlobalVariable *)I->GetSource())->GetName());
+        else if (IsStack)
+            GoalInst.AddStackAccess(I->GetSource()->GetID());
 
 
         auto &SourceType           = I->GetSource()->GetTypeRef();
@@ -312,14 +314,22 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
             assert(!"Unimplemented for expression indexes");
 
         // If there is nothing to add, then exit now
-        if (ConstantIndexPart == 0)
-            return GlobalInst;
+        if (ConstantIndexPart == 0 && !GoalInst.IsInvalid())
+            return GoalInst;
 
-        BB->InsertInstr(GlobalInst);
+        if (!GoalInst.IsInvalid())
+            BB->InsertInstr(GoalInst);
 
         auto ADD = MachineInstruction(MachineInstruction::Add, BB);
         ADD.AddOperand(Dest);
-        ADD.AddOperand(Dest);
+
+        if (IsReg)
+            ADD.AddOperand(GetMachineOperandFromValue(I->GetSource(), ParentFunction));
+        else
+            // Otherwise (stack or global case) the base address is loaded in Dest by
+            // the preceding STACK_ADDRESS or GLOBAL_ADDRESS instruction
+            ADD.AddOperand(Dest);
+
         ADD.AddImmediate(ConstantIndexPart, Dest.GetSize());
 
         return ADD;
@@ -341,7 +351,8 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
         {
             MachineInstruction Ins;
 
-            if (Param->GetTypeRef().IsStruct())
+            // In case if its a struct by value param
+            if (Param->GetTypeRef().IsStruct() && !Param->GetTypeRef().IsPointer())
             {
                 assert(StructByIDToRegMap.count(Param->GetID()) > 0
                        && "The map does not know about this struct param");
@@ -355,6 +366,34 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
                                     TargetArgRegs[ParamCounter]->GetBitWidth());
                     Ins.AddVirtualRegister(VReg, TM->GetPointerSize());
 
+                    BB->InsertInstr(Ins);
+                    ParamCounter++;
+                }
+            }
+
+            if (Param->GetTypeRef().IsPointer()
+                && (Param->IsGlobalVar() || ParentFunction->IsStackSlot(Param->GetID())))
+            {
+                if (Param->IsGlobalVar())
+                {
+                    Ins = MachineInstruction(MachineInstruction::GlobalAddress, BB);
+
+                    Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
+                                    TargetArgRegs[ParamCounter]->GetBitWidth());
+
+                    auto Symbol = ((GlobalVariable *)Param)->GetName();
+                    Ins.AddGlobalSymbol(Symbol);
+                    BB->InsertInstr(Ins);
+                    ParamCounter++;
+                }
+                else
+                {
+                    Ins = MachineInstruction(MachineInstruction::StackAddress, BB);
+
+                    Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
+                                    TargetArgRegs[ParamCounter]->GetBitWidth());
+
+                    Ins.AddStackAccess(Param->GetID());
                     BB->InsertInstr(Ins);
                     ParamCounter++;
                 }
