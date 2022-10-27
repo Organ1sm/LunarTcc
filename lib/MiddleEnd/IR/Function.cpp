@@ -69,7 +69,9 @@ void Function::Print() const
     if (!ReturnType.IsVoid())
         ReturnTyStr = ReturnType.AsString();
 
-    fmt::print(FDStr, fmt::arg("n", Name), fmt::arg("a", ArgsStr),
+    fmt::print(FDStr,
+               fmt::arg("n", Name),
+               fmt::arg("a", ArgsStr),
                fmt::arg("r", ReturnTyStr));
 
     for (auto &BB : BasicBlocks)

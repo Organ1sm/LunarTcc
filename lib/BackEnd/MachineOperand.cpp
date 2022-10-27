@@ -112,7 +112,7 @@ void MachineOperand::Print(TargetMachine *TM) const
             OperandStr = fmt::format("%vr-{}", Value);
             break;
         case MachineOperand::MemoryAddress:
-            OperandStr = fmt::format("%vr-{}", Value);
+            OperandStr = fmt::format("%ptr-vr-{}", Value);
             break;
         case MachineOperand::IntImmediate:
             OperandStr = fmt::format("#{}", static_cast<int64_t>(Value));
