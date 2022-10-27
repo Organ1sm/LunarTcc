@@ -40,6 +40,10 @@ UnaryExpression::UnaryExpression(Token Op, UnaryExpression::ExprPtr E)
 {
     switch (GetOperationKind())
     {
+        case UnaryOperation::Address:
+            ResultType = Expr->GetResultType();
+            ResultType.IncrementPointerLevel();
+            break;
         case UnaryOperation::DeRef:
             ResultType = Expr->GetResultType();
             ResultType.DecrementPointerLevel();
@@ -1059,7 +1063,9 @@ void BinaryExpression::ASTDump(unsigned int tab)
 void StructMemberReference::ASTDump(unsigned tab)
 {
     auto Str = "'" + ResultType.ToString() + "' ";
-    Str += "'." + MemberIdentifier + "'";
+    if (ResultType.IsPointerType())
+        // Todo: if it's struct pointer, should output `-> member`
+        Str += "'." + MemberIdentifier + "'";
 
     Print("StructMemberReference ", tab);
     PrintLn(Str.c_str());
@@ -1071,6 +1077,7 @@ UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
 {
     switch (Operation.GetKind())
     {
+        case Token::And: return UnaryOperation::Address;
         case Token::Mul: return UnaryOperation::DeRef;
         case Token::Inc: return UnaryOperation::PostIncrement;
         case Token::Dec: return UnaryOperation::PostDecrement;
