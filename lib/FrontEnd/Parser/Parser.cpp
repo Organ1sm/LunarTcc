@@ -48,7 +48,8 @@ bool Parser::IsQualifer(Token::TokenKind tk)
 {
     switch (tk)
     {
-        case Token::TypeDef: return true;
+        case Token::TypeDef:
+        case Token::Const: return true;
 
         default: break;
     }
@@ -68,6 +69,7 @@ unsigned Parser::ParseQualifiers()
         switch (CurrentTokenKind)
         {
             case Token::TypeDef: Qualifiers |= Type::TypeDef; break;
+            case Token::Const: Qualifiers |= Type::Const; break;
 
             default: break;
         }
@@ -354,9 +356,12 @@ std::unique_ptr<FunctionParameterDeclaration> Parser::ParseParameterDeclaration(
     std::unique_ptr<FunctionParameterDeclaration> FPD =
         std::make_unique<FunctionParameterDeclaration>();
 
-    if (IsTypeSpecifier(GetCurrentToken()))
+    if (IsTypeSpecifier(GetCurrentToken()) || IsQualifer(GetCurrentTokenKind()))
     {
-        Type Ty = ParseTypeSpecifier();
+        unsigned Qualifiers = ParseQualifiers();
+        Type Ty             = ParseTypeSpecifier();
+
+        Ty.SetQualifiers(Qualifiers);
         Lex();
 
         while (lexer.Is(Token::Mul))
@@ -383,7 +388,7 @@ std::vector<std::unique_ptr<FunctionParameterDeclaration>> Parser::ParseParamete
 {
     std::vector<std::unique_ptr<FunctionParameterDeclaration>> Params;
 
-    if (!IsTypeSpecifier(GetCurrentToken()))
+    if (!IsTypeSpecifier(GetCurrentToken()) && !IsQualifer(GetCurrentTokenKind()))
         return Params;
 
     Params.push_back(ParseParameterDeclaration());
@@ -499,6 +504,7 @@ std::unique_ptr<StructDeclaration> Parser::ParseStructDeclaration(unsigned Quali
     std::vector<std::unique_ptr<MemberDeclaration>> Members;
     Type type(Type::Struct);
     type.SetName(Name);
+    type.SetQualifiers(Qualifiers);
 
     std::vector<std::string> StructMemberIdentifiers;
     while (lexer.IsNot(Token::RightBrace))
@@ -513,7 +519,7 @@ std::unique_ptr<StructDeclaration> Parser::ParseStructDeclaration(unsigned Quali
 
     if (Qualifiers & Type::TypeDef)
     {
-        auto AliasName = Expect(Token::Identifier).GetString();
+        auto AliasName             = Expect(Token::Identifier).GetString();
         TypeDefinitions[AliasName] = type;
     }
 
