@@ -31,6 +31,7 @@ static bool IsUnaryOperator(Token::TokenKind tk)
 {
     switch (tk)
     {
+        case Token::And:
         case Token::Mul: return true;
 
         default: break;
@@ -795,15 +796,11 @@ std::unique_ptr<ExpressionStatement> Parser::ParseExpressionStatement()
 
 std::unique_ptr<Expression> Parser::ParseExpression() { return ParseBinaryExpression(); }
 
-// <PostFixExpression> ::= <PrimaryExpression>
-//                       | <PostFixExpression> '(' <Arguments> ')'
-//                       | <PostFixExpression> '[' <Expression> ']'
-//                       | <PostFixExpression> '.' <Identifier>
-
 static bool IsPostfixOperator(Token TK)
 {
     switch (TK.GetKind())
     {
+        case Token::Arrow:
         case Token::Inc:
         case Token::Dec:
         case Token::LeftParen:
@@ -822,6 +819,7 @@ static bool IsPostfixOperator(Token TK)
 //                       | <PostFixExpression> '(' <Arguments> ')'
 //                       | <PostFixExpression> '[' <Expression> ']'
 //                       | <PostFixExpression> '.' <Identifier>
+//                       | <PostFixExpression> '->' <Identifier>
 std::unique_ptr<Expression> Parser::ParsePostFixExpression()
 {
     auto CurrentToken = lexer.GetCurrentToken();
@@ -849,13 +847,18 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
             Expr = ParseArrayExpression(std::move(Expr));
         }
         // parse StructMemberAccess
-        else if (lexer.Is(Token::Dot))
+        else if (lexer.Is(Token::Dot) || lexer.Is(Token::Arrow))
         {
-            Lex();    // eat the Dot
+            const bool IsArrow = lexer.Is(Token::Arrow);
+
+            Lex();    // eat the token
             auto MemberId    = Expect(Token::Identifier);
             auto MemberIdStr = MemberId.GetString();
 
             assert(Expr->GetResultType().IsStruct() && "TODO: emit error");
+            assert((!IsArrow || (IsArrow && Expr->GetResultType().IsPointerType()))
+                   && "struct pointer expected");
+
             // find the type of the member
             auto StructDataTuple   = UserDefinedTypes[Expr->GetResultType().GetName()];
             auto StructType        = std::get<0>(StructDataTuple);

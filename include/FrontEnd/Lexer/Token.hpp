@@ -47,7 +47,7 @@ class Token
         Cond,       // '?'
 
         // Multichar Operators
-        Ptr,             // ->
+        Arrow,           // ->
         Inc,             // ++
         Dec,             // --
         Left,            // <<

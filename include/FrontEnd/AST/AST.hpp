@@ -451,7 +451,7 @@ class UnaryExpression : public Expression
     using ExprPtr = std::unique_ptr<Expression>;
 
   public:
-    enum UnaryOperation { DeRef, PostIncrement, PostDecrement };
+    enum UnaryOperation { Address, DeRef, PostIncrement, PostDecrement };
 
     UnaryExpression() = default;
     UnaryExpression(Token Op, ExprPtr E);
