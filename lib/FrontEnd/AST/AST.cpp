@@ -1089,7 +1089,6 @@ void BinaryExpression::ASTDump(unsigned int tab)
 void StructMemberReference::ASTDump(unsigned tab)
 {
     auto Str = "'" + ResultType.ToString() + "' ";
-    std::cout << ResultType.GetPointerLevel() << std::endl;
     // Todo: if it's struct pointer, should output `-> member`
     Str += "'." + MemberIdentifier + "'";
 
