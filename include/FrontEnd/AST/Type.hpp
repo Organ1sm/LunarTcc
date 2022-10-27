@@ -22,7 +22,7 @@ class Type
     };
 
     enum TypeKind { Simple, Array, Struct };
-    enum TypeQualifier : unsigned { None, TypeDef };
+    enum TypeQualifier : unsigned { None, TypeDef, Const };
 
     Type() : Kind(Simple), Ty(Invalid) {};
     Type(VariantKind vk) : Ty(vk), Kind(Simple) {}
@@ -61,12 +61,18 @@ class Type
     void IncrementPointerLevel() { PointerLevel++; }
     void DecrementPointerLevel();
 
+    unsigned GetQualifiers() const { return Qualifiers; }
+    void SetQualifiers(unsigned q) { Qualifiers = q; }
+    void AddQualifiers(unsigned q) { Qualifiers |= q; }
+
     bool IsPointerType() const { return PointerLevel != 0; }
     bool IsSimpleType() const { return Kind == Simple; }
     bool IsArray() const { return Kind == Array; }
     bool IsFunction() const { return !ParamList.empty(); }
     bool IsStruct() const { return Kind == Struct; }
     bool IsIntegerType() const { return Ty == Char || Ty == Int; }
+
+    bool IsConst() const { return Qualifiers & Const; }
 
     friend bool operator==(const Type &lhs, const Type &rhs);
 
@@ -86,7 +92,7 @@ class Type
     uint8_t PointerLevel {0};
 
     TypeKind Kind;
-    TypeQualifier Qualifiers {None};
+    unsigned Qualifiers {None};
     std::vector<Type> TypeList;
     std::vector<Type> ParamList;
     std::vector<unsigned> Dimensions;

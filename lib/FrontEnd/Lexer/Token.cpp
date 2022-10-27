@@ -52,6 +52,8 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
 
     {SingleComment, "//"         },
 
+    {Const,         "const"      },
+
     {If,            "if"         },
     {Else,          "else"       },
     {Switch,        "switch"     },
