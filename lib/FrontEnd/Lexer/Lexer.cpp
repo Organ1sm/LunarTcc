@@ -18,6 +18,7 @@ std::unordered_map<std::string, Token::TokenKind> Lexer::KeyWords =
         {"return",  Token::Return },
         {"struct",  Token::Struct },
         {"enum",    Token::Enum   },
+        {"typedef", Token::TypeDef},
 };
 
 Lexer::Lexer(std::vector<std::string> &s)
@@ -117,7 +118,10 @@ std::optional<Token> Lexer::LexIdentifier()
     auto Length           = 0u;
     auto TokenKind        = Token::Identifier;
 
-    while (isalpha(GetNextChar()) || GetNextChar() == '_')
+    if (isdigit(GetNextChar()))
+        return std::nullopt;
+
+    while (isalnum(GetNextChar()) || GetNextChar() == '_')
     {
         Length++;
         EatNextChar();

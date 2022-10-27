@@ -22,6 +22,7 @@ class Type
     };
 
     enum TypeKind { Simple, Array, Struct };
+    enum TypeQualifier : unsigned { None, TypeDef };
 
     Type() : Kind(Simple), Ty(Invalid) {};
     Type(VariantKind vk) : Ty(vk), Kind(Simple) {}
@@ -85,6 +86,7 @@ class Type
     uint8_t PointerLevel {0};
 
     TypeKind Kind;
+    TypeQualifier Qualifiers {None};
     std::vector<Type> TypeList;
     std::vector<Type> ParamList;
     std::vector<unsigned> Dimensions;

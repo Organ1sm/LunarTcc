@@ -6,14 +6,20 @@
 #include <algorithm>
 #include <memory>
 
-bool Parser::IsTypeSpecifier(Token::TokenKind tk)
+bool Parser::IsTypeSpecifier(Token T)
 {
-    switch (tk)
+    switch (T.GetKind())
     {
         case Token::Char:
         case Token::Int:
         case Token::Double:
         case Token::Struct: return true;
+
+        case Token::Identifier: {
+            auto Id = T.GetString();
+            if (TypeDefinitions.count(Id) != 0)
+                return true;
+        }
 
         default: break;
     }
@@ -33,9 +39,43 @@ static bool IsUnaryOperator(Token::TokenKind tk)
     return false;
 }
 
-bool Parser::IsReturnTypeSpecifier(Token::TokenKind tk)
+bool Parser::IsReturnTypeSpecifier(Token T)
 {
-    return tk == Token::Void || IsTypeSpecifier(tk);
+    return T.GetKind() == Token::Void || IsTypeSpecifier(T);
+}
+
+bool Parser::IsQualifer(Token::TokenKind tk)
+{
+    switch (tk)
+    {
+        case Token::TypeDef: return true;
+
+        default: break;
+    }
+
+    return false;
+}
+
+unsigned Parser::ParseQualifiers()
+{
+    unsigned Qualifiers   = 0;
+    auto CurrentTokenKind = GetCurrentTokenKind();
+
+    while (IsQualifer(CurrentTokenKind))
+    {
+        Lex();    // eat the qualifier token
+
+        switch (CurrentTokenKind)
+        {
+            case Token::TypeDef: Qualifiers |= Type::TypeDef; break;
+
+            default: break;
+        }
+
+        CurrentTokenKind = GetCurrentTokenKind();
+    }
+
+    return Qualifiers;
 }
 
 Type Parser::ParseType(Token::TokenKind tk)
@@ -56,6 +96,15 @@ Type Parser::ParseType(Token::TokenKind tk)
             Result = std::get<0>(UserDefinedTypes[Name]);
             break;
         }
+
+        case Token::Identifier: {
+            // assuming we parsing the current token
+            // TODO: Change this function expect the Token and not the TokenKind
+            assert(GetCurrentTokenKind() == Token::Identifier);
+            auto Id = GetCurrentToken().GetString();
+            return TypeDefinitions[Id];
+        }
+
         default: assert(!"Unknown token kind."); break;
     }
 
@@ -73,7 +122,7 @@ static void UndefinedSymbolError(Token sym, Lexer &L)
                L.GetSource()[sym.GetLine()].substr(sym.GetColumn()));
 }
 
-static void ArrayTypeMismatchError(Token Sym, Type Actual)
+[[maybe_unused]] static void ArrayTypeMismatchError(Token Sym, Type Actual)
 {
     static std::string Format =
         ">  {}:{}: error: Function Type Mismatch `{}` , type is `{}`, it is not an array type.\n";
@@ -181,31 +230,43 @@ std::unique_ptr<Node> Parser::ParseTranslationUnit() { return std::unique_ptr<No
 std::unique_ptr<Node> Parser::ParseExternalDeclaration()
 {
     std::unique_ptr<TranslationUnit> TU = std::make_unique<TranslationUnit>();
-    auto TokenKind                      = GetCurrentTokenKind();
+    auto TK                             = GetCurrentToken();
 
-    while (IsReturnTypeSpecifier(TokenKind) || lexer.Is(Token::Struct)
-           || lexer.Is(Token::Enum))
+    while (IsReturnTypeSpecifier(TK) || lexer.Is(Token::Struct) || lexer.Is(Token::Enum)
+           || lexer.Is(Token::TypeDef))
     {
+        auto Qualifiers = ParseQualifiers();
+        TK              = GetCurrentToken();
+
+
         if (lexer.Is(Token::Struct) && lexer.LookAhead(3).GetKind() == Token::LeftBrace)
         {
-            TU->AddDeclaration(ParseStructDeclaration());
-            TokenKind = GetCurrentTokenKind();
+            TU->AddDeclaration(ParseStructDeclaration(Qualifiers));
+            TK = GetCurrentToken();
             continue;
         }
 
         if (lexer.Is(Token::Enum))
         {
             TU->AddDeclaration(ParseEnumDeclaration());
-            TokenKind = GetCurrentTokenKind();
+            TK = GetCurrentToken();
             continue;
         }
 
-        Type Ty            = ParseType(TokenKind);
+        Type Ty            = ParseType(TK.GetKind());
         CurrentFuncRetType = Ty;
         Lex();
 
         auto Name    = Expect(Token::Identifier);
         auto NameStr = Name.GetString();
+
+        if (Qualifiers & Type::TypeDef)
+        {
+            TypeDefinitions[NameStr] = Ty;
+            Expect(Token::SemiColon);
+            TK = GetCurrentToken();
+            continue;
+        }
 
         // typeSpecifier funcName (T1 a, ...);
         if (lexer.Is(Token::LeftParen))
@@ -252,7 +313,7 @@ std::unique_ptr<Node> Parser::ParseExternalDeclaration()
                 std::make_unique<VariableDeclaration>(NameStr, Ty, std::move(InitExpr)));
         }
 
-        TokenKind = GetCurrentTokenKind();
+        TK = GetCurrentToken();
     }
 
     return TU;
@@ -293,7 +354,7 @@ std::unique_ptr<FunctionParameterDeclaration> Parser::ParseParameterDeclaration(
     std::unique_ptr<FunctionParameterDeclaration> FPD =
         std::make_unique<FunctionParameterDeclaration>();
 
-    if (IsTypeSpecifier(GetCurrentTokenKind()))
+    if (IsTypeSpecifier(GetCurrentToken()))
     {
         Type Ty = ParseTypeSpecifier();
         Lex();
@@ -322,7 +383,7 @@ std::vector<std::unique_ptr<FunctionParameterDeclaration>> Parser::ParseParamete
 {
     std::vector<std::unique_ptr<FunctionParameterDeclaration>> Params;
 
-    if (!IsTypeSpecifier(GetCurrentTokenKind()))
+    if (!IsTypeSpecifier(GetCurrentToken()))
         return Params;
 
     Params.push_back(ParseParameterDeclaration());
@@ -339,12 +400,12 @@ std::vector<std::unique_ptr<FunctionParameterDeclaration>> Parser::ParseParamete
 
 Type Parser::ParseTypeSpecifier()
 {
-    auto TokenKind = GetCurrentTokenKind();
+    auto TK = GetCurrentToken();
 
-    if (!IsTypeSpecifier(TokenKind))
+    if (!IsTypeSpecifier(TK))
         assert(!"Invalid type");
 
-    return ParseType(TokenKind);
+    return ParseType(TK.GetKind());
 }
 
 Node Parser::ParseReturnTypeSpecifier() { return Node(); }
@@ -427,7 +488,7 @@ std::unique_ptr<MemberDeclaration> Parser::ParseMemberDeclaration()
 
 // <StructDeclaration> ::= 'struct' <Identifier>
 //                                  '{' <StructDeclarationList>+ '}' ';'
-std::unique_ptr<StructDeclaration> Parser::ParseStructDeclaration()
+std::unique_ptr<StructDeclaration> Parser::ParseStructDeclaration(unsigned Qualifiers)
 {
     Expect(Token::Struct);
 
@@ -449,6 +510,13 @@ std::unique_ptr<StructDeclaration> Parser::ParseStructDeclaration()
     }
 
     Expect(Token::RightBrace);
+
+    if (Qualifiers & Type::TypeDef)
+    {
+        auto AliasName = Expect(Token::Identifier).GetString();
+        TypeDefinitions[AliasName] = type;
+    }
+
     Expect(Token::SemiColon);
 
     // saving the struct type and name
@@ -692,7 +760,7 @@ std::unique_ptr<CompoundStatement> Parser::ParseCompoundStatement()
     std::vector<std::unique_ptr<VariableDeclaration>> Declarations;
     std::vector<std::unique_ptr<Statement>> Statements;
 
-    while (IsTypeSpecifier(GetCurrentTokenKind()))
+    while (IsTypeSpecifier(GetCurrentToken()))
         Declarations.push_back(std::move(ParseVariableDeclaration()));
 
     while (lexer.IsNot(Token::RightBrace))
