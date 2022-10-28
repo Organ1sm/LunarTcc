@@ -16,6 +16,12 @@ void IRType::DecrementPointerLevel()
     PointerLevel--;
 }
 
+void IRType::ReduceDimension()
+{
+    if (Dimensions.size() > 0)
+        Dimensions.erase(Dimensions.begin() + (Dimensions.size() - 1u));
+}
+
 std::size_t IRType::GetByteSize() const
 {
     unsigned NumberOfElements = 1;
@@ -68,23 +74,12 @@ std::string IRType::AsString() const
 
     switch (Kind)
     {
-        case FP:
-            Str += "f";
-            break;
-        case UInt:
-            Str += "u";
-            break;
-        case SInt:
-            Str += "i";
-            break;
-        case Struct:
-            Str += StructName;
-            break;
-        case None:
-            return "void";
-        default:
-            assert(!"Invalid type.");
-            break;
+        case FP: Str += "f"; break;
+        case UInt: Str += "u"; break;
+        case SInt: Str += "i"; break;
+        case Struct: Str += StructName; break;
+        case None: return "void";
+        default: assert(!"Invalid type."); break;
     }
 
     if (!IsStruct())

@@ -80,6 +80,7 @@ void Type::DecrementPointerLevel()
     PointerLevel--;
 }
 
+
 std::string Type::ToString(const Type &t)
 {
     switch (t.GetTypeVariant())
@@ -146,7 +147,8 @@ bool Type::IsIntegerType() const
 bool Type::IsImplicitlyCastable(const Type::VariantKind from, const Type::VariantKind to)
 {
     return (from == Int && to == Double) || (from == Double && to == Int)
-           || (from == Char && to == Int) || (from == Int && to == Char);
+           || ((from == Char || from == UnsignedChar) && to == Int)
+           || (from == Int && (to == Char || to == UnsignedChar));
 }
 
 bool Type::IsSmallerThanInt(const Type::VariantKind V)
