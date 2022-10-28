@@ -78,6 +78,35 @@ auto MachineBasicBlock::ReplaceInstr(MachineInstruction MI,
     return Instructions.end();
 }
 
+MachineInstruction *MachineBasicBlock::GetPrecedingInstr(MachineInstruction *MI)
+{
+    std::size_t Counter = 0;
+    for (; Counter < Instructions.size(); Counter++)
+    {
+        auto Ptr = &Instructions[Counter];
+        if (Ptr == MI)
+        {
+            if (Counter == 0)
+                break;
+
+            return &Instructions[Counter - 1];
+        }
+    }
+
+    return nullptr;
+}
+
+void MachineBasicBlock::Erase(MachineInstruction *MI)
+{
+    size_t i = 0;
+    for (; i < Instructions.size(); i++)
+        if (&Instructions[i] == MI)
+        {
+            Instructions.erase(Instructions.begin() + i);
+            break;
+        }
+}
+
 void MachineBasicBlock::Print(TargetMachine *TM) const
 {
     fmt::print("%BB: {}:\n", Name);

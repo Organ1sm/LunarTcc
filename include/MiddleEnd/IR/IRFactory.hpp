@@ -37,6 +37,7 @@ class IRFactory
 
     UnaryInstruction *CreateMov(Value *Operand, uint8_t BitWidth = 32);
     UnaryInstruction *CreateSExt(Value *Operand, uint8_t BitWidth = 32);
+    UnaryInstruction *CreateZExt(Value *Operand, uint8_t BitWidth = 32);
     UnaryInstruction *CreateTrunc(Value *Operand, uint8_t BitWidth = 32);
     UnaryInstruction *CreateFloatToInt(Value *Operand, uint8_t FloatBitWidth = 32);
     UnaryInstruction *CreateIntToFloat(Value *Operand, uint8_t IntBitWidth = 32);

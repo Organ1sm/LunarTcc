@@ -86,7 +86,9 @@ std::string Type::ToString(const Type &t)
     {
         case Double: return "double";
         case Int: return "int";
+        case UnsignedInt: return "unsigned int";
         case Char: return "char";
+        case UnsignedChar: return "unsigned char";
         case Void: return "void";
         case Composite: return t.GetName();
         case Invalid: return "invalid";
@@ -128,10 +130,44 @@ std::string Type::ToString() const
     }
 }
 
+bool Type::IsIntegerType() const
+{
+    switch (Ty)
+    {
+        case Char:
+        case UnsignedChar:
+        case Int:
+        case UnsignedInt: return true;
+
+        default: return false;
+    }
+}
+
 bool Type::IsImplicitlyCastable(const Type::VariantKind from, const Type::VariantKind to)
 {
     return (from == Int && to == Double) || (from == Double && to == Int)
            || (from == Char && to == Int) || (from == Int && to == Char);
+}
+
+bool Type::IsSmallerThanInt(const Type::VariantKind V)
+{
+    switch (V)
+    {
+        case Char:
+        case UnsignedChar: return true;
+
+        default: return false;
+    }
+}
+
+bool Type::OnlySignednessDifference(const Type::VariantKind V1,
+                                    const Type::VariantKind V2)
+{
+    if ((V1 == Int && V2 == UnsignedInt) || (V1 == UnsignedInt && V2 == Int)
+        || (V1 == Char && V2 == UnsignedChar) || (V1 == UnsignedChar && V2 == Char))
+        return true;
+
+    return false;
 }
 
 bool operator==(const Type &lhs, const Type &rhs)

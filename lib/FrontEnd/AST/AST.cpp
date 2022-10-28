@@ -31,8 +31,12 @@ BinaryExpression::BinaryExpression(BinaryExpression::ExprPtr L,
     if (IsCondition())
         ResultType = Type(Type::Int);
     else
-        ResultType = Type(Type::GetStrongestType(Lhs->GetResultType().GetTypeVariant(),
-                                                 Rhs->GetResultType().GetTypeVariant()));
+    {
+        auto Strongest = Type::GetStrongestType(Lhs->GetResultType().GetTypeVariant(),
+                                                Rhs->GetResultType().GetTypeVariant());
+
+        ResultType = Type(Type::GetStrongestType(Strongest.GetTypeVariant(), Type::Int));
+    }
 }
 
 UnaryExpression::UnaryExpression(Token Op, UnaryExpression::ExprPtr E)
@@ -70,7 +74,9 @@ static IRType GetIRTypeFromVK(Type::VariantKind VK)
     switch (VK)
     {
         case Type::Char: return IRType(IRType::SInt, 8);
+        case Type::UnsignedChar: return IRType(IRType::UInt, 8);
         case Type::Int: return IRType(IRType::SInt);
+        case Type::UnsignedInt: return IRType(IRType::UInt);
         case Type::Double: return IRType(IRType::FP, 64);
         case Type::Composite: return IRType(IRType::Struct);
         default: assert(!"Invalid type."); break;
@@ -374,8 +380,11 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
             else
                 assert(!"Unhandled Return Type.");
             break;
+
         case Type::Char: ReturnType = IRType(IRType::SInt, 8); break;
+        case Type::UnsignedChar: ReturnType = IRType(IRType::UInt, 8); break;
         case Type::Int: ReturnType = IRType(IRType::SInt); break;
+        case Type::UnsignedInt: ReturnType = IRType(IRType::UInt); break;
         case Type::Double: ReturnType = IRType(IRType::FP, 64); break;
         case Type::Void: ReturnType = IRType(IRType::None); break;
 
@@ -577,14 +586,25 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
     auto DestTypeVariant   = GetResultType().GetTypeVariant();
     auto Val               = CastableExpression->IRCodegen(IRF);
 
+    if (Type::OnlySignednessDifference(SourceTypeVariant, DestTypeVariant))
+        return Val;
+
     if (SourceTypeVariant == Type::Int && DestTypeVariant == Type::Double)
         return IRF->CreateIntToFloat(Val, 32);
+
     else if (SourceTypeVariant == Type::Double && DestTypeVariant == Type::Int)
         return IRF->CreateFloatToInt(Val, 64);
+
     else if (SourceTypeVariant == Type::Char && DestTypeVariant == Type::Int)
         return IRF->CreateSExt(Val, 32);
+
+    else if (SourceTypeVariant == Type::UnsignedChar
+             && (DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt))
+        return IRF->CreateZExt(Val, 32);
+
     else if (SourceTypeVariant == Type::Int && DestTypeVariant == Type::Char)
         return IRF->CreateTrunc(Val, 8);
+
     else
         assert(!"Invalid conversion.");
 

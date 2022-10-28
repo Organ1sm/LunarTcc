@@ -536,7 +536,11 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
 
 void HandleStackAllocation(StackAllocationInstruction *Instr, MachineFunction *Func)
 {
-    Func->InsertStackSlot(Instr->GetID(), Instr->GetType().GetByteSize());
+    auto ReferedType = Instr->GetType();
+    assert(ReferedType.GetPointerLevel() > 0);
+    ReferedType.DecrementPointerLevel();
+
+    Func->InsertStackSlot(Instr->GetID(), ReferedType.GetByteSize());
 }
 
 void IRtoLLIR::HandleFunctionParams(Function &F, MachineFunction *Func)
@@ -582,29 +586,32 @@ void IRtoLLIR::HandleFunctionParams(Function &F, MachineFunction *Func)
 
 void IRtoLLIR::GenerateLLIRFromIR()
 {
+    // reserving enough size for the functions otherwise the underlying vector
+    // would reallocate it self and would made invalid the existing pointers
+    // pointing to these functions
+    // FIXME: Would be nice to auto update the pointers somehow if necessary.
+    // Like LLVM does it, but that might be too complicated for the scope of this
+    // project.
+
+    TU->GetFunctions().reserve(IRM.GetFunctions().size());
+
     for (auto &Func : IRM.GetFunctions())
     {
         Reset();
 
-        auto NewMachineFunc = MachineFunction {};
-        std::vector<MachineBasicBlock> MBBs;
-
-        this->TU->AddFunction(NewMachineFunc);
+        this->TU->AddNewFunction();
 
         MachineFunction *MFunction = TU->GetCurrentFunction();
+        assert(MFunction);
 
         MFunction->SetName(Func.GetName());
         HandleFunctionParams(Func, MFunction);
 
         // Create all basic block first with their name , so jumps can
         // refer to them already
-        for (auto &BB : Func.GetBasicBlocks())
-            MBBs.push_back(MachineBasicBlock {BB.get()->GetName(), MFunction});
-
-        // Assign the basic block to the new function
-        MFunction->SetBasicBlocks(std::move(MBBs));
         auto &MFuncMBBs = MFunction->GetBasicBlocks();
-
+        for (auto &BB : Func.GetBasicBlocks())
+            MFuncMBBs.push_back(MachineBasicBlock {BB.get()->GetName(), MFunction});
 
         unsigned BBCounter = 0;
         for (auto &BB : Func.GetBasicBlocks())

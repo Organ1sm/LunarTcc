@@ -1,5 +1,4 @@
-#ifndef LUNARTCC_TOKEN_H
-#define LUNARTCC_TOKEN_H
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -142,6 +141,7 @@ class Token
     std::string ToString() const;
 
     static std::string ToString(TokenKind tk);
+    static bool IsArithmetic(TokenKind TK);
 
   private:
     TokenKind Kind;
@@ -152,4 +152,3 @@ class Token
   public:
     static const std::unordered_map<TokenKind, std::string> Token2Str;
 };
-#endif

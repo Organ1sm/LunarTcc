@@ -31,6 +31,9 @@ class TargetMachine
     virtual bool SelectMod(MachineInstruction *MI) { return false; }
     virtual bool SelectCmp(MachineInstruction *MI) { return false; }
     virtual bool SelectSExt(MachineInstruction *MI) { return false; }
+    virtual bool SelectZExt(MachineInstruction *MI) { return false; }
+    virtual bool SelectSExtLoad(MachineInstruction *MI) { return false;}
+    virtual bool SelectZExtLoad(MachineInstruction *MI) { return false; }
     virtual bool SelectTrunc(MachineInstruction *MI) { return false; }
     virtual bool SelectMov(MachineInstruction *MI) { return false; }
     virtual bool SelectLoadImm(MachineInstruction *MI) { return false; }
