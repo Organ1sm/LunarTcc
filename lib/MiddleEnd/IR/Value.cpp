@@ -1,6 +1,8 @@
 //
 // Created by Organ1sm.
 //
+#include <cassert>
+#include <cstdint>
 #include <iostream>
 #include "MiddleEnd/IR/Value.hpp"
 #include "fmt/core.h"
@@ -8,6 +10,12 @@
 std::string Value::ValueString() const
 {
     return "$" + std::to_string(UniqueId) + "<" + ValueType.AsString() + ">";
+}
+
+uint64_t Constant::GetIntValue()
+{
+    assert(ValueType.IsInt());
+    return std::get<uint64_t>(Val);
 }
 
 std::string Constant::ValueString() const

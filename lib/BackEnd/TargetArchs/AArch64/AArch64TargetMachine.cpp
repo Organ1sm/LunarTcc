@@ -171,6 +171,11 @@ bool AArch64TargetMachine::SelectSExt(MachineInstruction *MI)
         MI->SetOpcode(SXTB);
         return true;
     }
+    else if (MI->GetOperand(1)->GetType().GetBitWidth() == 32)
+    {
+        MI->SetOpcode(SXTW);
+        return true;
+    }
 
     assert(!"Unimplemented!");
     return false;

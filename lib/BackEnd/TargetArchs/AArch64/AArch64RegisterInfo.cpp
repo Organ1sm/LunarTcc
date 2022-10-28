@@ -86,7 +86,7 @@ TargetRegister *AArch64RegisterInfo::GetRegister(unsigned int i)
 
 TargetRegister *AArch64RegisterInfo::GetRegisterByID(unsigned int i)
 {
-    assert(i < 67 && "Out of bound access");
+    assert(i != 0 && i < 67 && "Out of bound access");
     return &Registers[i - 1];
 }
 

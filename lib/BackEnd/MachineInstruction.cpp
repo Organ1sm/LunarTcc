@@ -4,6 +4,11 @@
 #include "BackEnd/MachineInstruction.hpp"
 #include "BackEnd/TargetMachine.hpp"
 #include "fmt/core.h"
+MachineOperand *MachineInstruction::GetOperand(std::size_t Index)
+{
+    assert(Index < Operands.size());
+    return &Operands[Index];
+}
 
 void MachineInstruction::ReplaceOperand(MachineOperand MO, std::size_t Index)
 {
@@ -50,9 +55,9 @@ void MachineInstruction::AddImmediate(uint64_t Num, unsigned BitWidth)
     AddOperand(MachineOperand::CreateImmediate(Num, BitWidth));
 }
 
-void MachineInstruction::AddMemory(uint64_t Id)
+void MachineInstruction::AddMemory(uint64_t Id, unsigned BitWidth)
 {
-    AddOperand(MachineOperand::CreateMemory(Id));
+    AddOperand(MachineOperand::CreateMemory(Id, BitWidth));
 }
 
 void MachineInstruction::AddStackAccess(uint64_t Slot, unsigned Offset)
@@ -103,7 +108,8 @@ void MachineInstruction::Print(TargetMachine *TM) const
         case OperationCode::Call: OpcodeStr = "Call"; break;
         case OperationCode::Jump: OpcodeStr = "Jump"; break;
         case OperationCode::Branch: OpcodeStr = "Branch"; break;
-        case OperationCode::Ret: OpcodeStr = "Ret "; break;
+        case OperationCode::Ret: OpcodeStr = "Ret"; break;
+        case OperationCode::InvalidOp: OpcodeStr = "InvalidOp"; break;
 
         default: OpcodeStr = TM->GetInstrDefs()->GetInstrString(Opcode); break;
     }
