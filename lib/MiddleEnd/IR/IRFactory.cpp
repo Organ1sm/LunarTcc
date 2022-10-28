@@ -90,6 +90,20 @@ UnaryInstruction *IRFactory::CreateSExt(Value *Operand, uint8_t BitWidth)
     return InstPtr;
 }
 
+UnaryInstruction *IRFactory::CreateZExt(Value *Operand, uint8_t BitWidth)
+{
+    auto Inst = std::make_unique<UnaryInstruction>(Instruction::ZExt,
+                                                   IRType::CreateInt(BitWidth),
+                                                   Operand,
+                                                   GetCurrentBB());
+    Inst->SetId(ID++);
+    auto InstPtr = Inst.get();
+
+    Insert(std::move(Inst));
+
+    return InstPtr;
+}
+
 UnaryInstruction *IRFactory::CreateTrunc(Value *Operand, uint8_t BitWidth)
 {
     auto Inst = std::make_unique<UnaryInstruction>(Instruction::Trunc,
