@@ -3,25 +3,26 @@
 
 std::unordered_map<std::string, Token::TokenKind> Lexer::KeyWords =
     std::unordered_map<std::string, Token::TokenKind> {
-        {"int",     Token::Int    },
-        {"double",  Token::Double },
-        {"void",    Token::Void   },
-        {"char",    Token::Char   },
+        {"int",      Token::Int     },
+        {"double",   Token::Double  },
+        {"void",     Token::Void    },
+        {"char",     Token::Char    },
+        {"unsigned", Token::Unsigned},
 
-        {"const",   Token::Const  },
+        {"const",    Token::Const   },
 
-        {"if",      Token::If     },
-        {"else",    Token::Else   },
-        {"switch",  Token::Switch },
-        {"case",    Token::Case   },
-        {"break",   Token::Break  },
-        {"default", Token::Default},
-        {"for",     Token::For    },
-        {"while",   Token::While  },
-        {"return",  Token::Return },
-        {"struct",  Token::Struct },
-        {"enum",    Token::Enum   },
-        {"typedef", Token::TypeDef},
+        {"if",       Token::If      },
+        {"else",     Token::Else    },
+        {"switch",   Token::Switch  },
+        {"case",     Token::Case    },
+        {"break",    Token::Break   },
+        {"default",  Token::Default },
+        {"for",      Token::For     },
+        {"while",    Token::While   },
+        {"return",   Token::Return  },
+        {"struct",   Token::Struct  },
+        {"enum",     Token::Enum    },
+        {"typedef",  Token::TypeDef },
 };
 
 Lexer::Lexer(std::vector<std::string> &s)

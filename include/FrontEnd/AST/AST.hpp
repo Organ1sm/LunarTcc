@@ -1,5 +1,4 @@
-#ifndef LUNARTCC_AST_H
-#define LUNARTCC_AST_H
+#pragma once
 
 #include <cassert>
 #include <iostream>
@@ -625,5 +624,3 @@ class TranslationUnit : public Statement
   private:
     std::vector<std::unique_ptr<Statement>> Declarations;
 };
-
-#endif

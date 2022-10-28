@@ -1,5 +1,4 @@
-#ifndef LUNARTCC_TYPE_H
-#define LUNARTCC_TYPE_H
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -17,7 +16,9 @@ class Type
         Composite,
         Void,
         Char,
+        UnsignedChar,
         Int,
+        UnsignedInt,
         Double,
     };
 
@@ -70,8 +71,7 @@ class Type
     bool IsArray() const { return Kind == Array; }
     bool IsFunction() const { return !ParamList.empty(); }
     bool IsStruct() const { return Kind == Struct; }
-    bool IsIntegerType() const { return Ty == Char || Ty == Int; }
-
+    bool IsIntegerType() const;
     bool IsConst() const { return Qualifiers & Const; }
 
     friend bool operator==(const Type &lhs, const Type &rhs);
@@ -85,6 +85,9 @@ class Type
     }
 
     static bool IsImplicitlyCastable(const VariantKind from, const VariantKind to);
+    static bool IsSmallerThanInt(const Type::VariantKind V);
+    static bool OnlySignednessDifference(const Type::VariantKind V1,
+                                         const Type::VariantKind V2);
 
   protected:
     std::string Name;    // For Structs
@@ -97,7 +100,6 @@ class Type
     std::vector<Type> ParamList;
     std::vector<unsigned> Dimensions;
 };
-
 
 // Hold an integer or a float value
 class ValueType
@@ -131,5 +133,3 @@ class ValueType
         double FloatVal;
     };
 };
-
-#endif
