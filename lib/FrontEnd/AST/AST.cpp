@@ -591,13 +591,17 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
 
     if (SourceTypeVariant == Type::Int && DestTypeVariant == Type::Double)
         return IRF->CreateIntToFloat(Val, 32);
+
     else if (SourceTypeVariant == Type::Double && DestTypeVariant == Type::Int)
         return IRF->CreateFloatToInt(Val, 64);
+
     else if (SourceTypeVariant == Type::Char && DestTypeVariant == Type::Int)
         return IRF->CreateSExt(Val, 32);
+
     else if (SourceTypeVariant == Type::UnsignedChar
              && (DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt))
-        return nullptr;
+        return IRF->CreateZExt(Val, 32);
+
     else if (SourceTypeVariant == Type::Int && DestTypeVariant == Type::Char)
         return IRF->CreateTrunc(Val, 8);
 
