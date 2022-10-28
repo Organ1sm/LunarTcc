@@ -68,6 +68,7 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Double,        "double"     },
     {Void,          "void"       },
     {Char,          "char"       },
+    {Unsigned,      "unsigned"   },
     {Struct,        "struct"     },
     {Enum,          "enum"       },
     {TypeDef,       "typedef"    },
@@ -83,5 +84,18 @@ std::string Token::ToString(Token::TokenKind tk)
     {
         assert(false && "Unhandled token type.");
         return {};
+    }
+}
+
+bool Token::IsArithmetic(Token::TokenKind TK)
+{
+    switch (TK)
+    {
+        case Token::Plus:
+        case Token::Minus:
+        case Token::Mul:
+        case Token::Div: return true;
+
+        default: return false;
     }
 }

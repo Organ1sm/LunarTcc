@@ -13,6 +13,7 @@ bool Parser::IsTypeSpecifier(Token T)
         case Token::Char:
         case Token::Int:
         case Token::Double:
+        case Token::Unsigned:
         case Token::Struct: return true;
 
         case Token::Identifier: {
@@ -90,6 +91,38 @@ Type Parser::ParseType(Token::TokenKind tk)
         case Token::Char: Result.SetTypeVariant(Type::Char); break;
         case Token::Int: Result.SetTypeVariant(Type::Int); break;
         case Token::Double: Result.SetTypeVariant(Type::Double); break;
+        case Token::Unsigned: {
+            auto NextTokenKind = lexer.LookAhead(2).GetKind();
+            if (NextTokenKind == Token::Int || NextTokenKind == Token::Char)
+            {
+                Lex();    // eat 'unsigned'
+
+                // if bare the 'unsigned' is not followed by other type then its an
+                // 'unsigned int' by default
+                // TODO: Investigate what else token could follow unsigned which would
+                // certainly mean that the unsigned is alone and valid
+            }
+            else if (NextTokenKind == Token::Identifier)
+            {
+                Result.SetTypeVariant(Type::UnsignedInt);
+                return Result;
+            }
+            else
+            {
+                assert(!"Error: Unexpected token after `unsigned`");
+            }
+
+            auto CurrentToken = lexer.GetCurrentToken();
+            switch (CurrentToken.GetKind())
+            {
+                case Token::Char: Result.SetTypeVariant(Type::UnsignedChar); break;
+                case Token::Int: Result.SetTypeVariant(Type::UnsignedInt); break;
+
+                default: assert(!"Unreachable");
+            }
+            break;
+        }
+
         case Token::Struct: {
             Lex();    // eat 'struct'
 
@@ -1129,6 +1162,24 @@ std::unique_ptr<Expression>
 
         auto RightExpression = ParseUnaryExpression();
 
+        bool IsArithmetic = BinaryOperator.IsArithmetic(BinaryOperator.GetKind());
+
+        if (IsArithmetic
+            && Type::IsSmallerThanInt(LeftExpression->GetResultType().GetTypeVariant()))
+        {
+            LeftExpression =
+                std::make_unique<ImplicitCastExpression>(std::move(LeftExpression),
+                                                         Type(Type::Int));
+        }
+
+        if (IsArithmetic
+            && Type::IsSmallerThanInt(RightExpression->GetResultType().GetTypeVariant()))
+        {
+            RightExpression =
+                std::make_unique<ImplicitCastExpression>(std::move(RightExpression),
+                                                         Type(Type::Int));
+        }
+
         /// In case of Assignment check if the left operand since if should be an
         /// lvalue. Which is either an identifier reference or an array expression.
         if (BinaryOperator.GetKind() == Token::Assign
@@ -1175,7 +1226,8 @@ std::unique_ptr<Expression>
         auto LeftType  = LeftExpression->GetResultType().GetTypeVariant();
         auto RightType = RightExpression->GetResultType().GetTypeVariant();
 
-        if (LeftType != RightType)
+        if (LeftType != RightType
+                 && !Type::OnlySignednessDifference(LeftType, RightType))
         {
             /// if an assignment, then try to cast the RHS to type of LHS.
             if (BinaryOperator.GetKind() == Token::Assign)
