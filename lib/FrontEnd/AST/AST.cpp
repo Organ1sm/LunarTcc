@@ -569,13 +569,16 @@ Value *ArrayExpression::IRCodegen(IRFactory *IRF)
     auto BaseValue  = BaseExpression->IRCodegen(IRF);
     auto IndexValue = IndexExpression->IRCodegen(IRF);
 
-    auto ArrayBaseType = BaseValue->GetType().GetBaseType();
-    ArrayBaseType.IncrementPointerLevel();
+    auto ResultType = BaseValue->GetType();
+    ResultType.ReduceDimension();
 
-    auto GEP = IRF->CreateGEP(ArrayBaseType, BaseValue, IndexValue);
+    if (ResultType.GetPointerLevel() == 0)
+        ResultType.IncrementPointerLevel();
 
-    if (!GetLValueness())
-        return IRF->CreateLoad(ArrayBaseType, GEP);
+    auto GEP = IRF->CreateGEP(ResultType, BaseValue, IndexValue);
+
+    if (!GetLValueness() && ResultType.GetDimensions().size() == 0)
+        return IRF->CreateLoad(ResultType, GEP);
 
     return GEP;
 }
@@ -602,7 +605,8 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
              && (DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt))
         return IRF->CreateZExt(Val, 32);
 
-    else if (SourceTypeVariant == Type::Int && DestTypeVariant == Type::Char)
+    else if (SourceTypeVariant == Type::Int
+             && (DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
         return IRF->CreateTrunc(Val, 8);
 
     else
@@ -1187,7 +1191,14 @@ void FloatLiteralExpression::ASTDump(unsigned int tab)
 
 void ArrayExpression::ASTDump(unsigned int tab)
 {
-    auto Str = "'" + ResultType.ToString() + "' ";
+    std::string TypeStr = ResultType.ToString();
+
+    for (auto Dim : BaseExpression->GetResultType().GetDimensions())
+    {
+        TypeStr += fmt::format("[{}]", Dim);
+    }
+
+    auto Str = fmt::format("`{}`", TypeStr);
 
     Print("ArrayExpression ", tab);
     PrintLn(Str.c_str());
