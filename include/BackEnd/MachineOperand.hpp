@@ -45,6 +45,7 @@ class MachineOperand
 
     void SetType(LowLevelType LLT) { this->LLT = LLT; }
     LowLevelType GetType() const { return LLT; }
+    LowLevelType &GetTypeRef() { return LLT; }
 
     const char *GetFunctionName() { return BelongToLabel; }
     const char *GetLabel() { return BelongToLabel; }

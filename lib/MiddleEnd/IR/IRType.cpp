@@ -2,6 +2,7 @@
 // Created by Organ1sm.
 //
 #include "MiddleEnd/IR/IRType.hpp"
+#include "fmt/format.h"
 #include <cassert>
 
 void IRType::SetPointerLevel(uint8_t pl)
@@ -14,6 +15,12 @@ void IRType::DecrementPointerLevel()
 {
     assert(PointerLevel > 0 && "Cannot decrement bleow 0");
     PointerLevel--;
+}
+
+void IRType::ReduceDimension()
+{
+    if (Dimensions.size() > 0)
+        Dimensions.erase(Dimensions.begin() + (Dimensions.size() - 1u));
 }
 
 std::size_t IRType::GetByteSize() const
@@ -68,23 +75,12 @@ std::string IRType::AsString() const
 
     switch (Kind)
     {
-        case FP:
-            Str += "f";
-            break;
-        case UInt:
-            Str += "u";
-            break;
-        case SInt:
-            Str += "i";
-            break;
-        case Struct:
-            Str += StructName;
-            break;
-        case None:
-            return "void";
-        default:
-            assert(!"Invalid type.");
-            break;
+        case FP: Str += "f"; break;
+        case UInt: Str += "u"; break;
+        case SInt: Str += "i"; break;
+        case Struct: Str += StructName; break;
+        case None: return "void";
+        default: assert(!"Invalid type."); break;
     }
 
     if (!IsStruct())
@@ -92,8 +88,8 @@ std::string IRType::AsString() const
 
     if (!Dimensions.empty())
     {
-        for (auto CurrentDim : Dimensions)
-            Str += "[" + Str + " x " + std::to_string(CurrentDim) + "]";
+        for (int i = Dimensions.size() - 1; i >= 0; i--)
+            Str = fmt::format("[{} x {}]", Dimensions[i], Str);
     }
 
     std::string PtrStr;

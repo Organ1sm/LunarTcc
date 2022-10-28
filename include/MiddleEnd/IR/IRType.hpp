@@ -1,9 +1,7 @@
 //
 // Created by Organ1sm.
 //
-
-#ifndef LUNARTCC_IRTYPE_HPP
-#define LUNARTCC_IRTYPE_HPP
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -34,6 +32,8 @@ class IRType
     void SetPointerLevel(uint8_t pl);
     void IncrementPointerLevel() { PointerLevel++; }
     void DecrementPointerLevel();
+
+    void ReduceDimension();
 
     void SetDimensions(const std::vector<unsigned> &N) { Dimensions = N; }
     std::vector<unsigned> &GetDimensions() { return Dimensions; }
@@ -80,5 +80,3 @@ class IRType
     std::vector<IRType> MembersTypeList;
     std::vector<unsigned> Dimensions;
 };
-
-#endif    // LUNARTCC_IRTYPE_HPP
