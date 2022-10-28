@@ -2,6 +2,7 @@
 // Created by Organ1sm.
 //
 #include "MiddleEnd/IR/IRType.hpp"
+#include "fmt/format.h"
 #include <cassert>
 
 void IRType::SetPointerLevel(uint8_t pl)
@@ -87,8 +88,8 @@ std::string IRType::AsString() const
 
     if (!Dimensions.empty())
     {
-        for (auto CurrentDim : Dimensions)
-            Str += "[" + Str + " x " + std::to_string(CurrentDim) + "]";
+        for (int i = Dimensions.size() - 1; i >= 0; i--)
+            Str = fmt::format("[{} x {}]", Dimensions[i], Str);
     }
 
     std::string PtrStr;

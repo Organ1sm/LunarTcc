@@ -178,7 +178,19 @@ bool AArch64TargetMachine::SelectSExt(MachineInstruction *MI)
 
 bool AArch64TargetMachine::SelectZExtLoad(MachineInstruction *MI)
 {
-    return SelectLoad(MI);
+    assert((MI->GetOperandsNumber() == 3) && "ZEXT_LOAD must have 3 operands");
+
+    auto SourceSize = MI->GetOperand(1)->GetType().GetBitWidth();
+    MI->RemoveOperand(1);
+
+    if (SourceSize == 8)
+    {
+        MI->SetOpcode(LDRB);
+        return true;
+    }
+
+    MI->SetOpcode(LDR);
+    return true;
 }
 
 bool AArch64TargetMachine::SelectTrunc(MachineInstruction *MI)
@@ -187,12 +199,25 @@ bool AArch64TargetMachine::SelectTrunc(MachineInstruction *MI)
 
     if (MI->GetOperand(0)->GetType().GetBitWidth() == 8)
     {
-        MI->SetOpcode(AND_rri);
-        MI->AddImmediate(0xFFu);
+        // if the operand i san immediate
+        if (MI->GetOperand(1)->IsImmediate())
+        {
+            // then calculate the truncated immediate value and emit mov
+            int64_t ResultIMM = MI->GetOperand(1)->GetImmediate() & 0xFFu;
+            MI->GetOperand(1)->SetValue(ResultIMM);
+            MI->SetOpcode(MOV_ri);
+        }
+        else
+        {
+            MI->SetOpcode(AND_rri);
+            MI->AddImmediate(0xFFu);
+        }
+
+        if (MI->GetOperand(0)->GetSize() < 32)
+            MI->GetOperand(0)->GetTypeRef().SetBitWidth(32);
         return true;
     }
 
-    assert(!"Unimplemented!");
     return false;
 }
 
