@@ -1,4 +1,5 @@
 #include "BackEnd/Support.hpp"
+#include "BackEnd/MachineFunction.hpp"
 #include "BackEnd/MachineBasicBlock.hpp"
 #include "BackEnd/MachineInstruction.hpp"
 #include "BackEnd/TargetArchs/AArch64/AArch64TargetMachine.hpp"
@@ -175,6 +176,11 @@ bool AArch64TargetMachine::SelectSExt(MachineInstruction *MI)
     return false;
 }
 
+bool AArch64TargetMachine::SelectZExtLoad(MachineInstruction *MI)
+{
+    return SelectLoad(MI);
+}
+
 bool AArch64TargetMachine::SelectTrunc(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 2 && "SEXT must have 2 operands");
@@ -227,6 +233,24 @@ bool AArch64TargetMachine::SelectLoad(MachineInstruction *MI)
     {
         MI->SetOpcode(LDRB);
         return true;
+    }
+
+    if (MI->GetOperand(1)->IsStackAccess())
+    {
+        auto StackSlotID = MI->GetOperand(1)->GetSlot();
+        auto ParentFunc  = MI->GetParent()->GetParent();
+        auto Size        = ParentFunc->GetStackObjectSize(StackSlotID);
+
+        if (Size == 1)
+        {
+            MI->SetOpcode(LDRB);
+            return true;
+        }
+        else if (Size == 4)
+        {
+            MI->SetOpcode(LDR);
+            return true;
+        }
     }
 
     MI->SetOpcode(LDR);

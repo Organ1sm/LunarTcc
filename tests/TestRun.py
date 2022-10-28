@@ -83,17 +83,13 @@ def CheckAndCompileFile(fileName):
             "-static",
         ]
         compileRet = subprocess.run(LinkCommandList).returncode
-
         if compileRet != 0:
-            CleanTestCacheFile()
             return False, True
 
         retCode = subprocess.run([RunCommand + Arch, "test"]).returncode
         if retCode != 1:
-            CleanTestCacheFile()
             return False, True
 
-        CleanTestCacheFile()
         return True, True
 
 
@@ -121,6 +117,7 @@ for subDir, dirs, files in os.walk(WorkDir):
                 failedTests.append(simplifyFilePath)
                 console.print(prettyFilePath + " [red u]FAILED[/red u]")
 
+CleanTestCacheFile()
 print("\n--------", testsCount, "Test executed --------")
 console.print("|\t", passedTestsCount, "   [green]PASS[/green]", "\t\t|")
 console.print("|\t", len(failedTests), "   [red]FAIL[/red]", "\t\t|")

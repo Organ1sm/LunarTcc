@@ -47,6 +47,9 @@ class MachineInstruction
         StackAddress,
         GlobalAddress,
 
+        // Combined load and sign/zero extension
+        SExtLoad,
+        ZExtLoad,
         InvalidOp,
     };
 
@@ -60,6 +63,8 @@ class MachineInstruction
     {
         switch (Opcode)
         {
+            case SExtLoad:
+            case ZExtLoad:
             case Load: AddAttribute(IsLOAD); break;
             case Store: AddAttribute(IsSTORE); break;
             default: break;
@@ -75,6 +80,7 @@ class MachineInstruction
     OperandList &GetOperands() { return Operands; }
 
     void AddOperand(MachineOperand MO) { Operands.push_back(MO); }
+    void ReplaceOperand(MachineOperand MO, std::size_t Index);
 
     void AddAttribute(unsigned AttributeFlag) { OtherAttributes |= AttributeFlag; }
     void SetAttributes(unsigned A) { Attributes = A; }

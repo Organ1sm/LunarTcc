@@ -20,6 +20,7 @@ class TargetInstructionLegalizer
 
     virtual bool ExpandMod(MachineInstruction *MI);
     virtual bool ExpandStore(MachineInstruction *MI);
+    virtual bool ExpandZExt(MachineInstruction *MI) { return false; };
     virtual bool ExpandGlobalAddress(MachineInstruction *MI) { return false; }
 
     /// Expandin the instruction into other ones which are compute the same

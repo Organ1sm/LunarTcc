@@ -20,6 +20,7 @@ namespace AArch64
         bool SelectMod(MachineInstruction *MI) override;
         bool SelectCmp(MachineInstruction *MI) override;
         bool SelectSExt(MachineInstruction *MI) override;
+        bool SelectZExtLoad(MachineInstruction *MI) override;
         bool SelectTrunc(MachineInstruction *MI) override;
         bool SelectMov(MachineInstruction *MI) override;
         bool SelectLoadImm(MachineInstruction *MI) override;

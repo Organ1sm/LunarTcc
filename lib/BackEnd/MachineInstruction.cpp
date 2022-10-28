@@ -5,6 +5,12 @@
 #include "BackEnd/TargetMachine.hpp"
 #include "fmt/core.h"
 
+void MachineInstruction::ReplaceOperand(MachineOperand MO, std::size_t Index)
+{
+    assert(Index < Operands.size());
+    Operands[Index] = MO;
+}
+
 void MachineInstruction::RemoveOperand(std::size_t Index)
 {
     Operands.erase(Operands.begin() + Index);
@@ -85,6 +91,8 @@ void MachineInstruction::Print(TargetMachine *TM) const
         case OperationCode::Cmp: OpcodeStr = "Cmp"; break;
         case OperationCode::SExt: OpcodeStr = "SEXT"; break;
         case OperationCode::ZExt: OpcodeStr = "ZExt"; break;
+        case OperationCode::ZExtLoad: OpcodeStr = "ZExtLoad"; break;
+        case OperationCode::SExtLoad: OpcodeStr = "SExtLoad"; break;
         case OperationCode::Trunc: OpcodeStr = "Trunc"; break;
         case OperationCode::Store: OpcodeStr = "Store"; break;
         case OperationCode::StackAddress: OpcodeStr = "StackAddress"; break;
