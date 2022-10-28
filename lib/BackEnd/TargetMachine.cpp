@@ -14,6 +14,9 @@ bool TargetMachine::SelectInstruction(MachineInstruction *MI)
         case MachineInstruction::Cmp: return SelectCmp(MI);
         case MachineInstruction::Mod: return SelectMod(MI);
         case MachineInstruction::SExt: return SelectSExt(MI);
+        case MachineInstruction::ZExt: return SelectZExt(MI);
+        case MachineInstruction::SExtLoad: return SelectSExtLoad(MI);
+        case MachineInstruction::ZExtLoad: return SelectZExtLoad(MI);
         case MachineInstruction::Trunc: return SelectTrunc(MI);
         case MachineInstruction::Mov: return SelectMov(MI);
         case MachineInstruction::LoadImm: return SelectLoadImm(MI);

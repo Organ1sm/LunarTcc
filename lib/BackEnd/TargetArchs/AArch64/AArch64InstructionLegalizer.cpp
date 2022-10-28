@@ -18,6 +18,7 @@ bool AArch64InstructionLegalizer::Check(MachineInstruction *MI)
             if (MI->GetOperand(1)->IsImmediate())
                 return false;
             break;
+        case MachineInstruction::ZExt:
         case MachineInstruction::GlobalAddress: return false;
 
         default: break;
@@ -32,12 +33,35 @@ bool AArch64InstructionLegalizer::IsExpandable(const MachineInstruction *MI)
     {
         case MachineInstruction::Mod:
         case MachineInstruction::Store:
+        case MachineInstruction::ZExt:
         case MachineInstruction::GlobalAddress: return true;
 
         default: break;
     }
 
     return false;
+}
+
+/// Since AArch64 do sign extension when loading therefore if the ZEXT is
+/// used only to zero extend a load result then it can be merged with the
+/// previous load into a ZExtLoad.
+bool AArch64InstructionLegalizer::ExpandZExt(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 2 && "ZEXT must have exactly 2 operands");
+    auto ParentBB = MI->GetParent();
+
+    auto PrevInst = ParentBB->GetPrecedingInstr(MI);
+
+    // If not a LOAD then do nothing
+    if (!(PrevInst->GetOpcode() == MachineInstruction::Load))
+        return true;
+
+    auto ZEXTDest = *MI->GetOperand(0);
+    PrevInst->ReplaceOperand(ZEXTDest, 0);
+    PrevInst->SetOpcode(MachineInstruction::ZExtLoad);
+    ParentBB->Erase(MI);
+
+    return true;
 }
 
 /// The global address materialization happens in two steps on arm. Example:

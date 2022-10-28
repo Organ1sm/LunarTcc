@@ -42,6 +42,10 @@ class MachineBasicBlock
     InstructionList::iterator ReplaceInstr(MachineInstruction MI,
                                            MachineInstruction *Replacable);
 
+    MachineInstruction *GetPrecedingInstr(MachineInstruction *MI);
+
+    void Erase(MachineInstruction *MI);
+
     void Print(TargetMachine *TM) const;
 
   private:

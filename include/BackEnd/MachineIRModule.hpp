@@ -12,9 +12,15 @@ class MachineIRModule
   public:
     MachineIRModule() {}
 
-    void AddFunction(MachineFunction &F) { Functions.push_back(F); }
+    void AddNewFunction() { Functions.push_back(MachineFunction()); }
     FunctionList &GetFunctions() { return Functions; }
-    MachineFunction *GetCurrentFunction() { return &Functions[Functions.size() - 1]; }
+    MachineFunction *GetCurrentFunction()
+    {
+        if (Functions.empty())
+            return nullptr;
+
+        return &Functions[Functions.size() - 1];
+    }
 
     GlobalsList &GetGlobalDatas() { return GlobalVars; }
     void AddGlobalData(GlobalData &GD) { GlobalVars.push_back(GD); }
