@@ -141,7 +141,7 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
         if (ParentFunction->IsStackSlot(AddressReg))
             ResultMI.AddStackAccess(AddressReg);
         else
-            ResultMI.AddMemory(AddressReg);
+            ResultMI.AddMemory(AddressReg, TM->GetPointerSize());
 
         // if Source is a struct an not struct pointer
         if (I->GetSavedValue()->GetTypeRef().IsStruct()
@@ -245,7 +245,7 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
         if (ParentFunction->IsStackSlot(AddressReg))
             ResultMI.AddStackAccess(AddressReg);
         else
-            ResultMI.AddMemory(AddressReg);
+            ResultMI.AddMemory(AddressReg, TM->GetPointerSize());
 
         // if the destination is a struct and not a struct pointer
         if (I->GetTypeRef().IsStruct() && !I->GetTypeRef().IsPointer())
@@ -302,22 +302,89 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
 
         auto &SourceType           = I->GetSource()->GetTypeRef();
         unsigned ConstantIndexPart = 0;
-        auto Index                 = ((Constant *)I->GetIndex())->GetIntValue();
+        bool IndexIsInReg          = false;
+        unsigned MULResVReg        = 0;
+        auto IndexReg = GetMachineOperandFromValue(I->GetIndex(), ParentFunction);
         if (I->GetIndex()->IsConstant())
         {
+            auto Index = ((Constant *)I->GetIndex())->GetIntValue();
             if (!SourceType.IsStruct())
                 ConstantIndexPart = (SourceType.CalcElemSize(0) * Index);
             else    // its a struct and has to determine the offset other way
                 ConstantIndexPart = SourceType.GetElemByteOffset(Index);
+
+            // If there is nothing to add, then exit now
+            if (ConstantIndexPart == 0 && !GoalInst.IsInvalid())
+                return GoalInst;
         }
         else
-            assert(!"Unimplemented for expression indexes");
+        {
+            IndexIsInReg = true;
+            if (!SourceType.IsStruct())
+            {
+                if (!GoalInst.IsInvalid())
+                    BB->InsertInstr(GoalInst);
 
-        // If there is nothing to add, then exit now
-        if (ConstantIndexPart == 0 && !GoalInst.IsInvalid())
-            return GoalInst;
+                auto Multiplier = SourceType.CalcElemSize(0);
 
-        if (!GoalInst.IsInvalid())
+                // edge case, identity: x * 1 = x
+                // in this case only do a MOV or SEXT rather then MUL
+                if (Multiplier == 1)
+                {
+                    MULResVReg = ParentFunction->GetNextAvailableVirtualRegister();
+                    auto MOV   = MachineInstruction(MachineInstruction::Mov, BB);
+                    MOV.AddVirtualRegister(MULResVReg, TM->GetPointerSize());
+                    MOV.AddOperand(IndexReg);
+
+                    // if sign extension needed, then swap the mov to that
+                    if (IndexReg.GetSize() < TM->GetPointerSize())
+                        MOV.SetOpcode(MachineInstruction::SExt);
+                    BB->InsertInstr(MOV);
+                }
+                // general case
+                // MOV the multiplier into a register
+                // FIXME: this should not needed, only done because AArch64 does not
+                // support immediate operands for MUL, this should be handled by the
+                // target legalizer
+                else
+                {
+                    auto ImmediateVReg =
+                        ParentFunction->GetNextAvailableVirtualRegister();
+                    auto MOV = MachineInstruction(MachineInstruction::Mov, BB);
+                    MOV.AddVirtualRegister(ImmediateVReg, TM->GetPointerSize());
+                    MOV.AddImmediate(Multiplier);
+                    BB->InsertInstr(MOV);
+
+                    // if sign extension needed, then insert a sign extending first
+                    MachineInstruction SEXT;
+                    unsigned SEXTResVReg = 0;
+                    if (IndexReg.GetSize() < TM->GetPointerSize())
+                    {
+                        SEXTResVReg = ParentFunction->GetNextAvailableVirtualRegister();
+                        SEXT        = MachineInstruction(MachineInstruction::SExt, BB);
+                        SEXT.AddVirtualRegister(SEXTResVReg, TM->GetPointerSize());
+                        SEXT.AddOperand(IndexReg);
+                        BB->InsertInstr(SEXT);
+                    }
+
+                    MULResVReg = ParentFunction->GetNextAvailableVirtualRegister();
+                    auto MUL   = MachineInstruction(MachineInstruction::Mul, BB);
+                    MUL.AddVirtualRegister(MULResVReg, TM->GetPointerSize());
+                    // if sign extension did not happened, then jus use the IndexReg
+                    if (SEXT.IsInvalid())
+                        MUL.AddOperand(IndexReg);
+                    else    // otherwise the result register of the SEXT operaton
+                        MUL.AddVirtualRegister(SEXTResVReg, TM->GetPointerSize());
+                    MUL.AddVirtualRegister(ImmediateVReg, TM->GetPointerSize());
+                    BB->InsertInstr(MUL);
+                }
+            }
+            else    // its a struct and has to determine the offset other way
+                assert(!"TODO");
+            // ConstantIndexPart = SourceType.GetElemByteOffset(Index);
+        }
+
+        if (!GoalInst.IsInvalid() && !IndexIsInReg)
             BB->InsertInstr(GoalInst);
 
         auto ADD = MachineInstruction(MachineInstruction::Add, BB);
@@ -330,7 +397,10 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
             // the preceding STACK_ADDRESS or GLOBAL_ADDRESS instruction
             ADD.AddOperand(Dest);
 
-        ADD.AddImmediate(ConstantIndexPart, Dest.GetSize());
+        if (IndexIsInReg)
+            ADD.AddVirtualRegister(MULResVReg, TM->GetPointerSize());
+        else
+            ADD.AddImmediate(ConstantIndexPart, Dest.GetSize());
 
         return ADD;
     }

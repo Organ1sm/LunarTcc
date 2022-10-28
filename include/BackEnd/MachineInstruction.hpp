@@ -76,7 +76,7 @@ class MachineInstruction
 
     std::size_t GetOperandsNumber() const { return Operands.size(); }
 
-    MachineOperand *GetOperand(std::size_t Index) { return &Operands[Index]; }
+    MachineOperand *GetOperand(std::size_t Index) ;
     OperandList &GetOperands() { return Operands; }
 
     void AddOperand(MachineOperand MO) { Operands.push_back(MO); }
@@ -97,7 +97,7 @@ class MachineInstruction
     void AddRegister(uint64_t Reg, unsigned BitWidth = 32);
     void AddVirtualRegister(uint64_t Reg, unsigned BitWidth = 32);
     void AddImmediate(uint64_t Num, unsigned BitWidth = 32);
-    void AddMemory(uint64_t Id);
+    void AddMemory(uint64_t Id, unsigned BitWidth = 32);
     void AddStackAccess(uint64_t Slot, unsigned Offset = 0);
     void AddLabel(const char *Label);
     void AddFunctionName(const char *Name);

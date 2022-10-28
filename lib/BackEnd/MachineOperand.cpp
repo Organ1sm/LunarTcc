@@ -36,10 +36,11 @@ MachineOperand MachineOperand::CreateVirtualRegister(uint64_t Reg, unsigned BitW
     return MO;
 }
 
-MachineOperand MachineOperand::CreateMemory(uint64_t Id)
+MachineOperand MachineOperand::CreateMemory(uint64_t Id, unsigned BitWidth)
 {
     MachineOperand MO;
     MO.SetTypeToMemAddr();
+    MO.SetType(LowLevelType::CreatePtr(BitWidth));
     MO.SetValue(Id);
 
     return MO;
@@ -97,7 +98,9 @@ void MachineOperand::Print(TargetMachine *TM) const
     switch (this->Type)
     {
         case MachineOperand::Register:
-            if (TM)
+            if (Virtual)
+                OperandStr = fmt::format("%vr-{}", Value);
+            else if (TM && !Virtual)
             {
                 TargetRegister *Reg = TM->GetRegInfo()->GetRegisterByID(GetReg());
                 std::string RegStr =
@@ -107,9 +110,6 @@ void MachineOperand::Print(TargetMachine *TM) const
             }
             else
                 OperandStr = fmt::format("%{}", Value);
-            break;
-        case MachineOperand::VirtualRegister:
-            OperandStr = fmt::format("%vr-{}", Value);
             break;
         case MachineOperand::MemoryAddress:
             OperandStr = fmt::format("%ptr-vr-{}", Value);

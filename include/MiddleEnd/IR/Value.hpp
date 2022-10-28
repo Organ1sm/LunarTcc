@@ -50,7 +50,7 @@ class Constant : public Value
     Constant(double V) : Value(Value::Const, IRType(IRType::FP, 64)), Val(V) {}
 
     bool IsFPConst() const { return ValueType.IsFP(); }
-    uint64_t GetIntValue() { return std::get<uint64_t>(Val); }
+    uint64_t GetIntValue(); 
 
     std::string ValueString() const override;
 

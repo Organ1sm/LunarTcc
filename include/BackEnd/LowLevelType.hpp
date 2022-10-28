@@ -17,7 +17,7 @@ class LowLevelType
     LowLevelType(unsigned Ty) : Type(Ty) {}
 
     void SetBitWidth(unsigned BW) { this->BitWidth = BW; }
-    unsigned GetBitWidth() { return this->BitWidth; }
+    unsigned GetBitWidth() const { return this->BitWidth; }
 
     bool IsInteger() const { return Type == Integer; }
     bool IsValid() const { return Type != Invalid; }
