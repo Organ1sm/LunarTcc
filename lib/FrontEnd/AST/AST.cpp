@@ -6,6 +6,7 @@
 #include "Utils/ErrorLogger.hpp"
 #include "fmt/core.h"
 #include <cassert>
+#include <cstdint>
 #include <memory>
 
 //=--------------------------------------------------------------------------=//
@@ -95,6 +96,11 @@ static IRType GetIRTypeFromASTType(Type CT)
         // convert each member AST type to IRType (recursive)
         for (auto &MemberASTType : CT.GetTypeList())
             Result.GetMemberTypes().push_back(GetIRTypeFromASTType(MemberASTType));
+    }
+
+    if (CT.IsArray())
+    {
+        Result.SetDimensions(CT.GetDimensions());
     }
 
     Result.SetPointerLevel(CT.GetPointerLevel());
@@ -651,7 +657,30 @@ Value *StructMemberReference::IRCodegen(IRFactory *IRF)
     return IRF->CreateLoad(ResultIRType, GEP);
 }
 
-Value *StructInitExpression::IRCodegen(IRFactory *IRF) { return nullptr; }
+Value *StructInitExpression::IRCodegen(IRFactory *IRF)
+{
+    /// Allocate stack for struct first
+    auto IRResultType = GetIRTypeFromASTType(this->ResultType);
+    auto StructTemp   = IRF->CreateSA(ResultType.GetName() + ".temp", IRResultType);
+
+    unsigned CurrentMemberIndex = 0;
+    for (auto &InitExpr : InitValues)
+    {
+        auto InitExprCode = InitExpr->IRCodegen(IRF);
+        auto ResultType   = IRResultType.GetMemberTypes()[CurrentMemberIndex];
+
+        ResultType.IncrementPointerLevel();
+
+        auto MemberPtr = IRF->CreateGEP(ResultType,
+                                        StructTemp,
+                                        IRF->GetConstant((uint64_t)CurrentMemberIndex));
+
+        IRF->CreateStore(InitExprCode, MemberPtr);
+        ++CurrentMemberIndex;
+    }
+
+    return StructTemp;
+}
 
 Value *IntegerLiteralExpression::IRCodegen(IRFactory *IRF)
 {
