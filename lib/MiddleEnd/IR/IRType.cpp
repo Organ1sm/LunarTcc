@@ -92,9 +92,7 @@ std::string IRType::AsString() const
             Str = fmt::format("[{} x {}]", Dimensions[i], Str);
     }
 
-    std::string PtrStr;
-    for (auto i = 0; i < PointerLevel; i++)
-        PtrStr += "*";
+    std::string PtrStr(PointerLevel, '*');
 
     return Str + PtrStr;
 }

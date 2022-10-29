@@ -913,8 +913,6 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
                                                       std::move(InitList));
     }
 
-
-
     auto Expr = ParsePrimaryExpression();
     assert(Expr && "Cannot be NULL");
 
