@@ -434,6 +434,14 @@ MachineInstruction IRtoLLIR::HandleGetElemPtrInstruction(GetElemPointerInstructi
         // If there is nothing to add, then exit now
         if (ConstantIndexPart == 0 && !GoalInst.IsInvalid())
             return GoalInst;
+
+        // rather then issue an addition, it more effective to set the
+        // StackAccess operand's offset to the index value
+        if (IsStack)
+        {
+            GoalInst.GetOperands()[1].SetOffset(ConstantIndexPart);
+            return GoalInst;
+        }
     }
     else
     {
@@ -611,19 +619,29 @@ MachineInstruction IRtoLLIR::HandleMemoryCopyInstruction(MemoryCopyInstruction *
     {
         auto Load    = MachineInstruction(MachineInstruction::Load, CurrentBB);
         auto NewVReg = ParentFunction->GetNextAvailableVirtualRegister();
-        Load.AddRegister(NewVReg, /* TODO: use alignment here */ 32);
+        Load.AddVirtualRegister(NewVReg, /* TODO: use alignment here */ 32);
         Load.AddStackAccess(I->GetSource()->GetID(),
                             i * /* TODO: use alignment here */ 4);
         CurrentBB->InsertInstr(Load);
 
         auto Store = MachineInstruction(MachineInstruction::Store, CurrentBB);
-        Store.AddStackAccess(I->GetDestination()->GetID(),
-                             i * /* TODO: use alignment here */ 4);
-        Store.AddRegister(NewVReg, /* TODO: use alignment here */ 32);
+
+        if (ParentFunction->IsStackSlot(I->GetDestination()->GetID()))
+            Store.AddStackAccess(I->GetDestination()->GetID(),
+                                 i * 4);    /// TODO: use alignment here
+        else
+        {
+            Store.AddMemory(I->GetDestination()->GetID(), TM->GetPointerSize());
+            Store.GetOperands()[0].SetOffset(i * 4);
+        }
+
+        Store.AddVirtualRegister(NewVReg, /* TODO: use alignment here */ 32);
+
         // TODO: Change the function so it does not return the instruction but
         // insert it in the function so don't have to do these annoying returns
         if (i == ((I->GetSize() / /* TODO: use alignment here */ 4) - 1))
             return Store;
+
         CurrentBB->InsertInstr(Store);
     }
 

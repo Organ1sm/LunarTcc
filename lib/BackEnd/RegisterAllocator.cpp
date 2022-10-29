@@ -184,6 +184,7 @@ void RegisterAllocator::RunRA()
                             if (Instr.IsLoad())
                             {
                                 // Note that the last 2 register is used for this purpose
+                                assert(ConsecutiveLoadRenames < 2);
                                 auto PhysReg =
                                     RegisterPool.rbegin()[1 - ConsecutiveLoadRenames];
                                 auto FoundPhysReg =
@@ -362,7 +363,7 @@ void RegisterAllocator::RunRA()
                     else
                     {
                         auto BaseReg = Operand.GetReg();
-                        auto Offset  = 0;
+                        auto Offset  = Operand.GetOffset();
 
                         unsigned Reg =
                             Operand.IsVirtual() ? AllocatedRegisters[BaseReg] : BaseReg;
