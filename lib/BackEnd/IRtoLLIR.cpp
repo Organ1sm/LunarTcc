@@ -78,199 +78,580 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, MachineFunction 
     return MachineOperand();
 }
 
-MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
-                                                   MachineBasicBlock *BB,
+MachineInstruction IRtoLLIR::HandleBinaryInstruction(BinaryInstruction *I)
+{
+    auto Operation = I->GetInstructionKind();
+    auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
+
+    auto Result     = GetMachineOperandFromValue((Value *)I, ParentFunction);
+    auto FirstStep  = GetMachineOperandFromValue(I->GetLHS(), ParentFunction);
+    auto SecondStep = GetMachineOperandFromValue(I->GetRHS(), ParentFunction);
+
+    ResultMI.AddOperand(Result);
+    ResultMI.AddOperand(FirstStep);
+    ResultMI.AddOperand(SecondStep);
+
+    return ResultMI;
+}
+
+MachineInstruction IRtoLLIR::HandleUnaryInstruction(UnaryInstruction *I)
+{
+    auto Operation = I->GetInstructionKind();
+    auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
+
+    auto Result = GetMachineOperandFromValue((Value *)I, ParentFunction);
+    auto Op     = GetMachineOperandFromValue(I->GetOperand(), ParentFunction);
+
+    ResultMI.AddOperand(Result);
+    ResultMI.AddOperand(Op);
+
+    return ResultMI;
+}
+
+MachineInstruction IRtoLLIR::HandleStoreInstruction(StoreInstruction *I)
+{
+    assert(I->GetMemoryLocation()->IsRegister()
+           || I->GetMemoryLocation()->IsGlobalVar() && "Forbidden destination");
+
+    auto Operation = I->GetInstructionKind();
+    auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
+
+    unsigned GlobAddrReg;
+    unsigned AddressReg;
+
+    if (I->GetMemoryLocation()->IsGlobalVar())
+    {
+        auto GlobalAddress =
+            MachineInstruction(MachineInstruction::GlobalAddress, CurrentBB);
+
+        GlobAddrReg = ParentFunction->GetNextAvailableVirtualRegister();
+        GlobalAddress.AddVirtualRegister(GlobAddrReg, TM->GetPointerSize());
+        GlobalAddress.AddGlobalSymbol(
+            ((GlobalVariable *)I->GetMemoryLocation())->GetName());
+
+        CurrentBB->InsertInstr(GlobalAddress);
+        AddressReg = GlobAddrReg;
+    }
+    else
+    {
+        AddressReg = I->GetMemoryLocation()->GetID();
+        if (IRVregToLLIRVreg.count(AddressReg) > 0)
+            AddressReg = IRVregToLLIRVreg[AddressReg];
+    }
+
+    ResultMI.AddAttribute(MachineInstruction::IsSTORE);
+
+    if (ParentFunction->IsStackSlot(AddressReg))
+        ResultMI.AddStackAccess(AddressReg);
+    else
+        ResultMI.AddMemory(AddressReg, TM->GetPointerSize());
+
+    // if Source is a struct an not struct pointer
+    if (I->GetSavedValue()->GetTypeRef().IsStruct()
+        && !I->GetSavedValue()->GetTypeRef().IsPointer())
+    {
+        if (auto FP = dynamic_cast<FunctionParameter *>(I->GetSavedValue());
+            FP != nullptr)
+        {
+            unsigned RegSize = TM->GetPointerSize();
+            auto StructName  = FP->GetName();
+
+            assert(!StructToRegMap[StructName].empty() && "Unknown struct name");
+
+            MachineInstruction CurrentStore;
+            unsigned Counter = 0;
+
+            // Create Store for the Register which holds the struct parts
+            for (auto ParamId : StructToRegMap[StructName])
+            {
+                CurrentStore = MachineInstruction(MachineInstruction::Store, CurrentBB);
+
+                CurrentStore.AddStackAccess(AddressReg, Counter * RegSize / 8);
+                CurrentStore.AddVirtualRegister(ParamId, RegSize);
+
+                Counter++;
+
+                // insert all the stores but the last one, that will be the return
+                // value
+                if (Counter < StructToRegMap[StructName].size())
+                    CurrentBB->InsertInstr(CurrentStore);
+            }
+
+            return CurrentStore;
+        }
+        // Handle other cases, like when the structure is a return value from a
+        // function
+        else
+        {
+            unsigned StructBitSize = (I->GetSavedValue()->GetTypeRef().GetByteSize() * 8);
+            unsigned MaxRegSize    = TM->GetPointerSize();
+            unsigned RegsCount =
+                GetNextAlignedValue(StructBitSize, MaxRegSize) / MaxRegSize;
+
+            auto &RetRegs = TM->GetABI()->GetReturnRegisters();
+
+            assert(RegsCount <= RetRegs.size());
+
+            MachineInstruction Store;
+            for (std::size_t i = 0; i < RegsCount; i++)
+            {
+                Store = MachineInstruction(MachineInstruction::Store, CurrentBB);
+
+                Store.AddStackAccess(AddressReg, (TM->GetPointerSize() / 8) * i);
+                Store.AddRegister(RetRegs[i]->GetID(), TM->GetPointerSize());
+
+                if (i == (RegsCount - 1))
+                    return Store;
+
+                CurrentBB->InsertInstr(Store);
+            }
+        }
+    }
+    else
+    {
+        ResultMI.AddOperand(
+            GetMachineOperandFromValue(I->GetSavedValue(), ParentFunction));
+    }
+
+    return ResultMI;
+}
+
+MachineInstruction IRtoLLIR::HandleLoadInstruction(LoadInstruction *I)
+{
+    assert(I->GetMemoryLocation()->IsRegister()
+           || I->GetMemoryLocation()->IsGlobalVar() && "Forbidden destination");
+
+    auto Operation = I->GetInstructionKind();
+    auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
+
+    unsigned GlobAddrReg;
+    unsigned AddressReg;
+    if (I->GetMemoryLocation()->IsGlobalVar())
+    {
+        auto GlobalAddress =
+            MachineInstruction(MachineInstruction::GlobalAddress, CurrentBB);
+
+        GlobAddrReg = ParentFunction->GetNextAvailableVirtualRegister();
+        GlobalAddress.AddVirtualRegister(GlobAddrReg, TM->GetPointerSize());
+        GlobalAddress.AddGlobalSymbol(
+            ((GlobalVariable *)I->GetMemoryLocation())->GetName());
+
+        CurrentBB->InsertInstr(GlobalAddress);
+        AddressReg = GlobAddrReg;
+    }
+    else
+    {
+        AddressReg = I->GetMemoryLocation()->GetID();
+        if (IRVregToLLIRVreg.count(AddressReg) > 0)
+            AddressReg = IRVregToLLIRVreg[AddressReg];
+    }
+
+    ResultMI.AddAttribute(MachineInstruction::IsLOAD);
+    ResultMI.AddOperand(GetMachineOperandFromValue((Value *)I, ParentFunction));
+
+    if (ParentFunction->IsStackSlot(AddressReg))
+        ResultMI.AddStackAccess(AddressReg);
+    else
+        ResultMI.AddMemory(AddressReg, TM->GetPointerSize());
+
+    // if the destination is a struct and not a struct pointer
+    if (I->GetTypeRef().IsStruct() && !I->GetTypeRef().IsPointer())
+    {
+        unsigned StructBitSize = (I->GetTypeRef().GetByteSize() * 8);
+        unsigned RegSize       = TM->GetPointerSize();
+        unsigned RegsCount     = GetNextAlignedValue(StructBitSize, RegSize) / RegSize;
+
+        // Create loads for the registers which holds the struct parts
+        for (size_t i = 0; i < RegsCount; i++)
+        {
+            auto CurrentLoad = MachineInstruction(MachineInstruction::Load, CurrentBB);
+            auto NewVReg     = ParentFunction->GetNextAvailableVirtualRegister();
+
+            CurrentLoad.AddVirtualRegister(NewVReg, RegSize);
+            StructByIDToRegMap[I->GetID()].push_back(NewVReg);
+            CurrentLoad.AddStackAccess(AddressReg, i * RegSize / 8);
+
+            // insert all the stores but the last one, that will be the return value
+            if (i + 1 < RegsCount)
+                CurrentBB->InsertInstr(CurrentLoad);
+            else
+                return CurrentLoad;
+        }
+    }
+
+    return ResultMI;
+}
+
+MachineInstruction IRtoLLIR::HandleCallInstruction(CallInstruction *I)
+{
+    auto Operation = I->GetInstructionKind();
+    auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
+
+    // The function has a call Instruction
+    ParentFunction->SetToCaller();
+
+    // insert copy/Mov -s for each paramter to move them to the right registers
+    // ignoring the case when there is too much paramter and has to pass
+    // some parameters on the stack
+
+    auto &TargetArgRegs   = TM->GetABI()->GetArgumentRegisters();
+    unsigned ParamCounter = 0;
+
+    for (auto *Param : I->GetArgs())
+    {
+        MachineInstruction Ins;
+
+        // In case if its a struct by value param
+        if (Param->GetTypeRef().IsStruct() && !Param->GetTypeRef().IsPointer())
+        {
+            assert(StructByIDToRegMap.count(Param->GetID()) > 0
+                   && "The map does not know about this struct param");
+            // how many register are used to pass this struct
+
+            for (auto VReg : StructByIDToRegMap[Param->GetID()])
+            {
+                Ins = MachineInstruction(MachineInstruction::Mov, CurrentBB);
+
+                Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
+                                TargetArgRegs[ParamCounter]->GetBitWidth());
+                Ins.AddVirtualRegister(VReg, TM->GetPointerSize());
+
+                CurrentBB->InsertInstr(Ins);
+                ParamCounter++;
+            }
+        }
+
+        if (Param->GetTypeRef().IsPointer()
+            && (Param->IsGlobalVar() || ParentFunction->IsStackSlot(Param->GetID())))
+        {
+            if (Param->IsGlobalVar())
+            {
+                Ins = MachineInstruction(MachineInstruction::GlobalAddress, CurrentBB);
+
+                Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
+                                TargetArgRegs[ParamCounter]->GetBitWidth());
+
+                auto Symbol = ((GlobalVariable *)Param)->GetName();
+                Ins.AddGlobalSymbol(Symbol);
+                CurrentBB->InsertInstr(Ins);
+                ParamCounter++;
+            }
+            else
+            {
+                Ins = MachineInstruction(MachineInstruction::StackAddress, CurrentBB);
+
+                Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
+                                TargetArgRegs[ParamCounter]->GetBitWidth());
+
+                Ins.AddStackAccess(Param->GetID());
+                CurrentBB->InsertInstr(Ins);
+                ParamCounter++;
+            }
+        }
+        else
+        {
+            Ins = MachineInstruction(MachineInstruction::Mov, CurrentBB);
+
+            Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
+                            TargetArgRegs[ParamCounter]->GetBitWidth());
+            Ins.AddOperand(GetMachineOperandFromValue(Param, ParentFunction));
+
+            CurrentBB->InsertInstr(Ins);
+            ParamCounter++;
+        }
+    }
+    ResultMI.AddFunctionName(I->GetName().c_str());
+
+    return ResultMI;
+}
+
+MachineInstruction IRtoLLIR::HandleBranchInstruction(BranchInstruction *I,
+                                                     std::vector<MachineBasicBlock> &BBS)
+{
+    auto Operation = I->GetInstructionKind();
+    auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
+
+    const char *TrueLabel  = nullptr;
+    const char *FalseLabel = nullptr;
+
+    for (auto &bb : BBS)
+    {
+        if (TrueLabel == nullptr && I->GetTrueLabelName() == bb.GetName())
+            TrueLabel = bb.GetName().c_str();
+
+        if (FalseLabel == nullptr && I->HasFalseLabel()
+            && I->GetFalseLabelName() == bb.GetName())
+            FalseLabel = bb.GetName().c_str();
+    }
+
+    ResultMI.AddOperand(GetMachineOperandFromValue(I->GetCondition(), ParentFunction));
+    ResultMI.AddLabel(TrueLabel);
+
+    if (I->HasFalseLabel())
+        ResultMI.AddLabel(TrueLabel);    // Fixme: There should be false-lable?
+
+    return ResultMI;
+}
+
+MachineInstruction IRtoLLIR::HandleGetElemPtrInstruction(GetElemPointerInstruction *I)
+{
+    auto Operation = I->GetInstructionKind();
+    auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
+
+    MachineInstruction GoalInst;
+
+    const bool IsGlobal = I->GetSource()->IsGlobalVar();
+    const bool IsStack  = ParentFunction->IsStackSlot(I->GetSource()->GetID());
+    const bool IsReg    = !IsGlobal && !IsStack;
+
+    if (IsGlobal)
+        GoalInst = MachineInstruction(MachineInstruction::GlobalAddress, CurrentBB);
+    else if (IsStack)
+        GoalInst = MachineInstruction(MachineInstruction::StackAddress, CurrentBB);
+
+    auto Dest = GetMachineOperandFromValue((Value *)I, ParentFunction);
+    GoalInst.AddOperand(Dest);
+
+    if (IsGlobal)
+        GoalInst.AddGlobalSymbol(((GlobalVariable *)I->GetSource())->GetName());
+    else if (IsStack)
+        GoalInst.AddStackAccess(I->GetSource()->GetID());
+
+
+    auto &SourceType           = I->GetSource()->GetTypeRef();
+    unsigned ConstantIndexPart = 0;
+    bool IndexIsInReg          = false;
+    unsigned MULResVReg        = 0;
+    auto IndexReg = GetMachineOperandFromValue(I->GetIndex(), ParentFunction);
+    if (I->GetIndex()->IsConstant())
+    {
+        auto Index = ((Constant *)I->GetIndex())->GetIntValue();
+        if (!SourceType.IsStruct())
+            ConstantIndexPart = (SourceType.CalcElemSize(0) * Index);
+        else    // its a struct and has to determine the offset other way
+            ConstantIndexPart = SourceType.GetElemByteOffset(Index);
+
+        // If there is nothing to add, then exit now
+        if (ConstantIndexPart == 0 && !GoalInst.IsInvalid())
+            return GoalInst;
+    }
+    else
+    {
+        IndexIsInReg = true;
+        if (!SourceType.IsStruct())
+        {
+            if (!GoalInst.IsInvalid())
+                CurrentBB->InsertInstr(GoalInst);
+
+            auto Multiplier = SourceType.CalcElemSize(0);
+
+            // edge case, identity: x * 1 = x
+            // in this case only do a MOV or SEXT rather then MUL
+            if (Multiplier == 1)
+            {
+                MULResVReg = ParentFunction->GetNextAvailableVirtualRegister();
+                auto MOV   = MachineInstruction(MachineInstruction::Mov, CurrentBB);
+                MOV.AddVirtualRegister(MULResVReg, TM->GetPointerSize());
+                MOV.AddOperand(IndexReg);
+
+                // if sign extension needed, then swap the mov to that
+                if (IndexReg.GetSize() < TM->GetPointerSize())
+                    MOV.SetOpcode(MachineInstruction::SExt);
+                CurrentBB->InsertInstr(MOV);
+            }
+            // general case
+            // MOV the multiplier into a register
+            // FIXME: this should not needed, only done because AArch64 does not
+            // support immediate operands for MUL, this should be handled by the
+            // target legalizer
+            else
+            {
+                auto ImmediateVReg = ParentFunction->GetNextAvailableVirtualRegister();
+                auto MOV = MachineInstruction(MachineInstruction::Mov, CurrentBB);
+                MOV.AddVirtualRegister(ImmediateVReg, TM->GetPointerSize());
+                MOV.AddImmediate(Multiplier);
+                CurrentBB->InsertInstr(MOV);
+
+                // if sign extension needed, then insert a sign extending first
+                MachineInstruction SEXT;
+                unsigned SEXTResVReg = 0;
+                if (IndexReg.GetSize() < TM->GetPointerSize())
+                {
+                    SEXTResVReg = ParentFunction->GetNextAvailableVirtualRegister();
+                    SEXT        = MachineInstruction(MachineInstruction::SExt, CurrentBB);
+                    SEXT.AddVirtualRegister(SEXTResVReg, TM->GetPointerSize());
+                    SEXT.AddOperand(IndexReg);
+                    CurrentBB->InsertInstr(SEXT);
+                }
+
+                MULResVReg = ParentFunction->GetNextAvailableVirtualRegister();
+                auto MUL   = MachineInstruction(MachineInstruction::Mul, CurrentBB);
+                MUL.AddVirtualRegister(MULResVReg, TM->GetPointerSize());
+                // if sign extension did not happened, then jus use the IndexReg
+                if (SEXT.IsInvalid())
+                    MUL.AddOperand(IndexReg);
+                else    // otherwise the result register of the SEXT operaton
+                    MUL.AddVirtualRegister(SEXTResVReg, TM->GetPointerSize());
+                MUL.AddVirtualRegister(ImmediateVReg, TM->GetPointerSize());
+                CurrentBB->InsertInstr(MUL);
+            }
+        }
+        else    // its a struct and has to determine the offset other way
+            assert(!"TODO");
+        // ConstantIndexPart = SourceType.GetElemByteOffset(Index);
+    }
+
+    if (!GoalInst.IsInvalid() && !IndexIsInReg)
+        CurrentBB->InsertInstr(GoalInst);
+
+    auto ADD = MachineInstruction(MachineInstruction::Add, CurrentBB);
+    ADD.AddOperand(Dest);
+
+    if (IsReg)
+        ADD.AddOperand(GetMachineOperandFromValue(I->GetSource(), ParentFunction));
+    else
+        // Otherwise (stack or global case) the base address is loaded in Dest by
+        // the preceding STACK_ADDRESS or GLOBAL_ADDRESS instruction
+        ADD.AddOperand(Dest);
+
+    if (IndexIsInReg)
+        ADD.AddVirtualRegister(MULResVReg, TM->GetPointerSize());
+    else
+        ADD.AddImmediate(ConstantIndexPart, Dest.GetSize());
+
+    return ADD;
+}
+
+MachineInstruction IRtoLLIR::HandleJumpInstruction(JumpInstruction *I,
                                                    std::vector<MachineBasicBlock> &BBS)
 {
-    auto Operation      = Instr->GetInstructionKind();
-    auto ParentFunction = BB->GetParent();
-    auto ResultMI       = MachineInstruction((unsigned)Operation + (1 << 16), BB);
+    auto Operation = I->GetInstructionKind();
+    auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
 
+    for (auto &bb : BBS)
+    {
+        if (I->GetTargetLabelName() == bb.GetName())
+        {
+            ResultMI.AddLabel(bb.GetName().c_str());
+            break;
+        }
+    }
+
+    return ResultMI;
+}
+
+MachineInstruction IRtoLLIR::HandleCompareInstruction(CompareInstruction *I)
+{
+    auto Operation = I->GetInstructionKind();
+    auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
+
+    auto Result      = GetMachineOperandFromValue((Value *)I, ParentFunction);
+    auto FirstSrcOp  = GetMachineOperandFromValue(I->GetLHS(), ParentFunction);
+    auto SecondSrcOp = GetMachineOperandFromValue(I->GetRHS(), ParentFunction);
+
+    ResultMI.AddOperand(Result);
+    ResultMI.AddOperand(FirstSrcOp);
+    ResultMI.AddOperand(SecondSrcOp);
+
+    ResultMI.SetAttributes(I->GetRelation());
+
+    return ResultMI;
+}
+
+MachineInstruction IRtoLLIR::HandleReturnInstruction(ReturnInstruction *I)
+{
+    auto Operation = I->GetInstructionKind();
+    auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
+    auto Result    = GetMachineOperandFromValue(I->GetRetVal(), ParentFunction);
+
+    ResultMI.AddOperand(Result);
+
+    // insert load to load in the return val to the return registers
+    auto &TargetRetRegs = TM->GetABI()->GetReturnRegisters();
+    if (I->GetRetVal()->GetTypeRef().IsStruct())
+    {
+        // how many register are used to pass this struct
+        unsigned StructBitSize = (I->GetRetVal()->GetTypeRef().GetByteSize() * 8);
+        unsigned MaxRegSize    = TM->GetPointerSize();
+        unsigned RegsCount = GetNextAlignedValue(StructBitSize, MaxRegSize) / MaxRegSize;
+
+        for (size_t i = 0; i < RegsCount; i++)
+        {
+            auto Instr = MachineInstruction(MachineInstruction::Load, CurrentBB);
+
+            Instr.AddRegister(TargetRetRegs[i]->GetID(), TargetRetRegs[i]->GetBitWidth());
+            Instr.AddStackAccess(I->GetRetVal()->GetID(), i * (TM->GetPointerSize() / 8));
+
+            CurrentBB->InsertInstr(Instr);
+        }
+    }
+    else if (I->GetRetVal()->IsConstant())
+    {
+        auto &RetRegs = TM->GetABI()->GetReturnRegisters();
+        auto LoadImm  = MachineInstruction(MachineInstruction::LoadImm, CurrentBB);
+
+        LoadImm.AddRegister(RetRegs[0]->GetID(), RetRegs[0]->GetBitWidth());
+        LoadImm.AddOperand(GetMachineOperandFromValue(I->GetRetVal(), ParentFunction));
+
+        CurrentBB->InsertInstr(LoadImm);
+    }
+
+    return ResultMI;
+}
+
+MachineInstruction IRtoLLIR::HandleMemoryCopyInstruction(MemoryCopyInstruction *I)
+{
+    auto Operation = I->GetInstructionKind();
+    auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
+
+    // lower this into load and store pairs if used with structs lower then
+    // a certain size (for now be it the size which can be passed by value)
+    // otherwise create a call maybe to an intrinsic memcopy function
+    for (size_t i = 0; i < (I->GetSize() / /* TODO: use alignment here */ 4); i++)
+    {
+        auto Load    = MachineInstruction(MachineInstruction::Load, CurrentBB);
+        auto NewVReg = ParentFunction->GetNextAvailableVirtualRegister();
+        Load.AddRegister(NewVReg, /* TODO: use alignment here */ 32);
+        Load.AddStackAccess(I->GetSource()->GetID(),
+                            i * /* TODO: use alignment here */ 4);
+        CurrentBB->InsertInstr(Load);
+
+        auto Store = MachineInstruction(MachineInstruction::Store, CurrentBB);
+        Store.AddStackAccess(I->GetDestination()->GetID(),
+                             i * /* TODO: use alignment here */ 4);
+        Store.AddRegister(NewVReg, /* TODO: use alignment here */ 32);
+        // TODO: Change the function so it does not return the instruction but
+        // insert it in the function so don't have to do these annoying returns
+        if (i == ((I->GetSize() / /* TODO: use alignment here */ 4) - 1))
+            return Store;
+        CurrentBB->InsertInstr(Store);
+    }
+
+    return ResultMI;
+}
+
+MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
+                                                   std::vector<MachineBasicBlock> &BBS)
+{
     // Three Address Instructions: Instr Result, Op1, Op2
     if (auto I = dynamic_cast<BinaryInstruction *>(Instr); I != nullptr)
     {
-        auto Result     = GetMachineOperandFromValue((Value *)I, ParentFunction);
-        auto FirstStep  = GetMachineOperandFromValue(I->GetLHS(), ParentFunction);
-        auto SecondStep = GetMachineOperandFromValue(I->GetRHS(), ParentFunction);
-
-        ResultMI.AddOperand(Result);
-        ResultMI.AddOperand(FirstStep);
-        ResultMI.AddOperand(SecondStep);
+        return HandleBinaryInstruction(I);
     }
     // Two address ALU instructions: Instr Result, Op
     else if (auto I = dynamic_cast<UnaryInstruction *>(Instr); I != nullptr)
     {
-        auto Result = GetMachineOperandFromValue((Value *)I, ParentFunction);
-        auto Op     = GetMachineOperandFromValue(I->GetOperand(), ParentFunction);
-
-        ResultMI.AddOperand(Result);
-        ResultMI.AddOperand(Op);
+        return HandleUnaryInstruction(I);
     }
     // Store Instruction: Store [Address], Src
     else if (auto I = dynamic_cast<StoreInstruction *>(Instr); I != nullptr)
     {
-        assert(I->GetMemoryLocation()->IsRegister()
-               || I->GetMemoryLocation()->IsGlobalVar() && "Forbidden destination");
-
-        unsigned GlobAddrReg;
-        unsigned AddressReg;
-
-        if (I->GetMemoryLocation()->IsGlobalVar())
-        {
-            auto GlobalAddress =
-                MachineInstruction(MachineInstruction::GlobalAddress, BB);
-
-            GlobAddrReg = ParentFunction->GetNextAvailableVirtualRegister();
-            GlobalAddress.AddVirtualRegister(GlobAddrReg, TM->GetPointerSize());
-            GlobalAddress.AddGlobalSymbol(
-                ((GlobalVariable *)I->GetMemoryLocation())->GetName());
-
-            BB->InsertInstr(GlobalAddress);
-            AddressReg = GlobAddrReg;
-        }
-        else
-        {
-            AddressReg = I->GetMemoryLocation()->GetID();
-            if (IRVregToLLIRVreg.count(AddressReg) > 0)
-                AddressReg = IRVregToLLIRVreg[AddressReg];
-        }
-
-        ResultMI.AddAttribute(MachineInstruction::IsSTORE);
-
-
-        if (ParentFunction->IsStackSlot(AddressReg))
-            ResultMI.AddStackAccess(AddressReg);
-        else
-            ResultMI.AddMemory(AddressReg, TM->GetPointerSize());
-
-        // if Source is a struct an not struct pointer
-        if (I->GetSavedValue()->GetTypeRef().IsStruct()
-            && !I->GetSavedValue()->GetTypeRef().IsPointer())
-        {
-            if (auto FP = dynamic_cast<FunctionParameter *>(I->GetSavedValue());
-                FP != nullptr)
-            {
-                unsigned RegSize = TM->GetPointerSize();
-                auto StructName  = FP->GetName();
-
-                assert(!StructToRegMap[StructName].empty() && "Unknown struct name");
-
-                MachineInstruction CurrentStore;
-                unsigned Counter = 0;
-
-                // Create Store for the Register which holds the struct parts
-                for (auto ParamId : StructToRegMap[StructName])
-                {
-                    CurrentStore = MachineInstruction(MachineInstruction::Store, BB);
-
-                    CurrentStore.AddStackAccess(AddressReg, Counter * RegSize / 8);
-                    CurrentStore.AddVirtualRegister(ParamId, RegSize);
-
-                    Counter++;
-
-                    // insert all the stores but the last one, that will be the return
-                    // value
-                    if (Counter < StructToRegMap[StructName].size())
-                        BB->InsertInstr(CurrentStore);
-                }
-
-                return CurrentStore;
-            }
-            // Handle other cases, like when the structure is a return value from a
-            // function
-            else
-            {
-                unsigned StructBitSize =
-                    (I->GetSavedValue()->GetTypeRef().GetByteSize() * 8);
-                unsigned MaxRegSize = TM->GetPointerSize();
-                unsigned RegsCount =
-                    GetNextAlignedValue(StructBitSize, MaxRegSize) / MaxRegSize;
-
-                auto &RetRegs = TM->GetABI()->GetReturnRegisters();
-
-                assert(RegsCount <= RetRegs.size());
-
-                MachineInstruction Store;
-                for (std::size_t i = 0; i < RegsCount; i++)
-                {
-                    Store = MachineInstruction(MachineInstruction::Store, BB);
-
-                    Store.AddStackAccess(AddressReg, (TM->GetPointerSize() / 8) * i);
-                    Store.AddRegister(RetRegs[i]->GetID(), TM->GetPointerSize());
-
-                    if (i == (RegsCount - 1))
-                        return Store;
-
-                    BB->InsertInstr(Store);
-                }
-            }
-        }
-        else
-        {
-            ResultMI.AddOperand(
-                GetMachineOperandFromValue(I->GetSavedValue(), ParentFunction));
-        }
+        return HandleStoreInstruction(I);
     }
     // Load Instruction: Load Dest, [Address]
     else if (auto I = dynamic_cast<LoadInstruction *>(Instr); I != nullptr)
     {
-        assert(I->GetMemoryLocation()->IsRegister()
-               || I->GetMemoryLocation()->IsGlobalVar() && "Forbidden destination");
-
-        unsigned GlobAddrReg;
-        unsigned AddressReg;
-        if (I->GetMemoryLocation()->IsGlobalVar())
-        {
-            auto GlobalAddress =
-                MachineInstruction(MachineInstruction::GlobalAddress, BB);
-
-            GlobAddrReg = ParentFunction->GetNextAvailableVirtualRegister();
-            GlobalAddress.AddVirtualRegister(GlobAddrReg, TM->GetPointerSize());
-            GlobalAddress.AddGlobalSymbol(
-                ((GlobalVariable *)I->GetMemoryLocation())->GetName());
-
-            BB->InsertInstr(GlobalAddress);
-            AddressReg = GlobAddrReg;
-        }
-        else
-        {
-            AddressReg = I->GetMemoryLocation()->GetID();
-            if (IRVregToLLIRVreg.count(AddressReg) > 0)
-                AddressReg = IRVregToLLIRVreg[AddressReg];
-        }
-
-        ResultMI.AddAttribute(MachineInstruction::IsLOAD);
-        ResultMI.AddOperand(GetMachineOperandFromValue((Value *)I, ParentFunction));
-
-        if (ParentFunction->IsStackSlot(AddressReg))
-            ResultMI.AddStackAccess(AddressReg);
-        else
-            ResultMI.AddMemory(AddressReg, TM->GetPointerSize());
-
-        // if the destination is a struct and not a struct pointer
-        if (I->GetTypeRef().IsStruct() && !I->GetTypeRef().IsPointer())
-        {
-            unsigned StructBitSize = (I->GetTypeRef().GetByteSize() * 8);
-            unsigned RegSize       = TM->GetPointerSize();
-            unsigned RegsCount = GetNextAlignedValue(StructBitSize, RegSize) / RegSize;
-
-            // Create loads for the registers which holds the struct parts
-            for (size_t i = 0; i < RegsCount; i++)
-            {
-                auto CurrentLoad = MachineInstruction(MachineInstruction::Load, BB);
-                auto NewVReg     = ParentFunction->GetNextAvailableVirtualRegister();
-
-                CurrentLoad.AddVirtualRegister(NewVReg, RegSize);
-                StructByIDToRegMap[I->GetID()].push_back(NewVReg);
-                CurrentLoad.AddStackAccess(AddressReg, i * RegSize / 8);
-
-                // insert all the stores but the last one, that will be the return value
-                if (i + 1 < RegsCount)
-                    BB->InsertInstr(CurrentLoad);
-                else
-                    return CurrentLoad;
-            }
-        }
+        return HandleLoadInstruction(I);
     }
     // GEP instruction: GEP Dest, Source, list of indexes
     // to
@@ -280,328 +661,43 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
     //   ADD Dest, Dest, idx
     else if (auto I = dynamic_cast<GetElemPointerInstruction *>(Instr); I != nullptr)
     {
-        MachineInstruction GoalInst;
-
-        const bool IsGlobal = I->GetSource()->IsGlobalVar();
-        const bool IsStack  = ParentFunction->IsStackSlot(I->GetSource()->GetID());
-        const bool IsReg    = !IsGlobal && !IsStack;
-
-        if (IsGlobal)
-            GoalInst = MachineInstruction(MachineInstruction::GlobalAddress, BB);
-        else if (IsStack)
-            GoalInst = MachineInstruction(MachineInstruction::StackAddress, BB);
-
-        auto Dest = GetMachineOperandFromValue((Value *)I, ParentFunction);
-        GoalInst.AddOperand(Dest);
-
-        if (IsGlobal)
-            GoalInst.AddGlobalSymbol(((GlobalVariable *)I->GetSource())->GetName());
-        else if (IsStack)
-            GoalInst.AddStackAccess(I->GetSource()->GetID());
-
-
-        auto &SourceType           = I->GetSource()->GetTypeRef();
-        unsigned ConstantIndexPart = 0;
-        bool IndexIsInReg          = false;
-        unsigned MULResVReg        = 0;
-        auto IndexReg = GetMachineOperandFromValue(I->GetIndex(), ParentFunction);
-        if (I->GetIndex()->IsConstant())
-        {
-            auto Index = ((Constant *)I->GetIndex())->GetIntValue();
-            if (!SourceType.IsStruct())
-                ConstantIndexPart = (SourceType.CalcElemSize(0) * Index);
-            else    // its a struct and has to determine the offset other way
-                ConstantIndexPart = SourceType.GetElemByteOffset(Index);
-
-            // If there is nothing to add, then exit now
-            if (ConstantIndexPart == 0 && !GoalInst.IsInvalid())
-                return GoalInst;
-        }
-        else
-        {
-            IndexIsInReg = true;
-            if (!SourceType.IsStruct())
-            {
-                if (!GoalInst.IsInvalid())
-                    BB->InsertInstr(GoalInst);
-
-                auto Multiplier = SourceType.CalcElemSize(0);
-
-                // edge case, identity: x * 1 = x
-                // in this case only do a MOV or SEXT rather then MUL
-                if (Multiplier == 1)
-                {
-                    MULResVReg = ParentFunction->GetNextAvailableVirtualRegister();
-                    auto MOV   = MachineInstruction(MachineInstruction::Mov, BB);
-                    MOV.AddVirtualRegister(MULResVReg, TM->GetPointerSize());
-                    MOV.AddOperand(IndexReg);
-
-                    // if sign extension needed, then swap the mov to that
-                    if (IndexReg.GetSize() < TM->GetPointerSize())
-                        MOV.SetOpcode(MachineInstruction::SExt);
-                    BB->InsertInstr(MOV);
-                }
-                // general case
-                // MOV the multiplier into a register
-                // FIXME: this should not needed, only done because AArch64 does not
-                // support immediate operands for MUL, this should be handled by the
-                // target legalizer
-                else
-                {
-                    auto ImmediateVReg =
-                        ParentFunction->GetNextAvailableVirtualRegister();
-                    auto MOV = MachineInstruction(MachineInstruction::Mov, BB);
-                    MOV.AddVirtualRegister(ImmediateVReg, TM->GetPointerSize());
-                    MOV.AddImmediate(Multiplier);
-                    BB->InsertInstr(MOV);
-
-                    // if sign extension needed, then insert a sign extending first
-                    MachineInstruction SEXT;
-                    unsigned SEXTResVReg = 0;
-                    if (IndexReg.GetSize() < TM->GetPointerSize())
-                    {
-                        SEXTResVReg = ParentFunction->GetNextAvailableVirtualRegister();
-                        SEXT        = MachineInstruction(MachineInstruction::SExt, BB);
-                        SEXT.AddVirtualRegister(SEXTResVReg, TM->GetPointerSize());
-                        SEXT.AddOperand(IndexReg);
-                        BB->InsertInstr(SEXT);
-                    }
-
-                    MULResVReg = ParentFunction->GetNextAvailableVirtualRegister();
-                    auto MUL   = MachineInstruction(MachineInstruction::Mul, BB);
-                    MUL.AddVirtualRegister(MULResVReg, TM->GetPointerSize());
-                    // if sign extension did not happened, then jus use the IndexReg
-                    if (SEXT.IsInvalid())
-                        MUL.AddOperand(IndexReg);
-                    else    // otherwise the result register of the SEXT operaton
-                        MUL.AddVirtualRegister(SEXTResVReg, TM->GetPointerSize());
-                    MUL.AddVirtualRegister(ImmediateVReg, TM->GetPointerSize());
-                    BB->InsertInstr(MUL);
-                }
-            }
-            else    // its a struct and has to determine the offset other way
-                assert(!"TODO");
-            // ConstantIndexPart = SourceType.GetElemByteOffset(Index);
-        }
-
-        if (!GoalInst.IsInvalid() && !IndexIsInReg)
-            BB->InsertInstr(GoalInst);
-
-        auto ADD = MachineInstruction(MachineInstruction::Add, BB);
-        ADD.AddOperand(Dest);
-
-        if (IsReg)
-            ADD.AddOperand(GetMachineOperandFromValue(I->GetSource(), ParentFunction));
-        else
-            // Otherwise (stack or global case) the base address is loaded in Dest by
-            // the preceding STACK_ADDRESS or GLOBAL_ADDRESS instruction
-            ADD.AddOperand(Dest);
-
-        if (IndexIsInReg)
-            ADD.AddVirtualRegister(MULResVReg, TM->GetPointerSize());
-        else
-            ADD.AddImmediate(ConstantIndexPart, Dest.GetSize());
-
-        return ADD;
+        return HandleGetElemPtrInstruction(I);
     }
     // Call Instruction: call Result functionName(param1, ...)
     else if (auto I = dynamic_cast<CallInstruction *>(Instr); I != nullptr)
     {
-        // The function has a call Instruction
-        ParentFunction->SetToCaller();
-
-        // insert copy/Mov -s for each paramter to move them to the right registers
-        // ignoring the case when there is too much paramter and has to pass
-        // some parameters on the stack
-
-        auto &TargetArgRegs   = TM->GetABI()->GetArgumentRegisters();
-        unsigned ParamCounter = 0;
-
-        for (auto *Param : I->GetArgs())
-        {
-            MachineInstruction Ins;
-
-            // In case if its a struct by value param
-            if (Param->GetTypeRef().IsStruct() && !Param->GetTypeRef().IsPointer())
-            {
-                assert(StructByIDToRegMap.count(Param->GetID()) > 0
-                       && "The map does not know about this struct param");
-                // how many register are used to pass this struct
-
-                for (auto VReg : StructByIDToRegMap[Param->GetID()])
-                {
-                    Ins = MachineInstruction(MachineInstruction::Mov, BB);
-
-                    Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
-                                    TargetArgRegs[ParamCounter]->GetBitWidth());
-                    Ins.AddVirtualRegister(VReg, TM->GetPointerSize());
-
-                    BB->InsertInstr(Ins);
-                    ParamCounter++;
-                }
-            }
-
-            if (Param->GetTypeRef().IsPointer()
-                && (Param->IsGlobalVar() || ParentFunction->IsStackSlot(Param->GetID())))
-            {
-                if (Param->IsGlobalVar())
-                {
-                    Ins = MachineInstruction(MachineInstruction::GlobalAddress, BB);
-
-                    Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
-                                    TargetArgRegs[ParamCounter]->GetBitWidth());
-
-                    auto Symbol = ((GlobalVariable *)Param)->GetName();
-                    Ins.AddGlobalSymbol(Symbol);
-                    BB->InsertInstr(Ins);
-                    ParamCounter++;
-                }
-                else
-                {
-                    Ins = MachineInstruction(MachineInstruction::StackAddress, BB);
-
-                    Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
-                                    TargetArgRegs[ParamCounter]->GetBitWidth());
-
-                    Ins.AddStackAccess(Param->GetID());
-                    BB->InsertInstr(Ins);
-                    ParamCounter++;
-                }
-            }
-            else
-            {
-                Ins = MachineInstruction(MachineInstruction::Mov, BB);
-
-                Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
-                                TargetArgRegs[ParamCounter]->GetBitWidth());
-                Ins.AddOperand(GetMachineOperandFromValue(Param, ParentFunction));
-
-                BB->InsertInstr(Ins);
-                ParamCounter++;
-            }
-        }
-        ResultMI.AddFunctionName(I->GetName().c_str());
+        return HandleCallInstruction(I);
     }
     // Jump Instruction: Jump Label
     else if (auto I = dynamic_cast<JumpInstruction *>(Instr); I != nullptr)
     {
-        for (auto &bb : BBS)
-        {
-            if (I->GetTargetLabelName() == bb.GetName())
-            {
-                ResultMI.AddLabel(bb.GetName().c_str());
-                break;
-            }
-        }
+        return HandleJumpInstruction(I, BBS);
     }
     // Branch Instruction : Br op label1 label2
     else if (auto I = dynamic_cast<BranchInstruction *>(Instr); I != nullptr)
     {
-        const char *TrueLabel  = nullptr;
-        const char *FalseLabel = nullptr;
-
-        for (auto &bb : BBS)
-        {
-            if (TrueLabel == nullptr && I->GetTrueLabelName() == bb.GetName())
-                TrueLabel = bb.GetName().c_str();
-
-            if (FalseLabel == nullptr && I->HasFalseLabel()
-                && I->GetFalseLabelName() == bb.GetName())
-                FalseLabel = bb.GetName().c_str();
-        }
-
-        ResultMI.AddOperand(
-            GetMachineOperandFromValue(I->GetCondition(), ParentFunction));
-        ResultMI.AddLabel(TrueLabel);
-
-        if (I->HasFalseLabel())
-            ResultMI.AddLabel(TrueLabel);    // Fixme: There should be false-lable?
+        return HandleBranchInstruction(I, BBS);
     }
     // Compare Instruction: cmp relation br1, br2
     else if (auto I = dynamic_cast<CompareInstruction *>(Instr); I != nullptr)
     {
-        auto Result      = GetMachineOperandFromValue((Value *)I, ParentFunction);
-        auto FirstSrcOp  = GetMachineOperandFromValue(I->GetLHS(), ParentFunction);
-        auto SecondSrcOp = GetMachineOperandFromValue(I->GetRHS(), ParentFunction);
-
-        ResultMI.AddOperand(Result);
-        ResultMI.AddOperand(FirstSrcOp);
-        ResultMI.AddOperand(SecondSrcOp);
-
-        ResultMI.SetAttributes(I->GetRelation());
+        return HandleCompareInstruction(I);
     }
     // Ret Instruction: ret op
     else if (auto I = dynamic_cast<ReturnInstruction *>(Instr); I != nullptr)
     {
-        auto Result = GetMachineOperandFromValue(I->GetRetVal(), ParentFunction);
-        ResultMI.AddOperand(Result);
-
-
-        // insert load to load in the return val to the return registers
-        auto &TargetRetRegs = TM->GetABI()->GetReturnRegisters();
-        if (I->GetRetVal()->GetTypeRef().IsStruct())
-        {
-            // how many register are used to pass this struct
-            unsigned StructBitSize = (I->GetRetVal()->GetTypeRef().GetByteSize() * 8);
-            unsigned MaxRegSize    = TM->GetPointerSize();
-            unsigned RegsCount =
-                GetNextAlignedValue(StructBitSize, MaxRegSize) / MaxRegSize;
-
-            for (size_t i = 0; i < RegsCount; i++)
-            {
-                auto Instr = MachineInstruction(MachineInstruction::Load, BB);
-
-                Instr.AddRegister(TargetRetRegs[i]->GetID(),
-                                  TargetRetRegs[i]->GetBitWidth());
-                Instr.AddStackAccess(I->GetRetVal()->GetID(),
-                                     i * (TM->GetPointerSize() / 8));
-
-                BB->InsertInstr(Instr);
-            }
-        }
-        else if (I->GetRetVal()->IsConstant())
-        {
-            auto &RetRegs = TM->GetABI()->GetReturnRegisters();
-            auto LoadImm  = MachineInstruction(MachineInstruction::LoadImm, BB);
-
-            LoadImm.AddRegister(RetRegs[0]->GetID(), RetRegs[0]->GetBitWidth());
-            LoadImm.AddOperand(
-                GetMachineOperandFromValue(I->GetRetVal(), ParentFunction));
-
-            BB->InsertInstr(LoadImm);
-        }
+        return HandleReturnInstruction(I);
     }
     else if (auto I = dynamic_cast<MemoryCopyInstruction *>(Instr); I != nullptr)
     {
-        // lower this into load and store pairs if used with structs lower then
-        // a certain size (for now be it the size which can be passed by value)
-        // otherwise create a call maybe to an intrinsic memcopy function
-        for (size_t i = 0; i < (I->GetSize() / /* TODO: use alignment here */ 4); i++)
-        {
-            auto Load    = MachineInstruction(MachineInstruction::Load, BB);
-            auto NewVReg = ParentFunction->GetNextAvailableVirtualRegister();
-            Load.AddRegister(NewVReg, /* TODO: use alignment here */ 32);
-            Load.AddStackAccess(I->GetSource()->GetID(),
-                                i * /* TODO: use alignment here */ 4);
-            BB->InsertInstr(Load);
-
-            auto Store = MachineInstruction(MachineInstruction::Store, BB);
-            Store.AddStackAccess(I->GetDestination()->GetID(),
-                                 i * /* TODO: use alignment here */ 4);
-            Store.AddRegister(NewVReg, /* TODO: use alignment here */ 32);
-            // TODO: Change the function so it does not return the instruction but
-            // insert it in the function so don't have to do these annoying returns
-            if (i == ((I->GetSize() / /* TODO: use alignment here */ 4) - 1))
-                return Store;
-            BB->InsertInstr(Store);
-        }
+        return HandleMemoryCopyInstruction(I);
     }
     else
     {
         assert(!"Unimplemented Instruction.");
     }
 
-    return ResultMI;
+    return {};
 }
 
 void HandleStackAllocation(StackAllocationInstruction *Instr, MachineFunction *Func)
@@ -697,60 +793,63 @@ void IRtoLLIR::GenerateLLIRFromIR()
                     continue;
                 }
 
-                MFuncMBBs[BBCounter].InsertInstr(
-                    ConvertToMachineInstr(InstrPtr, &MFuncMBBs[BBCounter], MFuncMBBs));
+
+                CurrentBB      = &MFuncMBBs[BBCounter];
+                ParentFunction = CurrentBB->GetParent();
+                CurrentBB->InsertInstr(ConvertToMachineInstr(InstrPtr, MFuncMBBs));
             }
 
             BBCounter++;
         }
-    }
 
-    for (auto &GlobalVar : IRM.GetGlobalVars())
-    {
-        auto Name = ((GlobalVariable *)GlobalVar.get())->GetName();
-        auto Size = GlobalVar->GetTypeRef().GetByteSize();
-
-        auto GD        = GlobalData(Name, Size);
-        auto &InitList = ((GlobalVariable *)GlobalVar.get())->GetInitList();
-
-        if (GlobalVar->GetTypeRef().IsStruct() || GlobalVar->GetTypeRef().IsArray())
+        for (auto &GlobalVar : IRM.GetGlobalVars())
         {
-            // If the init list is empty, then just allocate Size amount of zeros
-            if (InitList.empty())
-                GD.InsertAllocation(Size, 0);
-            // if the list is not empty then allocate the appropriate type of memories
-            // with initialization
-            else
+            auto Name = ((GlobalVariable *)GlobalVar.get())->GetName();
+            auto Size = GlobalVar->GetTypeRef().GetByteSize();
+
+            auto GD        = GlobalData(Name, Size);
+            auto &InitList = ((GlobalVariable *)GlobalVar.get())->GetInitList();
+
+            if (GlobalVar->GetTypeRef().IsStruct() || GlobalVar->GetTypeRef().IsArray())
             {
-                // struct case
-                if (GlobalVar->GetTypeRef().IsStruct())
-                {
-                    size_t InitListIndex = 0;
-                    for (auto &MemberType : GlobalVar->GetTypeRef().GetMemberTypes())
-                    {
-                        assert(InitListIndex < InitList.size());
-                        GD.InsertAllocation(MemberType.GetByteSize(),
-                                            InitList[InitListIndex]);
-                        InitListIndex++;
-                    }
-                }
-                // array case
+                // If the init list is empty, then just allocate Size amount of zeros
+                if (InitList.empty())
+                    GD.InsertAllocation(Size, 0);
+                // if the list is not empty then allocate the appropriate type of memories
+                // with initialization
                 else
                 {
-                    const auto Size = GlobalVar->GetTypeRef().GetBaseType().GetByteSize();
-                    for (auto InitVal : InitList)
-                        GD.InsertAllocation(Size, InitVal);
+                    // struct case
+                    if (GlobalVar->GetTypeRef().IsStruct())
+                    {
+                        size_t InitListIndex = 0;
+                        for (auto &MemberType : GlobalVar->GetTypeRef().GetMemberTypes())
+                        {
+                            assert(InitListIndex < InitList.size());
+                            GD.InsertAllocation(MemberType.GetByteSize(),
+                                                InitList[InitListIndex]);
+                            InitListIndex++;
+                        }
+                    }
+                    // array case
+                    else
+                    {
+                        const auto Size =
+                            GlobalVar->GetTypeRef().GetBaseType().GetByteSize();
+                        for (auto InitVal : InitList)
+                            GD.InsertAllocation(Size, InitVal);
+                    }
                 }
             }
-        }
-        // scalar case
-        else if (InitList.empty())
-            GD.InsertAllocation(Size, 0);
-        else
-        {
-            GD.InsertAllocation(Size, InitList[0]);
-        }
+            // scalar case
+            else if (InitList.empty())
+                GD.InsertAllocation(Size, 0);
+            else
+            {
+                GD.InsertAllocation(Size, InitList[0]);
+            }
 
-        TU->AddGlobalData(GD);
+            TU->AddGlobalData(GD);
+        }
     }
 }
