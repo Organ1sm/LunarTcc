@@ -92,6 +92,8 @@ class IRFactory
     Constant *GetConstant(uint64_t C);
     Constant *GetConstant(double C);
 
+    std::vector<BasicBlock *> &GetLoopIncrementBBsTable();
+
   private:
     Instruction *
         CreateBinaryInstruction(Instruction::InstructionKind K, Value *L, Value *R);
@@ -125,6 +127,11 @@ class IRFactory
     /// This number can be used to concatenate it to the label
     /// to make it unique.
     std::map<std::string, unsigned> LabelTable;
+
+
+    /// For context information for "continue" statements. Containing the pointer
+    /// to the basic block which will be the target of the generated jump.
+    std::vector<BasicBlock *> LoopIncrementBBsTable;
 };
 
 

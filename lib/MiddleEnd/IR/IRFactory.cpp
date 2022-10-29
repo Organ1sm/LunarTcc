@@ -358,3 +358,8 @@ Constant *IRFactory::GetConstant(double C)
     FloatConstantPool[C] = std::make_unique<Constant>(C);
     return FloatConstantPool[C].get();
 }
+
+std::vector<BasicBlock *> &IRFactory::GetLoopIncrementBBsTable()
+{
+    return LoopIncrementBBsTable;
+}
