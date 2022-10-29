@@ -23,6 +23,7 @@ std::unordered_map<std::string, Token::TokenKind> Lexer::KeyWords =
         {"struct",   Token::Struct  },
         {"enum",     Token::Enum    },
         {"typedef",  Token::TypeDef },
+        {"continue", Token::Continue},
 };
 
 Lexer::Lexer(std::vector<std::string> &s)

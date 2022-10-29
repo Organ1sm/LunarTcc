@@ -358,6 +358,8 @@ Value *ForStatement::IRCodegen(IRFactory *IRF)
     return nullptr;
 }
 
+Value *ContinueStatement::IRCodegen(IRFactory *IRF) { return nullptr; }
+
 Value *ReturnStatement::IRCodegen(IRFactory *IRF)
 {
     if (ReturnValue.has_value() == false)
