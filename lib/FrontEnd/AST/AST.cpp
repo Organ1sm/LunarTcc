@@ -322,6 +322,7 @@ Value *ForStatement::IRCodegen(IRFactory *IRF)
     // loop_header
     const auto FuncPtr = IRF->GetCurrentFunction();
     auto Header        = std::make_unique<BasicBlock>("loop_header", FuncPtr);
+    auto LoopIncrement = std::make_unique<BasicBlock>("loop_increment", FuncPtr);
     auto LoopBody      = std::make_unique<BasicBlock>("loop_body", FuncPtr);
     auto LoopEnd       = std::make_unique<BasicBlock>("loop_end", FuncPtr);
     auto HeaderPtr     = Header.get();
@@ -349,7 +350,13 @@ Value *ForStatement::IRCodegen(IRFactory *IRF)
     }
 
     IRF->InsertBB(std::move(LoopBody));
+
+    IRF->GetLoopIncrementBBsTable().push_back(LoopIncrement.get());
     Body->IRCodegen(IRF);
+    IRF->GetLoopIncrementBBsTable().erase(IRF->GetLoopIncrementBBsTable().end() - 1);
+    IRF->CreateJump(LoopIncrement.get());
+    IRF->InsertBB(std::move(LoopIncrement));
+
     Increment->IRCodegen(IRF);
     IRF->CreateJump(HeaderPtr);
 
@@ -358,7 +365,10 @@ Value *ForStatement::IRCodegen(IRFactory *IRF)
     return nullptr;
 }
 
-Value *ContinueStatement::IRCodegen(IRFactory *IRF) { return nullptr; }
+Value *ContinueStatement::IRCodegen(IRFactory *IRF)
+{
+    return IRF->CreateJump(IRF->GetLoopIncrementBBsTable().back());
+}
 
 Value *ReturnStatement::IRCodegen(IRFactory *IRF)
 {
