@@ -24,7 +24,11 @@ class MachineOperand
 
     void SetTypeToLabel() { Type = Label; }
     void SetTypeToIntImm() { Type = IntImmediate; }
-    void SetTypeToRegister() { Type = Register; }
+    void SetTypeToRegister()
+    {
+        Type    = Register;
+        Virtual = false;
+    }
     void SetTypeToParameter() { Type = Paramter; }
     void SetTypeToStackAccess() { Type = StackAccess; }
     void SetTypeToFunctionName() { Type = FunctionName; }

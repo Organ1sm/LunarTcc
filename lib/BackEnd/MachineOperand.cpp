@@ -113,6 +113,8 @@ void MachineOperand::Print(TargetMachine *TM) const
             break;
         case MachineOperand::MemoryAddress:
             OperandStr = fmt::format("%ptr-vr-{}", Value);
+            if (Offset)
+                OperandStr = fmt::format("{}+{}", OperandStr, Offset);
             break;
         case MachineOperand::IntImmediate:
             OperandStr = fmt::format("#{}", static_cast<int64_t>(Value));
