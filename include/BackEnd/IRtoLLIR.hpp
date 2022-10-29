@@ -4,10 +4,23 @@
 #include <string>
 #include <map>
 
+
 class Value;
 class Module;
 class Function;
 class Instruction;
+
+class BinaryInstruction;
+class UnaryInstruction;
+class StoreInstruction;
+class LoadInstruction;
+class CallInstruction;
+class JumpInstruction;
+class BranchInstruction;
+class CompareInstruction;
+class ReturnInstruction;
+class MemoryCopyInstruction;
+class GetElemPointerInstruction;
 
 class TargetMachine;
 class MachineIRModule;
@@ -30,15 +43,36 @@ class IRtoLLIR
 
     MachineIRModule *GetMachineIRModule() { return TU; }
 
+    MachineInstruction HandleBinaryInstruction(BinaryInstruction *I);
+    MachineInstruction HandleUnaryInstruction(UnaryInstruction *I);
+    MachineInstruction HandleStoreInstruction(StoreInstruction *I);
+    MachineInstruction HandleLoadInstruction(LoadInstruction *I);
+    MachineInstruction HandleCallInstruction(CallInstruction *I);
+    MachineInstruction HandleGetElemPtrInstruction(GetElemPointerInstruction *I);
+    MachineInstruction HandleCompareInstruction(CompareInstruction *I);
+    MachineInstruction HandleReturnInstruction(ReturnInstruction *I);
+    MachineInstruction HandleMemoryCopyInstruction(MemoryCopyInstruction *I);
+    MachineInstruction HandleJumpInstruction(JumpInstruction *I,
+                                             std::vector<MachineBasicBlock> &BBs);
+    MachineInstruction HandleBranchInstruction(BranchInstruction *I,
+                                               std::vector<MachineBasicBlock> &BBs);
+
+
     void HandleFunctionParams(Function &F, MachineFunction *Func);
     MachineInstruction ConvertToMachineInstr(Instruction *Instr,
-                                             MachineBasicBlock *BB,
                                              std::vector<MachineBasicBlock> &BBs);
 
   private:
     Module &IRM;
     TargetMachine *TM;
     MachineIRModule *TU;
+
+    /// Current Processing of BasicBlock
+    MachineBasicBlock *CurrentBB;
+
+    /// The Function to which the currently processed basic block belongs
+    MachineFunction *ParentFunction;
+
     std::map<std::string, std::vector<unsigned>> StructToRegMap;
 
     /// to keep track in which registers the struct is currently living

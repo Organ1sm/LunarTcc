@@ -2,8 +2,7 @@
 // Created by Organ1sm.
 //
 
-#ifndef LUNARTCC_INSTRUCTION_HPP
-#define LUNARTCC_INSTRUCTION_HPP
+#pragma once
 
 #include <cassert>
 #include <vector>
@@ -312,5 +311,3 @@ class MemoryCopyInstruction : public Instruction
     Value *Source;
     std::size_t N;
 };
-
-#endif    // LUNARTCC_INSTRUCTION_HPP
