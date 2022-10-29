@@ -617,6 +617,8 @@ std::unique_ptr<Statement> Parser::ParseStatement()
         return ParseSwitchStatement();
     if (lexer.Is(Token::Break))
         return ParseBreakStatement();
+    if (lexer.Is(Token::Continue))
+        return ParseContinueStatement();
     if (lexer.Is(Token::While))
         return ParseWhileStatement();
     if (lexer.Is(Token::For))
@@ -725,6 +727,14 @@ std::unique_ptr<BreakStatement> Parser::ParseBreakStatement()
     Expect(Token::SemiColon);
 
     return std::make_unique<BreakStatement>();
+}
+
+// <ContinueStatement> ::= 'continue' ';'
+std::unique_ptr<ContinueStatement> Parser::ParseContinueStatement()
+{
+    Expect(Token::Continue);
+    Expect(Token::SemiColon);
+    return std::make_unique<ContinueStatement>();
 }
 
 // <WhileStatement> ::= while '(' <Expression> ')' <Statement>
@@ -1226,8 +1236,7 @@ std::unique_ptr<Expression>
         auto LeftType  = LeftExpression->GetResultType().GetTypeVariant();
         auto RightType = RightExpression->GetResultType().GetTypeVariant();
 
-        if (LeftType != RightType
-                 && !Type::OnlySignednessDifference(LeftType, RightType))
+        if (LeftType != RightType && !Type::OnlySignednessDifference(LeftType, RightType))
         {
             /// if an assignment, then try to cast the RHS to type of LHS.
             if (BinaryOperator.GetKind() == Token::Assign)

@@ -254,6 +254,15 @@ class BreakStatement : public Statement
     Value *IRCodegen(IRFactory *IRF) override { return nullptr; }
 };
 
+class ContinueStatement : public Statement
+{
+  public:
+    ContinueStatement() = default;
+
+    void ASTDump(unsigned tab = 0) override { PrintLn("ContinueStatement", tab); }
+    Value *IRCodegen(IRFactory *IRF) override;
+};
+
 class WhileStatement : public Statement
 {
   public:
