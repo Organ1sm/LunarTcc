@@ -57,6 +57,9 @@ class Parser
     bool IsReturnTypeSpecifier(Token T);
     bool IsQualifer(Token::TokenKind tk);
 
+    bool IsUserDefinedType(std::string Name);
+    Type GetUserDefinedType(std::string Name);
+
     std::unique_ptr<Node> ParseTranslationUnit();
     std::unique_ptr<Node> ParseExternalDeclaration();
     std::unique_ptr<FunctionDeclaration> ParseFunctionDeclaration(const Type &ReturnType,
