@@ -395,6 +395,38 @@ class StructMemberReference : public Expression
     std::size_t MemberIndex;
 };
 
+class StructInitExpression : public Expression
+{
+  public:
+    using StrList     = std::vector<std::string>;
+    using ExprPtrList = std::vector<std::unique_ptr<Expression>>;
+
+  public:
+    StructInitExpression() {}
+    StructInitExpression(Type ResultType,
+                         StrList MemberIdentifiers,
+                         ExprPtrList InitValues)
+        : MemberIdentifiers(std::move(MemberIdentifiers)),
+          InitValues(std::move(InitValues))
+    {
+        this->ResultType = ResultType;
+    }
+
+    StrList &GetMemberId() { return MemberIdentifiers; }
+    void SetMemberId(StrList SL) { MemberIdentifiers = std::move(SL); }
+
+    ExprPtrList &GetInitList() { return InitValues; }
+    void SetInitList(ExprPtrList &IVS) { InitValues = std::move(IVS); }
+
+    void ASTDump(unsigned tab = 0) override;
+    Value *IRCodegen(IRFactory *IRF) override;
+
+  private:
+    StrList MemberIdentifiers;
+    ExprPtrList InitValues;
+};
+
+
 class BinaryExpression : public Expression
 {
     using ExprPtr = std::unique_ptr<Expression>;

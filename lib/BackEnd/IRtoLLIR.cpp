@@ -793,7 +793,6 @@ void IRtoLLIR::GenerateLLIRFromIR()
                     continue;
                 }
 
-
                 CurrentBB      = &MFuncMBBs[BBCounter];
                 ParentFunction = CurrentBB->GetParent();
                 CurrentBB->InsertInstr(ConvertToMachineInstr(InstrPtr, MFuncMBBs));

@@ -59,6 +59,21 @@ bool Parser::IsQualifer(Token::TokenKind tk)
     return false;
 }
 
+bool Parser::IsUserDefinedType(std::string Name)
+{
+    return UserDefinedTypes.count(Name) > 0 || TypeDefinitions.count(Name);
+}
+
+Type Parser::GetUserDefinedType(std::string Name)
+{
+    assert(IsUserDefinedType(Name));
+
+    if (UserDefinedTypes.count(Name) > 0)
+        return std::get<0>(UserDefinedTypes[Name]);
+    else
+        return TypeDefinitions[Name];
+}
+
 unsigned Parser::ParseQualifiers()
 {
     unsigned Qualifiers   = 0;
@@ -853,10 +868,54 @@ static bool IsPostfixOperator(Token TK)
 //                       | <PostFixExpression> '[' <Expression> ']'
 //                       | <PostFixExpression> '.' <Identifier>
 //                       | <PostFixExpression> '->' <Identifier>
+//                       | ( TypeName ) '{' <Initializer-List> '}'
 std::unique_ptr<Expression> Parser::ParsePostFixExpression()
 {
     auto CurrentToken = lexer.GetCurrentToken();
-    auto Expr         = ParsePrimaryExpression();
+
+    // Struct Initializing case
+    if (lexer.Is(Token::LeftParen) && lexer.LookAhead(2).GetKind() == Token::Identifier
+        && IsUserDefinedType(lexer.LookAhead(2).GetString()))
+    {
+        Expect(Token::LeftParen);
+        auto UserDTypeName = Expect(Token::Identifier).GetString();
+        Expect(Token::RightParen);
+
+        Expect(Token::LeftBrace);
+
+        StructInitExpression::StrList MemberList;
+        StructInitExpression::ExprPtrList InitList;
+
+        while (lexer.Is(Token::Dot) || lexer.Is(Token::Identifier))
+        {
+            std::string Member {};
+
+            if (lexer.Is(Token::Dot))
+            {
+                Lex();    // eat '.'
+                Member = Expect(Token::Identifier).GetString();
+                Expect(Token::Assign);
+            }
+
+            MemberList.push_back(Member);
+            InitList.push_back(ParseConstantExpression());
+
+            if (!lexer.Is(Token::Comma))
+                break;
+
+            Lex(); // eat ','
+        }
+
+        Expect(Token::RightBrace);
+
+        return std::make_unique<StructInitExpression>(GetUserDefinedType(UserDTypeName),
+                                                      std::move(MemberList),
+                                                      std::move(InitList));
+    }
+
+
+
+    auto Expr = ParsePrimaryExpression();
     assert(Expr && "Cannot be NULL");
 
     while (IsPostfixOperator(lexer.GetCurrentToken()))
@@ -906,6 +965,9 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
 
             Expr =
                 std::make_unique<StructMemberReference>(std::move(Expr), MemberIdStr, i);
+
+            if (Expr->GetResultType().IsStruct() || Expr->GetResultType().IsArray())
+                Expr->SetLValueness(true);
         }
     }
 
@@ -1226,8 +1288,7 @@ std::unique_ptr<Expression>
         auto LeftType  = LeftExpression->GetResultType().GetTypeVariant();
         auto RightType = RightExpression->GetResultType().GetTypeVariant();
 
-        if (LeftType != RightType
-                 && !Type::OnlySignednessDifference(LeftType, RightType))
+        if (LeftType != RightType && !Type::OnlySignednessDifference(LeftType, RightType))
         {
             /// if an assignment, then try to cast the RHS to type of LHS.
             if (BinaryOperator.GetKind() == Token::Assign)

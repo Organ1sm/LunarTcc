@@ -20,7 +20,7 @@ Type::Type(Type t, std::vector<unsigned> d) : Type(t)
 {
     if (d.empty())
     {
-        Kind = Simple;
+        Kind = t.Kind;
     }
     else
     {

@@ -651,6 +651,8 @@ Value *StructMemberReference::IRCodegen(IRFactory *IRF)
     return IRF->CreateLoad(ResultIRType, GEP);
 }
 
+Value *StructInitExpression::IRCodegen(IRFactory *IRF) { return nullptr; }
+
 Value *IntegerLiteralExpression::IRCodegen(IRFactory *IRF)
 {
     return IRF->GetConstant(IntValue);
@@ -1121,6 +1123,18 @@ void StructMemberReference::ASTDump(unsigned tab)
 
     StructTypedExpression->ASTDump(tab + 2);
 }
+
+void StructInitExpression::ASTDump(unsigned tab)
+{
+    auto Str = "'" + ResultType.ToString() + "' ";
+
+    Print("StructInitExpression ", tab);
+    PrintLn(Str.c_str());
+
+    for (auto &InitValue : InitValues)
+        InitValue->ASTDump(tab + 2);
+}
+
 
 UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
 {
