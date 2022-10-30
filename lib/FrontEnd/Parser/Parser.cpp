@@ -786,7 +786,10 @@ std::unique_ptr<WhileStatement> Parser::ParseWhileStatement()
     return WS;
 }
 
-// <ForStatement> ::= for '(' <Expression> ')' <Statement>
+// <ForStatement> ::= for '(' <Expression> ';' <Expression> ';' <Expression> ')'
+//                            <Statement>
+//                  | for '(' <VariableDeclaration> <Expression> ';'
+//                            <Expression> ')' <Statement>
 std::unique_ptr<ForStatement> Parser::ParseForStatement()
 {
     std::unique_ptr<ForStatement> FS = std::make_unique<ForStatement>();
@@ -794,8 +797,16 @@ std::unique_ptr<ForStatement> Parser::ParseForStatement()
     Expect(Token::For);
     Expect(Token::LeftParen);
 
-    FS->SetInit(std::move(ParseExpression()));
-    Expect(Token::SemiColon);
+    SymTabStack.PushSymbolTable();
+
+    // Parse variable declaration.
+    if (IsTypeSpecifier(GetCurrentToken()))
+        FS->SetVarDecl(std::move(ParseVariableDeclaration()));
+    else
+    {
+        FS->SetInit(std::move(ParseExpression()));
+        Expect(Token::SemiColon);
+    }
 
     FS->SetCondition(std::move(ParseExpression()));
     Expect(Token::SemiColon);
@@ -804,6 +815,8 @@ std::unique_ptr<ForStatement> Parser::ParseForStatement()
     Expect(Token::RightParen);
 
     FS->SetBody(std::move(ParseStatement()));
+
+    SymTabStack.PopSymbolTable();
 
     return FS;
 }
