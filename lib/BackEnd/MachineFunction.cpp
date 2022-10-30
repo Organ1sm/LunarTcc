@@ -5,8 +5,8 @@
 
 void MachineFunction::InsertStackSlot(unsigned int ID, unsigned int Size)
 {
-    if (NextVirtualReg < ID)
-        NextVirtualReg = ID;
+    if (NextVirtualReg <= ID)
+        NextVirtualReg = ID + 1;
 
     SF.InsertStackSlot(ID, Size);
 }
@@ -38,7 +38,7 @@ unsigned MachineFunction::GetNextAvailableVirtualRegister()
         }
     }
 
-    return NextVirtualReg + 1;
+    return NextVirtualReg++;
 }
 
 void MachineFunction::Print(TargetMachine *TM) const
