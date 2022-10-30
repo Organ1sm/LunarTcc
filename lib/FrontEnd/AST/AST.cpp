@@ -331,9 +331,13 @@ Value *ForStatement::IRCodegen(IRFactory *IRF)
     auto LoopEnd       = std::make_unique<BasicBlock>("loop_end", FuncPtr);
     auto HeaderPtr     = Header.get();
 
-    // Generating code for the initializing expression and adding and explicit
-    // unconditional jump to the loop header basic block
-    Init->IRCodegen(IRF);
+    // Generating code for the initializing expression or the variable initialization and
+    // adding and explicit unconditional jump to the loop header basic block
+    if (Init)
+        Init->IRCodegen(IRF);
+    else
+        VarDecl->IRCodegen(IRF);
+
     IRF->CreateJump(Header.get());
 
     // Inserting the loop header basicblock and generating the code
@@ -1160,7 +1164,11 @@ void ForStatement::ASTDump(unsigned int tab)
 {
     PrintLn("ForStatement", tab);
 
-    Init->ASTDump(tab + 2);
+    if (Init)
+        Init->ASTDump(tab + 2);
+    else
+        VarDecl->ASTDump(tab + 2);
+
     Condition->ASTDump(tab + 2);
     Increment->ASTDump(tab + 2);
     Body->ASTDump(tab + 2);
