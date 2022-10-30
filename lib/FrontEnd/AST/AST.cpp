@@ -78,6 +78,10 @@ static IRType GetIRTypeFromVK(Type::VariantKind VK)
         case Type::UnsignedChar: return IRType(IRType::UInt, 8);
         case Type::Int: return IRType(IRType::SInt);
         case Type::UnsignedInt: return IRType(IRType::UInt);
+        case Type::Long: return IRType(IRType::SInt, 64);
+        case Type::UnsignedLong: return IRType(IRType::UInt, 64);
+        case Type::LongLong: return IRType(IRType::SInt, 64);
+        case Type::UnsignedLongLong: return IRType(IRType::UInt, 64);
         case Type::Double: return IRType(IRType::FP, 64);
         case Type::Composite: return IRType(IRType::Struct);
         default: assert(!"Invalid type."); break;
@@ -403,6 +407,10 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
         case Type::UnsignedChar: ReturnType = IRType(IRType::UInt, 8); break;
         case Type::Int: ReturnType = IRType(IRType::SInt); break;
         case Type::UnsignedInt: ReturnType = IRType(IRType::UInt); break;
+        case Type::Long: ReturnType = IRType(IRType::SInt, 64); break;
+        case Type::UnsignedLong: ReturnType = IRType(IRType::UInt, 64); break;
+        case Type::LongLong: ReturnType = IRType(IRType::SInt, 64); break;
+        case Type::UnsignedLongLong: ReturnType = IRType(IRType::UInt, 64); break;
         case Type::Double: ReturnType = IRType(IRType::FP, 64); break;
         case Type::Void: ReturnType = IRType(IRType::None); break;
 
@@ -624,6 +632,106 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
 
     if (Type::OnlySignednessDifference(SourceTypeVariant, DestTypeVariant))
         return Val;
+
+    switch (SourceTypeVariant)
+    {
+        case Type::Char: {
+            if (DestTypeVariant == Type::Int)
+                return IRF->CreateSExt(Val, 32);
+
+            if (DestTypeVariant == Type::UnsignedInt)
+                return IRF->CreateZExt(Val, 32);
+
+            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong)
+                return IRF->CreateSExt(Val, 64);
+
+            if (DestTypeVariant == Type::UnsignedLong
+                || DestTypeVariant == Type::UnsignedLongLong)
+                return IRF->CreateZExt(Val, 64);
+
+            assert(!"Invalid conversion.");
+        }
+
+        case Type::UnsignedChar: {
+            if (DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt)
+                return IRF->CreateZExt(Val, 32);
+
+            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong
+                || DestTypeVariant == Type::UnsignedLong
+                || DestTypeVariant == Type::UnsignedLongLong)
+
+                return IRF->CreateZExt(Val, 64);
+
+            assert(!"Invalid conversion.");
+        }
+        case Type::Int: {
+            if (DestTypeVariant == Type::Double)
+                return IRF->CreateIntToFloat(Val, 32);
+
+            if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
+                return IRF->CreateTrunc(Val, 8);
+
+            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong)
+                return IRF->CreateSExt(Val, 64);
+
+            if (DestTypeVariant == Type::UnsignedLong
+                || DestTypeVariant == Type::UnsignedLongLong)
+
+                return IRF->CreateZExt(Val, 64);
+
+            assert(!"Invalid conversion.");
+        }
+
+        case Type::UnsignedInt: {
+            if (DestTypeVariant == Type::Double)
+                return IRF->CreateIntToFloat(Val, 32);
+
+            if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
+                return IRF->CreateTrunc(Val, 8);
+
+            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong
+                || DestTypeVariant == Type::UnsignedLong
+                || DestTypeVariant == Type::UnsignedLongLong)
+
+                return IRF->CreateZExt(Val, 64);
+
+            assert(!"Invalid conversion.");
+        }
+
+        case Type::Long:
+        case Type::LongLong: {
+            if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
+                return IRF->CreateTrunc(Val, 8);
+
+            if ((DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt))
+                return IRF->CreateTrunc(Val, 32);
+
+            assert(!"Invalid conversion.");
+        }
+
+        case Type::UnsignedLong:
+        case Type::UnsignedLongLong: {
+            if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
+                return IRF->CreateTrunc(Val, 8);
+
+            if ((DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt))
+                return IRF->CreateTrunc(Val, 32);
+
+            assert(!"Invalid conversion.");
+        }
+
+        case Type::Double: {
+            if (DestTypeVariant == Type::Int)
+                return IRF->CreateFloatToInt(Val, 64);
+
+            assert(!"Invalid conversion.");
+        }
+
+
+        default: assert(!"Invalid conversion.");
+    }
+
+
 
     if (SourceTypeVariant == Type::Int && DestTypeVariant == Type::Double)
         return IRF->CreateIntToFloat(Val, 32);
