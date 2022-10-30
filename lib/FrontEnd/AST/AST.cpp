@@ -445,29 +445,44 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
     if (IRF->IsGlobalScope())
     {
         // if the initialization is done by an initializer.
-        // FIXME: assuming 1 dimensional init list like "{ 1, 2 }", add support
-        // for more complex case like "{ { 1, 2 }, { 3, 4 } }"
+        // FIXME: assuming 2 dimensional init list like
+        // int a[3][2] =  "{{ 1, 2 }, {3, 4}, {5, 6}}",
+        // add support aribitrary dimension.
+        // There code should be more simplicity.
+
+        auto HandleConstantExpr = [](auto &&Expr, auto &&InitList) {
+            if (auto ConstantExpr = dynamic_cast<IntegerLiteralExpression *>(Expr.get());
+                ConstantExpr != nullptr)
+            {
+                InitList.push_back(ConstantExpr->GetUIntValue());
+            }
+        };
+        auto HandleIntegerLiteralExpr = [&](auto &&Expr, auto &&InitList) {
+            HandleConstantExpr(Expr, InitList);
+            if (auto InitListExpr = dynamic_cast<InitializerListExpression *>(Expr.get());
+                InitListExpr != nullptr)
+            {
+                for (auto &Expr : InitListExpr->GetExprList())
+                {
+                    HandleConstantExpr(Expr, InitList);
+                    // TODO: To add support aribitrary dimension, must recursive call.
+                    // But lambda don't support recursive self.
+                    // HandleIntegerLiteralExpr(Expr, InitList);
+                }
+            }
+        };
 
         if (auto InitListExpr = dynamic_cast<InitializerListExpression *>(Init.get());
             InitListExpr != nullptr)
         {
             for (auto &Expr : InitListExpr->GetExprList())
             {
-                if (auto ConstantExpr =
-                        dynamic_cast<IntegerLiteralExpression *>(Expr.get());
-                    ConstantExpr != nullptr)
-                    InitList.push_back(ConstantExpr->GetUIntValue());
-                else
-                    assert(!"Other types unhandled yet.");
+                HandleIntegerLiteralExpr(Expr, InitList);
             }
         }
         else
         {
-            if (auto ConstantExpr = dynamic_cast<IntegerLiteralExpression *>(Init.get());
-                ConstantExpr != nullptr)
-            {
-                InitList.push_back(ConstantExpr->GetUIntValue());
-            }
+            HandleConstantExpr(Init, InitList);
         }
 
         return IRF->CreateGlobalVar(Name, VarType, std::move(InitList));
