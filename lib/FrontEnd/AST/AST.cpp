@@ -731,28 +731,6 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
         default: assert(!"Invalid conversion.");
     }
 
-
-
-    if (SourceTypeVariant == Type::Int && DestTypeVariant == Type::Double)
-        return IRF->CreateIntToFloat(Val, 32);
-
-    else if (SourceTypeVariant == Type::Double && DestTypeVariant == Type::Int)
-        return IRF->CreateFloatToInt(Val, 64);
-
-    else if (SourceTypeVariant == Type::Char && DestTypeVariant == Type::Int)
-        return IRF->CreateSExt(Val, 32);
-
-    else if (SourceTypeVariant == Type::UnsignedChar
-             && (DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt))
-        return IRF->CreateZExt(Val, 32);
-
-    else if (SourceTypeVariant == Type::Int
-             && (DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
-        return IRF->CreateTrunc(Val, 8);
-
-    else
-        assert(!"Invalid conversion.");
-
     return nullptr;
 }
 
