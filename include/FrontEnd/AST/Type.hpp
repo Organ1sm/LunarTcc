@@ -19,6 +19,10 @@ class Type
         UnsignedChar,
         Int,
         UnsignedInt,
+        Long,
+        UnsignedLong,
+        LongLong,
+        UnsignedLongLong,
         Double,
     };
 

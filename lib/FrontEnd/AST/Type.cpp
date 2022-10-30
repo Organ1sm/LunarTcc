@@ -80,12 +80,15 @@ void Type::DecrementPointerLevel()
     PointerLevel--;
 }
 
-
 std::string Type::ToString(const Type &t)
 {
     switch (t.GetTypeVariant())
     {
         case Double: return "double";
+        case Long: return "long";
+        case UnsignedLong: return "unsigned long";
+        case LongLong: return "long long";
+        case UnsignedLongLong: return "unsigned long long";
         case Int: return "int";
         case UnsignedInt: return "unsigned int";
         case Char: return "char";
