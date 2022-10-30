@@ -336,9 +336,6 @@ std::unique_ptr<Node> Parser::ParseExternalDeclaration()
                 Lex();    // consume '['
                 Dimensions.push_back(ParseIntegerConstant());
                 Expect(Token::RightBracket);
-                if (lexer.IsNot(Token::Comma))
-                    break;
-                Lex();    // consume ','
             }
 
             if (!Dimensions.empty())
@@ -913,7 +910,7 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
             if (!lexer.Is(Token::Comma))
                 break;
 
-            Lex(); // eat ','
+            Lex();    // eat ','
         }
 
         Expect(Token::RightBrace);
@@ -1089,22 +1086,32 @@ std::unique_ptr<Expression> Parser::ParseIdentifierExpression()
     return RE;
 }
 
-// <InitializerListExpression> ::= '{' <ConstantExpression>
-//                                     {',' <ConstantExpression> }* '}'
+// <InitializerListExpression> ::= '{' {<ConstantExpression> |
+//                                      <InitializerListExpression>}
+//                                     {',' {<ConstantExpression> |
+//                                      <InitializerListExpression>} }* '}'
 std::unique_ptr<Expression> Parser::ParseInitializerListExpression()
 {
     Expect(Token::LeftBrace);
 
-    auto CE = ParseConstantExpression();
-    assert(CE && "Cannot be null");
+    std::unique_ptr<Expression> E;
+    if (lexer.Is(Token::LeftBrace))
+        E = ParseInitializerListExpression();
+    else
+        E = ParseConstantExpression();
+
+    assert(E && "Cannot be null");
 
     std::vector<ExprPtr> ExprList;
-    ExprList.push_back(std::move(CE));
+    ExprList.push_back(std::move(E));
 
     while (lexer.Is(Token::Comma))
     {
         Lex();    // eat ','
-        ExprList.push_back(std::move(ParseConstantExpression()));
+        if (lexer.Is(Token::LeftBrace))
+            ExprList.push_back(std::move(ParseInitializerListExpression()));
+        else
+            ExprList.push_back(std::move(ParseConstantExpression()));
     }
 
     Expect(Token::RightBrace);
