@@ -80,8 +80,6 @@ AArch64RegisterInfo::AArch64RegisterInfo()
 
 TargetRegister *AArch64RegisterInfo::GetParentReg(unsigned int ID)
 {
-    assert(ID > Invalid && ID <= PC && "Out of bound access");
-
     // TODO: use STL more faster find alogrithm replace it.
     for (std::size_t i = 0; i < sizeof(Registers) / sizeof(Registers[0]); i++)
     {
