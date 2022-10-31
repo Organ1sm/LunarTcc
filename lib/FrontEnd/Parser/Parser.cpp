@@ -34,6 +34,7 @@ static bool IsUnaryOperator(Token::TokenKind tk)
     switch (tk)
     {
         case Token::And:
+        case Token::Minus:
         case Token::Mul: return true;
 
         default: break;

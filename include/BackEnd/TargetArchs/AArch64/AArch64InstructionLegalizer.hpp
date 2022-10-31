@@ -16,7 +16,9 @@ namespace AArch64
         bool Check(MachineInstruction *MI) override;
         bool IsExpandable(const MachineInstruction *MI) override;
 
+        bool ExpandSub(MachineInstruction *MI) override;
         bool ExpandZExt(MachineInstruction *MI) override;
+        bool ExpandStore(MachineInstruction *MI) override;
         bool ExpandGlobalAddress(MachineInstruction *MI) override;
 
       private:

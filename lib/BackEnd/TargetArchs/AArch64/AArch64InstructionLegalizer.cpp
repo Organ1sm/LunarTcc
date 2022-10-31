@@ -3,6 +3,7 @@
 #include "BackEnd/MachineFunction.hpp"
 #include "BackEnd/MachineInstruction.hpp"
 #include "BackEnd/TargetArchs/AArch64/AArch64InstructionDefinitions.hpp"
+#include "BackEnd/TargetMachine.hpp"
 #include <cassert>
 
 using namespace AArch64;
@@ -13,6 +14,10 @@ bool AArch64InstructionLegalizer::Check(MachineInstruction *MI)
     switch (MI->GetOpcode())
     {
         case MachineInstruction::Mod: return false;
+        case MachineInstruction::Sub:
+            if (MI->GetOperand(1)->IsImmediate())
+                return false;
+            break;
         case MachineInstruction::Store:
             if (MI->GetOperands().back().IsImmediate())
                 return false;
@@ -31,6 +36,7 @@ bool AArch64InstructionLegalizer::IsExpandable(const MachineInstruction *MI)
     switch (MI->GetOpcode())
     {
         case MachineInstruction::Mod:
+        case MachineInstruction::Sub:
         case MachineInstruction::Store:
         case MachineInstruction::ZExt:
         case MachineInstruction::GlobalAddress: return true;
@@ -39,6 +45,32 @@ bool AArch64InstructionLegalizer::IsExpandable(const MachineInstruction *MI)
     }
 
     return false;
+}
+
+/// Since AArch64 does not support for immediate operand as 1st source operand
+/// for SUB (and for all arithmetic instruction as well), there for it has to
+/// be materialized first into a register
+/// TODO: expand the implementation for all arithmetic instruction
+bool AArch64InstructionLegalizer::ExpandSub(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 3 && "Sub must have exactly 3 operands");
+    auto ParentBB = MI->GetParent();
+
+    auto Mov     = MachineInstruction(MachineInstruction::LoadImm, nullptr);
+    auto DestReg = ParentBB->GetParent()->GetNextAvailableVirtualRegister();
+
+    // replace the immediate operand with the destination of the immediate load
+    Mov.AddVirtualRegister(DestReg, MI->GetOperand(1)->GetSize());
+    Mov.AddOperand(*MI->GetOperand(1));
+
+    MI->RemoveOperand(1);
+    MI->InsertOperand(
+        1,
+        MachineOperand::CreateVirtualRegister(DestReg, MI->GetOperand(0)->GetSize()));
+
+    ParentBB->InsertBefore(std::move(Mov), MI);
+
+    return true;
 }
 
 /// Since AArch64 do sign extension when loading therefore if the ZEXT is
@@ -62,6 +94,45 @@ bool AArch64InstructionLegalizer::ExpandZExt(MachineInstruction *MI)
 
     return true;
 }
+
+/// Use wzr register if the stored immediate is 0
+bool AArch64InstructionLegalizer::ExpandStore(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 2 && "Store must have exactly 2 operands");
+
+    auto ParentBB       = MI->GetParent();
+    auto ParentFunction = ParentBB->GetParent();
+    auto Immediate      = *MI->GetOperand(1);
+
+    assert(Immediate.IsImmediate() && "Operand #2 must be an immediate");
+
+    if (Immediate.GetImmediate() == 0)
+    {
+        auto WZR = TM->GetRegInfo()->GetZeroRegister();
+
+        MI->RemoveOperand(1);
+        MI->AddRegister(WZR, TM->GetRegInfo()->GetRegisterByID(WZR)->GetBitWidth());
+
+        return true;
+    }
+
+    auto LoadImmResult     = ParentFunction->GetNextAvailableVirtualRegister();
+    auto LoadImmResultVReg = MachineOperand::CreateVirtualRegister(LoadImmResult);
+
+    // Replace the immediate operand with the result register
+    MI->RemoveOperand(1);
+    MI->AddOperand(LoadImmResultVReg);
+
+    MachineInstruction LOAD_IMM;
+    LOAD_IMM.SetOpcode(MachineInstruction::LoadImm);
+    LOAD_IMM.AddOperand(LoadImmResultVReg);
+    LOAD_IMM.AddOperand(Immediate);
+
+    ParentBB->InsertBefore(std::move(LOAD_IMM), MI);
+
+    return true;
+}
+
 
 /// The global address materialization happens in two steps on arm. Example:
 ///   adrp x0, global_var

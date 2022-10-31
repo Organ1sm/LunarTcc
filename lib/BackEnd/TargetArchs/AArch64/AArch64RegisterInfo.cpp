@@ -78,6 +78,24 @@ AArch64RegisterInfo::AArch64RegisterInfo()
     Registers[66] = TargetRegister::Create(PC, 64, "pc", "");
 }
 
+TargetRegister *AArch64RegisterInfo::GetParentReg(unsigned int ID)
+{
+    assert(ID > Invalid && ID <= PC && "Out of bound access");
+
+    // TODO: use STL more faster find alogrithm replace it.
+    for (std::size_t i = 0; i < sizeof(Registers) / sizeof(Registers[0]); i++)
+    {
+        if (!Registers[i].GetSubRegs().empty())
+        {
+            for (auto SubReg : Registers[i].GetSubRegs())
+                if (SubReg == ID)
+                    return &Registers[i];
+        }
+    }
+
+    return nullptr;
+}
+
 TargetRegister *AArch64RegisterInfo::GetRegister(unsigned int i)
 {
     assert(i < 67 && "Out of bound access");
@@ -95,3 +113,5 @@ unsigned AArch64RegisterInfo::GetFrameRegister() { return 61; }
 unsigned AArch64RegisterInfo::GetLinkRegister() { return X30; }
 
 unsigned AArch64RegisterInfo::GetStackRegister() { return 64; }
+
+unsigned AArch64RegisterInfo::GetZeroRegister() { return XZR; }

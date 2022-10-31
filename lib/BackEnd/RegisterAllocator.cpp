@@ -144,6 +144,10 @@ void RegisterAllocator::RunRA()
             auto RegsToCheck = TM->GetRegInfo()->GetRegisterByID(PhysReg)->GetSubRegs();
             RegsToCheck.push_back(PhysReg);
 
+            auto ParentReg = TM->GetRegInfo()->GetParentReg(PhysReg);
+            if (ParentReg)
+                RegsToCheck.push_back(ParentReg->GetID());
+
             for (auto Reg : RegsToCheck)
             {
                 auto position = std::find(RegisterPool.begin(), RegisterPool.end(), Reg);

@@ -19,6 +19,8 @@ class TargetInstructionLegalizer
     virtual bool IsExpandable(const MachineInstruction *MI) { return false; }
 
     virtual bool ExpandMod(MachineInstruction *MI);
+    virtual bool ExpandSub(MachineInstruction *MI) { return false; }
+
     virtual bool ExpandStore(MachineInstruction *MI);
     virtual bool ExpandZExt(MachineInstruction *MI) { return false; };
     virtual bool ExpandGlobalAddress(MachineInstruction *MI) { return false; }

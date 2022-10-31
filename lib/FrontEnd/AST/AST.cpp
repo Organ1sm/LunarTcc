@@ -53,6 +53,7 @@ UnaryExpression::UnaryExpression(Token Op, UnaryExpression::ExprPtr E)
             ResultType = Expr->GetResultType();
             ResultType.DecrementPointerLevel();
             break;
+        case UnaryOperation::Minus:
         case UnaryOperation::PostIncrement:
         case UnaryOperation::PostDecrement: ResultType = Expr->GetResultType(); break;
 
@@ -813,7 +814,7 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
 {
     Value *E {nullptr};
 
-    if (GetOperationKind() != UnaryOperation::Address)
+    if (GetOperationKind() != Address && GetOperationKind() != Minus)
         E = Expr->IRCodegen(IRF);
 
     switch (GetOperationKind())
@@ -838,6 +839,21 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
             auto ResultType = E->GetType();
             return IRF->CreateLoad(ResultType, E);
         }
+
+        case UnaryExpression::Minus: {
+            if (auto ConstantExpr = dynamic_cast<IntegerLiteralExpression *>(Expr.get());
+                ConstantExpr != nullptr)
+            {
+                // set the opposite of this value.
+                ConstantExpr->SetValue(-ConstantExpr->GetSIntValue());
+                return Expr->IRCodegen(IRF);
+            }
+
+            E = Expr->IRCodegen(IRF);
+
+            return IRF->CreateSub(IRF->GetConstant((uint64_t)0), E);
+        }
+
         case UnaryOperation::PostDecrement:
         case UnaryOperation::PostIncrement: {
             // make the assumption that the expression E is an LValue
@@ -1292,6 +1308,7 @@ UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
     {
         case Token::And: return UnaryOperation::Address;
         case Token::Mul: return UnaryOperation::DeRef;
+        case Token::Minus: return UnaryOperation::Minus;
         case Token::Inc: return UnaryOperation::PostIncrement;
         case Token::Dec: return UnaryOperation::PostDecrement;
 

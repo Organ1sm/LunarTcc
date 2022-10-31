@@ -18,12 +18,14 @@ namespace AArch64
         AArch64RegisterInfo();
         ~AArch64RegisterInfo() override {}
 
+        TargetRegister *GetParentReg(unsigned ID) override;
         TargetRegister *GetRegister(unsigned i) override;
         TargetRegister *GetRegisterByID(unsigned i) override;
 
         unsigned GetFrameRegister() override;
         unsigned GetLinkRegister() override;
         unsigned GetStackRegister() override;
+        unsigned GetZeroRegister() override;
 
       private:
         TargetRegister Registers[67];

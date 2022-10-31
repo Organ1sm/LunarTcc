@@ -283,7 +283,7 @@ class ForStatement : public Statement
 {
   public:
     std::unique_ptr<Statement> &GetVarDecl() { return VarDecl; }
-    void SetVarDecl(std::unique_ptr<Statement> VD) { VarDecl = std::move(VD);}
+    void SetVarDecl(std::unique_ptr<Statement> VD) { VarDecl = std::move(VD); }
 
     std::unique_ptr<Expression> &GetInit() { return Init; }
     void SetInit(std::unique_ptr<Expression> i) { Init = std::move(i); }
@@ -495,7 +495,7 @@ class UnaryExpression : public Expression
     using ExprPtr = std::unique_ptr<Expression>;
 
   public:
-    enum UnaryOperation { Address, DeRef, PostIncrement, PostDecrement };
+    enum UnaryOperation { Address, DeRef, Minus, PostIncrement, PostDecrement };
 
     UnaryExpression() = default;
     UnaryExpression(Token Op, ExprPtr E);
