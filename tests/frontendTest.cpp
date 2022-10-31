@@ -11,6 +11,7 @@
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include "FrontEnd/AST/AST.hpp"
 #include "FrontEnd/Parser/Parser.hpp"
+#include "FrontEnd/PreProcessor/PreProcessor.hpp"
 #include "MiddleEnd/IR/Function.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
 #include "MiddleEnd/IR/Module.hpp"
@@ -51,11 +52,12 @@ int main(int argc, char *argv[])
 {
     std::string FilePath = "../tests/test.c";
 
-    bool DumpTokens        = false;
-    bool DumpAst           = false;
-    bool DumpIR            = false;
-    std::string TargetArch = "aarch64";
-    bool PrintBeforePasses = false;
+    bool DumpTokens           = false;
+    bool DumpAst              = false;
+    bool DumpIR               = false;
+    bool DumpPreProcessedFile = false;
+    std::string TargetArch    = "aarch64";
+    bool PrintBeforePasses    = false;
 
     for (auto i = 1; i < argc; ++i)
     {
@@ -91,6 +93,11 @@ int main(int argc, char *argv[])
                 PrintBeforePasses = true;
                 continue;
             }
+            else if (!option.compare("E"))
+            {
+                DumpPreProcessedFile = true;
+                continue;
+            }
             else if (!option.compare("debug"))
             {
                 DumpTokens        = true;
@@ -123,6 +130,15 @@ int main(int argc, char *argv[])
     }
 
     getFileContent(FilePath, src);
+
+    PreProcessor(src).Run();
+
+    if (DumpPreProcessedFile)
+    {
+        for (auto &Line : src)
+            std::cout << Line << std::endl;
+        std::cout << std::endl;
+    }
 
     Module IRModule;
     IRFactory IRF(IRModule);
