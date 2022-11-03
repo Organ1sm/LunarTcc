@@ -9,6 +9,9 @@ add_executable(
   ../lib/FrontEnd/Parser/SymbolTable.cpp
   ../lib/FrontEnd/AST/AST.cpp
   ../lib/FrontEnd/AST/Type.cpp
+  ../lib/FrontEnd/PreProcessor/PreProcessor.cpp
+  ../lib/FrontEnd/PreProcessor/PPToken.cpp
+  ../lib/FrontEnd/PreProcessor/PPLexer.cpp
   ../lib/Utils/ErrorLogger.cpp
   ../lib/MiddleEnd/IR/IRType.cpp
   ../lib/MiddleEnd/IR/Module.cpp
