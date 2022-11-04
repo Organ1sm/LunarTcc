@@ -28,7 +28,15 @@ class Node
 class Statement : public Node
 {
   public:
+    enum StmtInfo { None = 0, Return = 1 };
+
+    void AddInfo(unsigned Bit) { InfoBits |= Bit; }
+    bool IsRet() { return !!(InfoBits & Return); }
+
     void ASTDump(unsigned int tab = 0) override { PrintLn("Statement", tab); }
+
+  private:
+    unsigned InfoBits = 0;
 };
 
 class Expression : public Node
@@ -162,7 +170,7 @@ class CompoundStatement : public Statement
         Declarations.push_back(std::move(d));
     }
 
-    StmtVec &GetStatement() { return Statements; }
+    StmtVec &GetStatements() { return Statements; }
     void SetStatements(StmtVec &s) { Statements = std::move(s); }
     void AddStatements(std::unique_ptr<Statement> &s)
     {
@@ -311,20 +319,22 @@ class ForStatement : public Statement
 class ReturnStatement : public Statement
 {
   public:
-    std::unique_ptr<Expression> &GetCondition()
+    std::unique_ptr<Expression> &GetReturnVal()
     {
         assert(HasValue() && "Must have a value to return it.");
         return ReturnValue.value();
     }
-    void SetCondition(std::unique_ptr<Expression> v) { ReturnValue = std::move(v); }
+    void SetReturnVal(std::unique_ptr<Expression> v) { ReturnValue = std::move(v); }
     bool HasValue() { return ReturnValue.has_value(); }
 
-    ReturnStatement() = default;
-    ReturnStatement(std::unique_ptr<Expression> e) : ReturnValue(std::move(e)) {}
+    ReturnStatement() { AddInfo(Statement::Return); };
+    ReturnStatement(std::unique_ptr<Expression> e) : ReturnValue(std::move(e))
+    {
+        AddInfo(Statement::Return);
+    }
 
     void ASTDump(unsigned int tab = 0) override;
     Value *IRCodegen(IRFactory *IRF) override;
-
 
   private:
     std::optional<std::unique_ptr<Expression>> ReturnValue;

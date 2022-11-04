@@ -1,8 +1,11 @@
 #include "FrontEnd/AST/AST.hpp"
 #include "MiddleEnd/IR/BasicBlock.hpp"
+#include "MiddleEnd/IR/Function.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
 #include "MiddleEnd/IR/IRType.hpp"
 #include "MiddleEnd/IR/Instruction.hpp"
+#include "MiddleEnd/IR/Value.hpp"
+#include "BackEnd/TargetMachine.hpp"
 #include "Utils/ErrorLogger.hpp"
 #include "fmt/core.h"
 #include <cassert>
@@ -381,7 +384,7 @@ Value *ContinueStatement::IRCodegen(IRFactory *IRF)
 
 Value *ReturnStatement::IRCodegen(IRFactory *IRF)
 {
-    if (ReturnValue.has_value() == false)
+    if (ReturnValue.has_value() == false || IRF->GetCurrentFunction()->IsReturnTypeVoid())
         return IRF->CreateRet(nullptr);
 
     auto RetVal = ReturnValue.value()->IRCodegen(IRF);
@@ -398,12 +401,38 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
     IRF->SetGlobalScope(false);
 
     IRType ReturnType;
+    IRType ParamType;
+    std::unique_ptr<FunctionParameter> ImplicitStructPtr {nullptr};
+    bool NeedIgnore = false;
 
     switch (FuncType.GetReturnType())
     {
         case Type::Composite:
             if (FuncType.IsStruct())
+            {
                 ReturnType = GetIRTypeFromASTType(FuncType);
+
+                // incase the struct is too big to pass by value
+                auto ReturnTypeSize = ReturnType.GetByteSize() * 8;
+                auto ABIMaxStructSize =
+                    IRF->GetTargetMachine()->GetABI()->GetMaxStructSizePassedByValue();
+                if (!ReturnType.IsPointer() && ReturnTypeSize > ABIMaxStructSize)
+                {
+                    NeedIgnore = true;
+                    ParamType  = ReturnType;
+                    ParamType.IncrementPointerLevel();
+
+                    // then the return type is void and the struct to be returned will be
+                    // allocated by the callers and a pointer is passed to the function
+                    // as an extra argument
+                    ReturnType = IRType(IRType::None);
+
+                    // on the same note create the extra struct pointer operand
+                    auto ParamName = "struct." + ParamType.GetStructName();
+                    ImplicitStructPtr =
+                        std::make_unique<FunctionParameter>(ParamName, ParamType);
+                }
+            }
             else
                 assert(!"Unhandled Return Type.");
             break;
@@ -424,9 +453,36 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
 
     IRF->CreateNewFunction(Name, ReturnType);
 
+    if (ImplicitStructPtr)
+    {
+        IRF->AddToSymbolTable(ImplicitStructPtr->GetName(), ImplicitStructPtr.get());
+        IRF->Insert(std::move(ImplicitStructPtr));
+    }
 
     for (auto &Argument : Arguments)
         Argument->IRCodegen(IRF);
+
+    if (NeedIgnore)
+    {
+        auto CS = dynamic_cast<CompoundStatement *>(Body.get());
+        assert(CS);
+
+        for (auto &Stmt : CS->GetStatements())
+        {
+            if (Stmt->IsRet())
+            {
+                auto RetStmt = dynamic_cast<ReturnStatement *>(Stmt.get());
+                auto RefExpr =
+                    dynamic_cast<ReferenceExpression *>(RetStmt->GetReturnVal().get());
+
+                if (RefExpr)
+                {
+                    IRF->GetCurrentFunction()->SetIgnorableStructName(
+                        RefExpr->GetIdentifier());
+                }
+            }
+        }
+    }
 
     Body->IRCodegen(IRF);
     return nullptr;
@@ -434,9 +490,21 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
 
 Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF)
 {
-    auto ParamType = GetIRTypeFromASTType(Ty);
-    auto Param     = std::make_unique<FunctionParameter>(Name, ParamType);
-    auto SA        = IRF->CreateSA(Name, ParamType);
+    auto ParamType     = GetIRTypeFromASTType(Ty);
+    auto ParamTypeSize = ParamType.GetByteSize() * 8;
+    auto ABIMaxStructSize =
+        IRF->GetTargetMachine()->GetABI()->GetMaxStructSizePassedByValue();
+
+    // if the param is a struct and too big to passed by value then change it
+    // to a struct pointer, because that is how it will be passed by callers
+    if (ParamType.IsStruct() && !ParamType.IsPointer() &&
+        (ParamTypeSize > ABIMaxStructSize))
+    {
+        ParamType.IncrementPointerLevel();
+    }
+
+    auto Param = std::make_unique<FunctionParameter>(Name, ParamType);
+    auto SA    = IRF->CreateSA(Name, ParamType);
 
     IRF->AddToSymbolTable(Name, SA);
     IRF->CreateStore(Param.get(), SA);
@@ -501,6 +569,16 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
         return IRF->CreateGlobalVar(Name, VarType, std::move(InitList));
     }
 
+    if (IRF->GetCurrentFunction()->GetIgnorableStructVarName() == Name)
+    {
+        auto &Parameters = IRF->GetCurrentFunction()->GetParameters();
+        auto ParamValue  = Parameters[Parameters.size() - 1].get();
+
+        IRF->AddToSymbolTable(Name, ParamValue);
+
+        return ParamValue;
+    }
+
     /// Othewise we are in a local scope of a function.
     /// Allocate space on stack and update the local symbol Table.
     auto SA = IRF->CreateSA(Name, VarType);
@@ -522,6 +600,8 @@ Value *EnumDeclaration::IRCodegen(IRFactory *IRF) { return nullptr; }
 Value *CallExpression::IRCodegen(IRFactory *IRF)
 {
     std::vector<Value *> Args;
+    auto MaxStructSize =
+        IRF->GetTargetMachine()->GetABI()->GetMaxStructSizePassedByValue();
 
     for (auto &Arg : Arguments)
 
@@ -530,10 +610,15 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
         auto IRTy  = ArgIR->GetTypeRef();
         auto ArgTy = Arg->GetResultType();
 
-        if (IRTy.IsStruct() && IRTy.IsPointer() && ArgTy.IsStruct()
-            && !ArgTy.IsPointerType())
+        auto IRTySize = IRTy.GetByteSize() * 8;
+
+        // if the generated IR result is a struct pointer, but the actual function
+        // expects a struct by value, then issue an extra load
+        if (IRTy.IsStruct() && IRTy.IsPointer() && ArgTy.IsStruct() &&
+            !ArgTy.IsPointerType())
         {
-            ArgIR = IRF->CreateLoad(ArgIR->GetType(), ArgIR);
+            if (!(IRTySize > MaxStructSize))
+                ArgIR = IRF->CreateLoad(ArgIR->GetType(), ArgIR);
         }
         Args.push_back(ArgIR);
     }
@@ -542,6 +627,7 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
 
     IRType ReturnIRType;
     StackAllocationInstruction *StructTemp {nullptr};
+    bool IsRetChanged {false};
 
     switch (ReturnType)
     {
@@ -555,6 +641,30 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
             // to use that as a temporary, where the result would be copied to after
             // the call
             StructTemp = IRF->CreateSA(Name + ".temp", ReturnIRType);
+
+            // check if the call expression is returning a non pointer struct which is
+            // to big to be returned back. In this case the called function were already
+            // changed to expect an extra struct pointer parameter and use that and
+            // also its no longer returning anything, it returns type now void
+            // In this case we need to
+            //  -allocating space for the struct, which actually do not needed since
+            //   at this point its already done above (StructTemp)
+            //  -adding extra parameter which is a pointer to this allocated struct
+            //  -change the returned value to this newly allocated struct pointer
+            //  (even though nothing is returned, doing this so subsequent instructions
+            //  can use this struct instead)
+            //
+            //  FIXME: maybe an extra load will required since its now a struct pointer
+            // but originally the return is a struct (not a pointer)
+            auto ReturnIRTypeSize = ReturnIRType.GetByteSize() * 8;
+
+            if (!(!ReturnIRType.IsPointer() && (ReturnIRTypeSize) > MaxStructSize))
+                break;    // actually checking the opposite and break if it is true
+
+            IsRetChanged = true;
+            Args.push_back(StructTemp);
+            ReturnIRType = IRType::None;
+
             break;
         }
         default: break;
@@ -565,8 +675,9 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
     {
         // make the call
         auto CallRes = IRF->CreateCall(Name, Args, ReturnIRType);
-        // issue a store using the freshly allocated temporary StructTemp
-        IRF->CreateStore(CallRes, StructTemp);
+        // issue a store using the freshly allocated temporary StructTemp if needed
+        if (!IsRetChanged)
+            IRF->CreateStore(CallRes, StructTemp);
         return StructTemp;
     }
 
@@ -650,8 +761,8 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
             if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong)
                 return IRF->CreateSExt(Val, 64);
 
-            if (DestTypeVariant == Type::UnsignedLong
-                || DestTypeVariant == Type::UnsignedLongLong)
+            if (DestTypeVariant == Type::UnsignedLong ||
+                DestTypeVariant == Type::UnsignedLongLong)
                 return IRF->CreateZExt(Val, 64);
 
             assert(!"Invalid conversion.");
@@ -661,9 +772,9 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
             if (DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt)
                 return IRF->CreateZExt(Val, 32);
 
-            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong
-                || DestTypeVariant == Type::UnsignedLong
-                || DestTypeVariant == Type::UnsignedLongLong)
+            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong ||
+                DestTypeVariant == Type::UnsignedLong ||
+                DestTypeVariant == Type::UnsignedLongLong)
 
                 return IRF->CreateZExt(Val, 64);
 
@@ -679,8 +790,8 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
             if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong)
                 return IRF->CreateSExt(Val, 64);
 
-            if (DestTypeVariant == Type::UnsignedLong
-                || DestTypeVariant == Type::UnsignedLongLong)
+            if (DestTypeVariant == Type::UnsignedLong ||
+                DestTypeVariant == Type::UnsignedLongLong)
 
                 return IRF->CreateZExt(Val, 64);
 
@@ -694,9 +805,9 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
             if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
                 return IRF->CreateTrunc(Val, 8);
 
-            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong
-                || DestTypeVariant == Type::UnsignedLong
-                || DestTypeVariant == Type::UnsignedLongLong)
+            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong ||
+                DestTypeVariant == Type::UnsignedLong ||
+                DestTypeVariant == Type::UnsignedLongLong)
 
                 return IRF->CreateZExt(Val, 64);
 
@@ -971,8 +1082,8 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         return R;
     }
 
-    if (GetOperationKind() == AddAssign || GetOperationKind() == SubAssign
-        || GetOperationKind() == MulAssign || GetOperationKind() == DivAssign)
+    if (GetOperationKind() == AddAssign || GetOperationKind() == SubAssign ||
+        GetOperationKind() == MulAssign || GetOperationKind() == DivAssign)
     {
         // Assignment right associative so generate R first
         auto R = Rhs->IRCodegen(IRF);

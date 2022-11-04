@@ -1,9 +1,7 @@
 //
 // Created by Organ1sm.
 //
-
-#ifndef LUNARTCC_IRFACTORY_HPP
-#define LUNARTCC_IRFACTORY_HPP
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -19,12 +17,14 @@ class Module;
 class Function;
 class BasicBlock;
 
+class TargetMachine;
+
 class IRFactory
 {
   public:
     IRFactory() = delete;
-
     IRFactory(Module &M) : CurrentModule(M), ID(0) {}
+    IRFactory(Module &M, TargetMachine *T) : TM(T), CurrentModule(M), ID(0) {}
 
     Instruction *CreateAdd(Value *LHS, Value *RHS);
     Instruction *CreateSub(Value *LHS, Value *RHS);
@@ -94,6 +94,8 @@ class IRFactory
 
     std::vector<BasicBlock *> &GetLoopIncrementBBsTable();
 
+    TargetMachine *GetTargetMachine() { return TM; }
+
   private:
     Instruction *
         CreateBinaryInstruction(Instruction::InstructionKind K, Value *L, Value *R);
@@ -105,6 +107,8 @@ class IRFactory
 
   private:
     Module &CurrentModule;
+
+    TargetMachine *TM {nullptr};
 
     /// A counter essentially, which used to give values a unique ID.
     unsigned ID;
@@ -133,6 +137,3 @@ class IRFactory
     /// to the basic block which will be the target of the generated jump.
     std::vector<BasicBlock *> LoopIncrementBBsTable;
 };
-
-
-#endif    // LUNARTCC_IRFACTORY_HPP

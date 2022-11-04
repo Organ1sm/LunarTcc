@@ -50,7 +50,7 @@ BraceWrapping:
   SplitEmptyRecord: false
   SplitEmptyNamespace: false
 
-BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBinaryOperators: None
 BreakBeforeConceptDeclarations: true
 BreakBeforeTernaryOperators: false
 BreakConstructorInitializers: BeforeColon

@@ -55,6 +55,11 @@ void PreAllocateReturnRegister(MachineFunction &Func,
         if (auto TargetInstr = TM->GetInstrDefs()->GetTargetInstr(Opcode);
             TargetInstr->IsReturn())
         {
+            // if the ret has no operands it means the function ret type is void and
+            // therefore does not need allocation for return registers
+            if (It->GetOperandsNumber() == 0)
+                continue;
+
             auto RetValSize = It->GetOperands()[0].GetSize();
 
             if (RetValSize == RetRegs[0]->GetBitWidth())

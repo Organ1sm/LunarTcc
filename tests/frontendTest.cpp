@@ -140,8 +140,14 @@ int main(int argc, char *argv[])
         std::cout << std::endl;
     }
 
+    std::unique_ptr<TargetMachine> TM;
+    if (TargetArch == "riscv")
+        TM = std::make_unique<RISCV::RISCVTargetMachine>();
+    else
+        TM = std::make_unique<AArch64::AArch64TargetMachine>();
+
     Module IRModule;
-    IRFactory IRF(IRModule);
+    IRFactory IRF(IRModule, TM.get());
     Parser parser(src, &IRF);
 
     auto AST = parser.Parse();
@@ -154,12 +160,6 @@ int main(int argc, char *argv[])
     if (DumpIR)
         IRModule.Print();
 
-    std::unique_ptr<TargetMachine> TM;
-
-    if (TargetArch == "riscv")
-        TM = std::make_unique<RISCV::RISCVTargetMachine>();
-    else
-        TM = std::make_unique<AArch64::AArch64TargetMachine>();
 
     MachineIRModule LLIRModule;
     IRtoLLIR I2LLIR(IRModule, &LLIRModule, TM.get());
