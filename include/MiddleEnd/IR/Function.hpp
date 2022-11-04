@@ -1,9 +1,7 @@
 //
 // Created by Organ1sm.
 //
-
-#ifndef LUNARTCC_FUNCTION_HPP
-#define LUNARTCC_FUNCTION_HPP
+#pragma once
 
 #include <vector>
 #include <memory>
@@ -32,6 +30,11 @@ class Function
     BasicBlockList &GetBasicBlocks() { return BasicBlocks; }
     ParameterList &GetParameters() { return Parameters; }
 
+    bool IsReturnTypeVoid() { return ReturnType.IsVoid(); }
+
+    std::string &GetIgnorableStructVarName() { return IgnorableStructName; }
+    void SetIgnorableStructName(std::string &Name) { IgnorableStructName = Name; }
+
     void CreateBasicBlock();
 
     void Insert(std::unique_ptr<BasicBlock> BB);
@@ -44,6 +47,5 @@ class Function
     IRType ReturnType;
     ParameterList Parameters;
     BasicBlockList BasicBlocks;
+    std::string IgnorableStructName {};
 };
-
-#endif    // LUNARTCC_FUNCTION_HPP

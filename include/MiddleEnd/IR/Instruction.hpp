@@ -198,7 +198,8 @@ class ReturnInstruction : public Instruction
 {
   public:
     ReturnInstruction(Value *RV, BasicBlock *P)
-        : Instruction(InstructionKind::Ret, P, RV->GetType()), ReturnVal(RV)
+        : Instruction(InstructionKind::Ret, P, RV ? RV->GetType() : IRType::None),
+          ReturnVal(RV)
     {
         BasicBlockTerminator = true;
     }

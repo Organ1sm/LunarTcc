@@ -30,55 +30,30 @@ std::string Instruction::AsString(Instruction::InstructionKind IK)
 {
     switch (IK)
     {
-        case And:
-            return "and";
-        case Or:
-            return "or";
-        case Add:
-            return "add";
-        case Sub:
-            return "sub";
-        case Mul:
-            return "mul";
-        case Div:
-            return "div";
-        case Mod:
-            return "mod";
-        case SExt:
-            return "sext";
-        case ZExt:
-            return "zext";
-        case Trunc:
-            return "trunc";
-        case FloatToInt:
-            return "ftoi";
-        case IntToFloat:
-            return "itof";
-        case Call:
-            return "call";
-        case Jump:
-            return "j";
-        case Branch:
-            return "br";
-        case Ret:
-            return "ret";
-        case Load:
-            return "load";
-        case Store:
-            return "store";
-        case MemCopy:
-            return "memcopy";
-        case StackAlloc:
-            return "salloc";
-        case GetELemPtr:
-            return "gep";
-        case Cmp:
-            return "cmp";
-        case Mov:
-            return "mov";
-        default:
-            assert(!"Unknown instruction kind.");
-            break;
+        case And: return "and";
+        case Or: return "or";
+        case Add: return "add";
+        case Sub: return "sub";
+        case Mul: return "mul";
+        case Div: return "div";
+        case Mod: return "mod";
+        case SExt: return "sext";
+        case ZExt: return "zext";
+        case Trunc: return "trunc";
+        case FloatToInt: return "ftoi";
+        case IntToFloat: return "itof";
+        case Call: return "call";
+        case Jump: return "j";
+        case Branch: return "br";
+        case Ret: return "ret";
+        case Load: return "load";
+        case Store: return "store";
+        case MemCopy: return "memcopy";
+        case StackAlloc: return "salloc";
+        case GetELemPtr: return "gep";
+        case Cmp: return "cmp";
+        case Mov: return "mov";
+        default: assert(!"Unknown instruction kind."); break;
     }
 }
 
@@ -115,20 +90,13 @@ const char *CompareInstruction::GetRelationString() const
 {
     switch (Relation)
     {
-        case EQ:
-            return "eq";
-        case NE:
-            return "ne";
-        case LT:
-            return "lt";
-        case GT:
-            return "gt";
-        case LE:
-            return "le";
-        case GE:
-            return "ge";
-        default:
-            assert(!"Unhandled comparison relation.");
+        case EQ: return "eq";
+        case NE: return "ne";
+        case LT: return "lt";
+        case GT: return "gt";
+        case LE: return "le";
+        case GE: return "ge";
+        default: assert(!"Unhandled comparison relation.");
     }
 }
 
@@ -136,26 +104,13 @@ void CompareInstruction::InvertRelation()
 {
     switch (Relation)
     {
-        case EQ:
-            Relation = NE;
-            break;
-        case NE:
-            Relation = EQ;
-            break;
-        case LT:
-            Relation = GE;
-            break;
-        case GT:
-            Relation = LE;
-            break;
-        case LE:
-            Relation = GT;
-            break;
-        case GE:
-            Relation = LT;
-            break;
-        default:
-            break;
+        case EQ: Relation = NE; break;
+        case NE: Relation = EQ; break;
+        case LT: Relation = GE; break;
+        case GT: Relation = LE; break;
+        case LE: Relation = GT; break;
+        case GE: Relation = LT; break;
+        default: break;
     }
 }
 
@@ -224,7 +179,8 @@ void ReturnInstruction::Print() const
     std::string Format = "{Value}";
 
     PrintInst();
-    fmt::print(Format, fmt::arg("Value", ReturnVal->ValueString()));
+    if (ReturnVal)
+        fmt::print(Format, fmt::arg("Value", ReturnVal->ValueString()));
 }
 
 void StackAllocationInstruction::Print() const
