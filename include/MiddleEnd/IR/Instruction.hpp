@@ -22,7 +22,9 @@ class Instruction : public Value
         Sub,
         Mul,
         Div,
+        DivU,
         Mod,
+        ModU,
         Cmp,
 
         // Conversions

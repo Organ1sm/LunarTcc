@@ -1374,9 +1374,10 @@ std::unique_ptr<Expression>
         else if (BinaryOperator.GetKind() == Token::Mod)
         {
             if (LeftType != Type::Int || RightType != Type::Int)
-                EmitError("Mod Operator can only operator on integers",
-                          lexer,
-                          BinaryOperator);
+                ; // TODO: fix this semantic check
+                // EmitError("Mod Operator can only operator on integers",
+                //           lexer,
+                //           BinaryOperator);
         }
 
         LeftExpression = std::make_unique<BinaryExpression>(std::move(LeftExpression),

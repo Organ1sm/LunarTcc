@@ -50,6 +50,16 @@ Instruction *IRFactory::CreateMod(Value *LHS, Value *RHS)
     return CreateBinaryInstruction(Instruction::Mod, LHS, RHS);
 }
 
+Instruction *IRFactory::CreateDivU(Value *LHS, Value *RHS)
+{
+    return CreateBinaryInstruction(Instruction::DivU, LHS, RHS);
+}
+
+Instruction *IRFactory::CreateModU(Value *LHS, Value *RHS)
+{
+    return CreateBinaryInstruction(Instruction::ModU, LHS, RHS);
+}
+
 Instruction *IRFactory::CreateOr(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Or, LHS, RHS);

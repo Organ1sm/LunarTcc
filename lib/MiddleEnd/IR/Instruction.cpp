@@ -36,7 +36,9 @@ std::string Instruction::AsString(Instruction::InstructionKind IK)
         case Sub: return "sub";
         case Mul: return "mul";
         case Div: return "div";
+        case DivU: return "divu";
         case Mod: return "mod";
+        case ModU: return "modu";
         case SExt: return "sext";
         case ZExt: return "zext";
         case Trunc: return "trunc";

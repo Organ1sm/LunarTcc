@@ -115,7 +115,7 @@ for subDir, dirs, files in os.walk(WorkDir):
                 console.print("[green u]PASS[/green u]  " + prettyFilePath)
             else:
                 failedTests.append(simplifyFilePath)
-                console.print("[red u]FAILED[/red u]  " + prettyFilePath)
+                console.print("[red u]FAIL[/red u]  " + prettyFilePath)
 
 CleanTestCacheFile()
 print("\n--------", testsCount, "Test executed --------")

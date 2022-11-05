@@ -1152,6 +1152,8 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         case Div: return IRF->CreateDiv(L, R);
         case Mod: return IRF->CreateMod(L, R);
         case And: return IRF->CreateAnd(L, R);
+        case DivU: return IRF->CreateDivU(L, R);
+        case ModU: return IRF->CreateModU(L, R);
         case Equal: return IRF->CreateCmp(CompareInstruction::EQ, L, R);
         case Less: return IRF->CreateCmp(CompareInstruction::LT, L, R);
         case Greater: return IRF->CreateCmp(CompareInstruction::GT, L, R);
@@ -1364,8 +1366,16 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
         case Token::Plus: return Add;
         case Token::Minus: return Sub;
         case Token::Mul: return Mul;
-        case Token::Div: return Div;
-        case Token::Mod: return Mod;
+        case Token::Div: {
+            if (GetResultType().IsUnsigned())
+                return DivU;
+            return Div;
+        }
+        case Token::Mod: {
+            if (GetResultType().IsUnsigned())
+                return ModU;
+            return Mod;
+        }
         case Token::And: return And;
         case Token::Not: return Not;
         case Token::Equal: return Equal;

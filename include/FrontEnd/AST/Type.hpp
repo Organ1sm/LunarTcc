@@ -75,8 +75,9 @@ class Type
     bool IsArray() const { return Kind == Array; }
     bool IsFunction() const { return !ParamList.empty(); }
     bool IsStruct() const { return Kind == Struct; }
-    bool IsIntegerType() const;
     bool IsConst() const { return Qualifiers & Const; }
+    bool IsIntegerType() const;
+    bool IsUnsigned() const;
 
     friend bool operator==(const Type &lhs, const Type &rhs);
 
