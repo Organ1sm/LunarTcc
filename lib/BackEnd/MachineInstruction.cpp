@@ -94,6 +94,8 @@ void MachineInstruction::Print(TargetMachine *TM) const
         case OperationCode::Div: OpcodeStr = "Div"; break;
         case OperationCode::Mod: OpcodeStr = "Mod"; break;
         case OperationCode::Cmp: OpcodeStr = "Cmp"; break;
+        case OperationCode::ModU: OpcodeStr = "ModU"; break;
+        case OperationCode::DivU: OpcodeStr = "DivU"; break;
         case OperationCode::SExt: OpcodeStr = "SEXT"; break;
         case OperationCode::ZExt: OpcodeStr = "ZExt"; break;
         case OperationCode::ZExtLoad: OpcodeStr = "ZExtLoad"; break;
