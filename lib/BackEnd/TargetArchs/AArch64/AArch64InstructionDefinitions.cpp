@@ -4,12 +4,12 @@
 using namespace AArch64;
 AArch64InstructionDefinitions::AArch64InstructionDefinitions()
 {
-    InstrEnumStrings = {"ADD_rrr", "ADD_rri", "AND_rri",  "SUB_rrr",  "SUB_rri", "SUBS",
-                        "MUL_rri", "MUL_rrr", "SDIV_rri", "SDIV_rrr", "CMP_ri",  "CMP_rr",
-                        "CSET",    "SXTB",    "SXTW",     "MOV_rc",   "MOV_rr",  "ADRP",
-                        "LDR",     "LDRB",    "STR",      "STRB",     "BEQ",     "BNE",
-                        "BGE",     "BGT",     "BLE",      "BLT",      "B",       "BL",
-                        "RET"};
+    InstrEnumStrings = {
+        "ADD_rrr", "ADD_rri",  "AND_rri",  "SUB_rrr",  "SUB_rri", "SUBS",   "MUL_rri",
+        "MUL_rrr", "SDIV_rri", "SDIV_rrr", "UDIV_rrr", "CMP_ri",  "CMP_rr", "CSET",
+        "SXTB",    "SXTW",     "MOV_rc",   "MOV_rr",   "ADRP",    "LDR",    "LDRB",
+        "STR",     "STRB",     "BEQ",      "BNE",      "BGE",     "BGT",    "BLE",
+        "BLT",     "B",        "BL",       "RET"};
 }
 
 AArch64InstructionDefinitions::IRToTargetInstrMap
@@ -57,6 +57,12 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             32,
             "sdiv\t$1, $2, #$3",
             {GPR, GPR, UIMM12}
+        };
+        ret[UDIV_rrr] = {
+            UDIV_rrr,
+            32,
+            "udiv\t$1, $2, $3",
+            {GPR, GPR, GPR}
         };
         ret[MUL_rrr] = {
             MUL_rri,

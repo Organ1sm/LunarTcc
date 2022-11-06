@@ -1,5 +1,4 @@
-#ifndef LUNARTCC_TARGET_INSTRUCTION_HPP
-#define LUNARTCC_TARGET_INSTRUCTION_HPP
+#pragma once
 
 #include <cstdlib>
 #include <vector>
@@ -49,6 +48,3 @@ class TargetInstruction
     std::vector<unsigned> OperandTypes;
     unsigned Attributes = 0;
 };
-
-
-#endif    // !LUNARTCC_TARGET_INSTRUCTION_HPP

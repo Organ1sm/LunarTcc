@@ -18,8 +18,11 @@ class TargetInstructionLegalizer
     /// Predicate to decide whether the instruction is expandable or not.
     virtual bool IsExpandable(const MachineInstruction *MI) { return false; }
 
-    virtual bool ExpandMod(MachineInstruction *MI);
+    virtual bool ExpandMod(MachineInstruction *MI, bool IsUnsigned);
     virtual bool ExpandSub(MachineInstruction *MI) { return false; }
+    virtual bool ExpandMul(MachineInstruction *MI) { return false; }
+    virtual bool ExpandDiv(MachineInstruction *MI) { return false; }
+    virtual bool ExpandDivU(MachineInstruction *MI) { return false; }
 
     virtual bool ExpandStore(MachineInstruction *MI);
     virtual bool ExpandZExt(MachineInstruction *MI) { return false; };

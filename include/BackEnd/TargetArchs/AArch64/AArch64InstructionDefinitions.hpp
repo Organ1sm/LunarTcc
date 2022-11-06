@@ -18,6 +18,7 @@ namespace AArch64
         MUL_rrr,
         SDIV_rri,
         SDIV_rrr,
+        UDIV_rrr,
         CMP_ri,
         CMP_rr,
         CSET,

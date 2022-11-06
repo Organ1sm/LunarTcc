@@ -151,6 +151,19 @@ bool Type::IsIntegerType() const
     }
 }
 
+bool Type::IsUnsigned() const
+{
+    switch (Ty)
+    {
+        case UnsignedChar:
+        case UnsignedInt:
+        case UnsignedLong:
+        case UnsignedLongLong: return true;
+
+        default: return false;
+    }
+}
+
 bool Type::IsImplicitlyCastable(const Type::VariantKind from, const Type::VariantKind to)
 {
     switch (to)
@@ -182,13 +195,12 @@ bool Type::IsSmallerThanInt(const Type::VariantKind V)
 bool Type::OnlySignednessDifference(const Type::VariantKind V1,
                                     const Type::VariantKind V2)
 {
-    if ((V1 == Int && V2 == UnsignedInt) || (V1 == UnsignedInt && V2 == Int)
-        || (V1 == Char && V2 == UnsignedChar) || (V1 == UnsignedChar && V2 == Char)
-        || ((V1 == Long || V1 == LongLong)
-            && (V2 == UnsignedLong || V2 == UnsignedLongLong))
+    if ((V1 == Int && V2 == UnsignedInt) || (V1 == UnsignedInt && V2 == Int) ||
+        (V1 == Char && V2 == UnsignedChar) || (V1 == UnsignedChar && V2 == Char) ||
+        ((V1 == Long || V1 == LongLong) && (V2 == UnsignedLong || V2 == UnsignedLongLong))
 
-        || ((V2 == Long || V2 == LongLong)
-            && (V1 == UnsignedLong || V1 == UnsignedLongLong)))
+        || ((V2 == Long || V2 == LongLong) &&
+            (V1 == UnsignedLong || V1 == UnsignedLongLong)))
 
         return true;
 

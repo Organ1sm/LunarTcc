@@ -20,7 +20,9 @@ class MachineInstruction
         Sub,              // 65539
         Mul,              // 65540
         Div,              // 65541
+        DivU,
         Mod,              // 65542
+        ModU,
         Cmp,              // 65543
 
         // Conversions

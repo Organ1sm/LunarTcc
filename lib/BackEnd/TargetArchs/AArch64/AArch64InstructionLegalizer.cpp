@@ -13,11 +13,20 @@ bool AArch64InstructionLegalizer::Check(MachineInstruction *MI)
 {
     switch (MI->GetOpcode())
     {
+        case MachineInstruction::ModU:
         case MachineInstruction::Mod: return false;
+
         case MachineInstruction::Sub:
             if (MI->GetOperand(1)->IsImmediate())
                 return false;
             break;
+        case MachineInstruction::Mul:
+        case MachineInstruction::Div:
+        case MachineInstruction::DivU: {
+            if (MI->GetOperand(2)->IsImmediate())
+                return false;
+            break;
+        }
         case MachineInstruction::Store:
             if (MI->GetOperands().back().IsImmediate())
                 return false;
@@ -36,6 +45,10 @@ bool AArch64InstructionLegalizer::IsExpandable(const MachineInstruction *MI)
     switch (MI->GetOpcode())
     {
         case MachineInstruction::Mod:
+        case MachineInstruction::ModU:
+        case MachineInstruction::Mul:
+        case MachineInstruction::Div:
+        case MachineInstruction::DivU:
         case MachineInstruction::Sub:
         case MachineInstruction::Store:
         case MachineInstruction::ZExt:
@@ -50,27 +63,52 @@ bool AArch64InstructionLegalizer::IsExpandable(const MachineInstruction *MI)
 /// Since AArch64 does not support for immediate operand as 1st source operand
 /// for SUB (and for all arithmetic instruction as well), there for it has to
 /// be materialized first into a register
-/// TODO: expand the implementation for all arithmetic instruction
-bool AArch64InstructionLegalizer::ExpandSub(MachineInstruction *MI)
+bool ExpandArithmeticInstWithImm(MachineInstruction *MI, std::size_t Index)
 {
-    assert(MI->GetOperandsNumber() == 3 && "Sub must have exactly 3 operands");
+    assert(MI->GetOperandsNumber() == 3 && "Inst must have exactly 3 operands");
+    assert(Index < MI->GetOperandsNumber());
+
     auto ParentBB = MI->GetParent();
 
     auto Mov     = MachineInstruction(MachineInstruction::LoadImm, nullptr);
     auto DestReg = ParentBB->GetParent()->GetNextAvailableVirtualRegister();
 
     // replace the immediate operand with the destination of the immediate load
-    Mov.AddVirtualRegister(DestReg, MI->GetOperand(1)->GetSize());
-    Mov.AddOperand(*MI->GetOperand(1));
+    Mov.AddVirtualRegister(DestReg, MI->GetOperand(Index)->GetSize());
+    Mov.AddOperand(*MI->GetOperand(Index));
 
-    MI->RemoveOperand(1);
+    MI->RemoveOperand(Index);
     MI->InsertOperand(
-        1,
+        Index,
         MachineOperand::CreateVirtualRegister(DestReg, MI->GetOperand(0)->GetSize()));
 
     ParentBB->InsertBefore(std::move(Mov), MI);
 
     return true;
+}
+
+bool AArch64InstructionLegalizer::ExpandSub(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 3 && "Sub must have exactly 3 operands");
+    return ExpandArithmeticInstWithImm(MI, 1);
+}
+
+bool AArch64InstructionLegalizer::ExpandMul(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 3 && "MUL must have exactly 3 operands");
+    return ExpandArithmeticInstWithImm(MI, 2);
+}
+
+bool AArch64InstructionLegalizer::ExpandDiv(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 3 && "DIV must have exactly 3 operands");
+    return ExpandArithmeticInstWithImm(MI, 2);
+}
+
+bool AArch64InstructionLegalizer::ExpandDivU(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 3 && "DIVU must have exactly 3 operands");
+    return ExpandArithmeticInstWithImm(MI, 2);
 }
 
 /// Since AArch64 do sign extension when loading therefore if the ZEXT is

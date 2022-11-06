@@ -12,9 +12,9 @@
 ///     DIV %div_res, %num, %mod
 ///     MUL %mul_res, %div_res, %mod
 ///     SUB %res, %num, %mul_res
-bool TargetInstructionLegalizer::ExpandMod(MachineInstruction *MI)
+bool TargetInstructionLegalizer::ExpandMod(MachineInstruction *MI, bool IsUnsigned)
 {
-    assert(MI->GetOperandsNumber() == 3 && "MOD must have exactly 3 operands");
+    assert(MI->GetOperandsNumber() == 3 && "MOD{U} must have exactly 3 operands");
     auto ParentBB   = MI->GetParent();
     auto ParentFunc = ParentBB->GetParent();
 
@@ -24,27 +24,28 @@ bool TargetInstructionLegalizer::ExpandMod(MachineInstruction *MI)
 
     assert(ResVReg.IsVirtualReg() && "Result must be a virtual register");
     assert(NumVReg.IsVirtualReg() && "Operand #1 must be a virtual register");
-    assert((ModVReg.IsVirtualReg() || ModVReg.IsImmediate())
-           && "Operand #2 must be a virtual register or an immediate");
+    assert((ModVReg.IsVirtualReg() || ModVReg.IsImmediate()) &&
+           "Operand #2 must be a virtual register or an immediate");
 
     auto DIVResult = ParentFunc->GetNextAvailableVirtualRegister();
-    MachineInstruction DIV;
-    DIV.SetOpcode(MachineInstruction::Div);
+    auto Opcode    = IsUnsigned ? MachineInstruction::DivU : MachineInstruction::Div;
+    auto DIV       = MachineInstruction(Opcode, ParentBB);
+
     DIV.AddOperand(MachineOperand::CreateVirtualRegister(DIVResult));
     DIV.AddOperand(NumVReg);
     DIV.AddOperand(ModVReg);
     auto DIVIter = ParentBB->ReplaceInstr(std::move(DIV), MI);
 
     auto MULResult = ParentFunc->GetNextAvailableVirtualRegister();
-    MachineInstruction MUL;
-    MUL.SetOpcode(MachineInstruction::Mul);
+    MachineInstruction MUL(MachineInstruction::Mul, ParentBB);
+
     MUL.AddOperand(MachineOperand::CreateVirtualRegister(MULResult));
     MUL.AddOperand(MachineOperand::CreateVirtualRegister(DIVResult));
     MUL.AddOperand(ModVReg);
     auto MULIter = ParentBB->InsertAfter(std::move(MUL), &*DIVIter);
 
-    MachineInstruction SUB;
-    SUB.SetOpcode(MachineInstruction::Sub);
+    auto SUB = MachineInstruction(MachineInstruction::Sub, ParentBB);
+
     SUB.AddOperand(ResVReg);
     SUB.AddOperand(NumVReg);
     SUB.AddOperand(MachineOperand::CreateVirtualRegister(MULResult));
@@ -93,8 +94,13 @@ bool TargetInstructionLegalizer::Expand(MachineInstruction *MI)
 {
     switch (MI->GetOpcode())
     {
-        case MachineInstruction::Mod: return ExpandMod(MI);
+        case MachineInstruction::ModU:
+        case MachineInstruction::Mod:
+            return ExpandMod(MI, MI->GetOpcode() == MachineInstruction::ModU);
         case MachineInstruction::Sub: return ExpandSub(MI);
+        case MachineInstruction::Mul: return ExpandMul(MI);
+        case MachineInstruction::Div: return ExpandDiv(MI);
+        case MachineInstruction::DivU: return ExpandDivU(MI);
         case MachineInstruction::Store: return ExpandStore(MI);
         case MachineInstruction::ZExt: return ExpandZExt(MI);
         case MachineInstruction::GlobalAddress: return ExpandGlobalAddress(MI);

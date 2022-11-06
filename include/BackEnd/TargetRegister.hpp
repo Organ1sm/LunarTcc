@@ -1,5 +1,4 @@
-#ifndef LUNARTCC_TARGETREGISTER_HPP
-#define LUNARTCC_TARGETREGISTER_HPP
+#pragma once
 
 #include <functional>
 #include <string>
@@ -60,6 +59,3 @@ class RegisterClass
   private:
     std::set<unsigned, std::greater<unsigned>> Registers;
 };
-
-
-#endif    // !LUNARTCC_TARGETREGISTER_HPP

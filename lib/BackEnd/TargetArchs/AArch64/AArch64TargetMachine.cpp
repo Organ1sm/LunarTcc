@@ -132,9 +132,33 @@ bool AArch64TargetMachine::SelectDiv(MachineInstruction *MI)
     return false;
 }
 
+bool AArch64TargetMachine::SelectDivU(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 3 && "DIVU must have 3 operands");
+
+    // If last operand is an immediate then select "addi"
+    if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
+    {
+        assert(!"Immediate not supported");
+    }
+    else
+    {
+        MI->SetOpcode(UDIV_rrr);
+        return true;
+    }
+
+    return false;
+}
+
 bool AArch64TargetMachine::SelectMod(MachineInstruction *MI)
 {
     assert(!"MOD not supported");
+    return false;
+}
+
+bool AArch64TargetMachine::SelectModU(MachineInstruction *MI)
+{
+    assert(!"MODU not supported");
     return false;
 }
 
@@ -161,6 +185,8 @@ bool AArch64TargetMachine::SelectCmp(MachineInstruction *MI)
 
     return false;
 }
+
+
 
 bool AArch64TargetMachine::SelectSExt(MachineInstruction *MI)
 {
@@ -232,8 +258,8 @@ bool AArch64TargetMachine::SelectMov(MachineInstruction *MI)
 
     if (MI->GetOperand(1)->IsImmediate())
     {
-        assert(IsUInt<16>(MI->GetOperand(1)->GetImmediate())
-               && "Invalid immediate value");
+        assert(IsUInt<16>(MI->GetOperand(1)->GetImmediate()) &&
+               "Invalid immediate value");
         MI->SetOpcode(MOV_ri);
     }
     else
@@ -255,8 +281,8 @@ bool AArch64TargetMachine::SelectLoadImm(MachineInstruction *MI)
 
 bool AArch64TargetMachine::SelectLoad(MachineInstruction *MI)
 {
-    assert((MI->GetOperandsNumber() == 2 || MI->GetOperandsNumber() == 3)
-           && "LOAD must have 2 or 3 operands");
+    assert((MI->GetOperandsNumber() == 2 || MI->GetOperandsNumber() == 3) &&
+           "LOAD must have 2 or 3 operands");
 
     auto OprType = MI->GetOperand(0)->GetType();
     if (OprType.GetBitWidth() == 8 && !OprType.IsPointer())
@@ -289,8 +315,8 @@ bool AArch64TargetMachine::SelectLoad(MachineInstruction *MI)
 
 bool AArch64TargetMachine::SelectStore(MachineInstruction *MI)
 {
-    assert((MI->GetOperandsNumber() == 2 || MI->GetOperandsNumber() == 3)
-           && "STORE must have 2 or 3 operands");
+    assert((MI->GetOperandsNumber() == 2 || MI->GetOperandsNumber() == 3) &&
+           "STORE must have 2 or 3 operands");
 
     if (MI->GetOperand(MI->GetOperandsNumber() - 1)->GetType().GetBitWidth() == 8)
     {

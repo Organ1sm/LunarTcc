@@ -31,6 +31,8 @@ class IRFactory
     Instruction *CreateMul(Value *LHS, Value *RHS);
     Instruction *CreateDiv(Value *LHS, Value *RHS);
     Instruction *CreateMod(Value *LHS, Value *RHS);
+    Instruction *CreateDivU(Value *LHS, Value *RHS);
+    Instruction *CreateModU(Value *LHS, Value *RHS);
 
     Instruction *CreateOr(Value *LHS, Value *RHS);
     Instruction *CreateAnd(Value *LHS, Value *RHS);
