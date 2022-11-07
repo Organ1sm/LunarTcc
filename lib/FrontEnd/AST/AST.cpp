@@ -1333,7 +1333,8 @@ void FunctionDeclaration::ASTDump(unsigned int tab)
     for (auto &Argument : Arguments)
         Argument->ASTDump(tab + 2);
 
-    Body->ASTDump(tab + 2);
+    if (Body)
+        Body->ASTDump(tab + 2);
 }
 
 Type FunctionDeclaration::CreateType(const Type &t,

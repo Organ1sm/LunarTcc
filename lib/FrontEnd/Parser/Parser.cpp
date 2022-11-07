@@ -121,8 +121,8 @@ Type Parser::ParseType(Token::TokenKind tk)
         }
         case Token::Unsigned: {
             auto NextTokenKind = lexer.LookAhead(2).GetKind();
-            if (NextTokenKind == Token::Int || NextTokenKind == Token::Char
-                || NextTokenKind == Token::Long)
+            if (NextTokenKind == Token::Int || NextTokenKind == Token::Char ||
+                NextTokenKind == Token::Long)
             {
                 Lex();    // eat 'unsigned'
 
@@ -308,8 +308,8 @@ std::unique_ptr<Node> Parser::ParseExternalDeclaration()
     std::unique_ptr<TranslationUnit> TU = std::make_unique<TranslationUnit>();
     auto TK                             = GetCurrentToken();
 
-    while (IsReturnTypeSpecifier(TK) || lexer.Is(Token::Struct) || lexer.Is(Token::Enum)
-           || lexer.Is(Token::TypeDef))
+    while (IsReturnTypeSpecifier(TK) || lexer.Is(Token::Struct) ||
+           lexer.Is(Token::Enum) || lexer.Is(Token::TypeDef))
     {
         auto Qualifiers = ParseQualifiers();
         TK              = GetCurrentToken();
@@ -412,9 +412,11 @@ std::unique_ptr<FunctionDeclaration>
     auto NameStr  = Name.GetString();
     InsertToSymbolTable(NameStr, FuncType, true);
 
-    /// Assume function is defined
-    // TODO: planed to have function declaration.
-    auto Body = ParseCompoundStatement();
+    std::unique_ptr<CompoundStatement> Body {nullptr};
+    if (lexer.Is(Token::SemiColon))
+        Lex();    // eat ';'
+    else
+        auto Body = ParseCompoundStatement();
 
     SymTabStack.PopSymbolTable();
 
@@ -724,15 +726,15 @@ std::unique_ptr<SwitchStatement> Parser::ParseSwitchStatement()
             if (!ConstExpr)
                 ConstExpr = ParseIdentifierExpression();
             // TODO: make it a semantic check and not assertion
-            assert(ConstExpr.get()->GetResultType().IsIntegerType()
-                   && "Case expression must be an integer type");
+            assert(ConstExpr.get()->GetResultType().IsIntegerType() &&
+                   "Case expression must be an integer type");
         }
 
         Expect(Token::Colon);
 
         SwitchStatement::StmtsVec Statements;
-        while (lexer.IsNot(Token::RightBrace) && lexer.IsNot(Token::Case)
-               && lexer.IsNot(Token::Default))
+        while (lexer.IsNot(Token::RightBrace) && lexer.IsNot(Token::Case) &&
+               lexer.IsNot(Token::Default))
             Statements.push_back(std::move(ParseStatement()));
 
         if (IsCase)
@@ -919,8 +921,8 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
     auto CurrentToken = lexer.GetCurrentToken();
 
     // Struct Initializing case
-    if (lexer.Is(Token::LeftParen) && lexer.LookAhead(2).GetKind() == Token::Identifier
-        && IsUserDefinedType(lexer.LookAhead(2).GetString()))
+    if (lexer.Is(Token::LeftParen) && lexer.LookAhead(2).GetKind() == Token::Identifier &&
+        IsUserDefinedType(lexer.LookAhead(2).GetString()))
     {
         Expect(Token::LeftParen);
         auto UserDTypeName = Expect(Token::Identifier).GetString();
@@ -991,8 +993,8 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
             auto MemberIdStr = MemberId.GetString();
 
             assert(Expr->GetResultType().IsStruct() && "TODO: emit error");
-            assert((!IsArrow || (IsArrow && Expr->GetResultType().IsPointerType()))
-                   && "struct pointer expected");
+            assert((!IsArrow || (IsArrow && Expr->GetResultType().IsPointerType())) &&
+                   "struct pointer expected");
 
             // find the type of the member
             auto StructDataTuple   = UserDefinedTypes[Expr->GetResultType().GetName()];
@@ -1279,16 +1281,16 @@ std::unique_ptr<Expression>
 
         bool IsArithmetic = BinaryOperator.IsArithmetic(BinaryOperator.GetKind());
 
-        if (IsArithmetic
-            && Type::IsSmallerThanInt(LeftExpression->GetResultType().GetTypeVariant()))
+        if (IsArithmetic &&
+            Type::IsSmallerThanInt(LeftExpression->GetResultType().GetTypeVariant()))
         {
             LeftExpression =
                 std::make_unique<ImplicitCastExpression>(std::move(LeftExpression),
                                                          Type(Type::Int));
         }
 
-        if (IsArithmetic
-            && Type::IsSmallerThanInt(RightExpression->GetResultType().GetTypeVariant()))
+        if (IsArithmetic &&
+            Type::IsSmallerThanInt(RightExpression->GetResultType().GetTypeVariant()))
         {
             RightExpression =
                 std::make_unique<ImplicitCastExpression>(std::move(RightExpression),
@@ -1297,10 +1299,10 @@ std::unique_ptr<Expression>
 
         /// In case of Assignment check if the left operand since if should be an
         /// lvalue. Which is either an identifier reference or an array expression.
-        if (BinaryOperator.GetKind() == Token::Assign
-            && !dynamic_cast<ReferenceExpression *>(LeftExpression.get())
-            && !dynamic_cast<ArrayExpression *>(LeftExpression.get())
-            && !dynamic_cast<StructMemberReference *>(LeftExpression.get()))
+        if (BinaryOperator.GetKind() == Token::Assign &&
+            !dynamic_cast<ReferenceExpression *>(LeftExpression.get()) &&
+            !dynamic_cast<ArrayExpression *>(LeftExpression.get()) &&
+            !dynamic_cast<StructMemberReference *>(LeftExpression.get()))
         {
             EmitError("lvalue required as left operand of assignment",
                       lexer,
@@ -1374,10 +1376,10 @@ std::unique_ptr<Expression>
         else if (BinaryOperator.GetKind() == Token::Mod)
         {
             if (LeftType != Type::Int || RightType != Type::Int)
-                ; // TODO: fix this semantic check
-                // EmitError("Mod Operator can only operator on integers",
-                //           lexer,
-                //           BinaryOperator);
+                ;    // TODO: fix this semantic check
+                     // EmitError("Mod Operator can only operator on integers",
+                     //           lexer,
+                     //           BinaryOperator);
         }
 
         LeftExpression = std::make_unique<BinaryExpression>(std::move(LeftExpression),
