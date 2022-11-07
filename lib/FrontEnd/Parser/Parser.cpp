@@ -416,7 +416,7 @@ std::unique_ptr<FunctionDeclaration>
     if (lexer.Is(Token::SemiColon))
         Lex();    // eat ';'
     else
-        auto Body = ParseCompoundStatement();
+        Body = ParseCompoundStatement();
 
     SymTabStack.PopSymbolTable();
 

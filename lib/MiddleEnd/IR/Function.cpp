@@ -50,7 +50,7 @@ void Function::Print() const
     auto size         = Parameters.size();
     bool HasParameter = !((size == 1) && (Parameters[0]->GetType().IsVoid()));
 
-    auto FDStr = "func {n} ({a}) -> {r} :\n";
+    auto FDStr = "func {n} ({a}) -> {r}";
     std::string ArgsStr {""};
     std::string ReturnTyStr {""};
 
@@ -69,11 +69,18 @@ void Function::Print() const
     if (!ReturnType.IsVoid())
         ReturnTyStr = ReturnType.AsString();
 
+    if (DeclarationOnly)
+        fmt::print("declare ");
+
+
     fmt::print(FDStr,
                fmt::arg("n", Name),
                fmt::arg("a", ArgsStr),
                fmt::arg("r", ReturnTyStr));
 
-    for (auto &BB : BasicBlocks)
-        BB->Print();
+    fmt::print("{}\n", DeclarationOnly ? ";\n" : ":");
+
+    if (!DeclarationOnly)
+        for (auto &BB : BasicBlocks)
+            BB->Print();
 }
