@@ -869,6 +869,9 @@ void IRtoLLIR::GenerateLLIRFromIR()
     {
         Reset();
 
+        if (Func.IsDeclarationOnly())
+            continue;
+
         this->TU->AddNewFunction();
 
         MachineFunction *MFunction = TU->GetCurrentFunction();

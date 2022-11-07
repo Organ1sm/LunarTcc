@@ -35,6 +35,9 @@ class Function
     std::string &GetIgnorableStructVarName() { return IgnorableStructName; }
     void SetIgnorableStructName(std::string &Name) { IgnorableStructName = Name; }
 
+    void SetToDeclarationOnly() { DeclarationOnly = true; }
+    bool IsDeclarationOnly() const { return DeclarationOnly; }
+
     void CreateBasicBlock();
 
     void Insert(std::unique_ptr<BasicBlock> BB);
@@ -48,4 +51,5 @@ class Function
     ParameterList Parameters;
     BasicBlockList BasicBlocks;
     std::string IgnorableStructName {};
+    bool DeclarationOnly {false};
 };

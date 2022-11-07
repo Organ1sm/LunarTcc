@@ -453,6 +453,12 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
 
     IRF->CreateNewFunction(Name, ReturnType);
 
+    if (Body == nullptr)
+    {
+        IRF->GetCurrentFunction()->SetToDeclarationOnly();
+        return nullptr;
+    }
+
     if (ImplicitStructPtr)
     {
         IRF->AddToSymbolTable(ImplicitStructPtr->GetName(), ImplicitStructPtr.get());
@@ -1333,7 +1339,8 @@ void FunctionDeclaration::ASTDump(unsigned int tab)
     for (auto &Argument : Arguments)
         Argument->ASTDump(tab + 2);
 
-    Body->ASTDump(tab + 2);
+    if (Body)
+        Body->ASTDump(tab + 2);
 }
 
 Type FunctionDeclaration::CreateType(const Type &t,
