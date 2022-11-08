@@ -39,7 +39,7 @@ class IRtoLLIR
     void Reset();
 
     void GenerateLLIRFromIR();
-    MachineOperand GetMachineOperandFromValue(Value *Val, MachineFunction *MF);
+    MachineOperand GetMachineOperandFromValue(Value *Val);
 
     MachineIRModule *GetMachineIRModule() { return TU; }
 

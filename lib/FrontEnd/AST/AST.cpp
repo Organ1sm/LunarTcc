@@ -388,7 +388,7 @@ Value *ReturnStatement::IRCodegen(IRFactory *IRF)
     IRF->GetCurrentFunction()->SetReturnNumber(RetNum - 1);
 
     bool HasRetVal =
-        ReturnValue.has_value() || !IRF->GetCurrentFunction()->IsReturnTypeVoid();
+        ReturnValue.has_value() && !IRF->GetCurrentFunction()->IsReturnTypeVoid();
 
     Value *RetVal = HasRetVal ? ReturnValue.value()->IRCodegen(IRF) : nullptr;
 
