@@ -71,9 +71,21 @@ void PreAllocateReturnRegister(MachineFunction &Func,
     }
 }
 
-PhysicalReg
-    GetNextAvaiableReg(uint8_t BitSize, std::vector<PhysicalReg> &Pool, TargetMachine *TM)
+PhysicalReg GetNextAvaiableReg(uint8_t BitSize,
+                               std::vector<PhysicalReg> &Pool,
+                               std::vector<PhysicalReg> &BackupPool,
+                               TargetMachine *TM,
+                               MachineFunction &MFunc)
 {
+    assert(!(Pool.empty() && BackupPool.empty()) && "Ran out of registers");
+
+    if (Pool.empty())
+    {
+        Pool.push_back(BackupPool[0]);
+        MFunc.GetUsedCalleeSavedRegs().push_back(BackupPool[0]);
+        BackupPool.erase(BackupPool.begin());
+    }
+
     unsigned loopCounter = 0;
     for (auto UnAllocatedReg : Pool)
     {
@@ -119,9 +131,16 @@ void RegisterAllocator::RunRA()
         std::map<VirtualReg, PhysicalReg> AllocatedRegisters;
         std::vector<PhysicalReg> RegisterPool;    // available registers
 
+        // Used if run out of caller saved registers
+        std::vector<PhysicalReg> BackupRegisterPool;
+
         // Initialize the usable register's pool
         for (auto TargetReg : TM->GetABI()->GetCallerSavedRegisters())
             RegisterPool.push_back(TargetReg->GetID());
+
+        // Initialize the backup register pool with the callee saved ones
+        for (auto TargetReg : TM->GetABI()->GetCalleeSavedRegisters())
+            BackupRegisterPool.push_back(TargetReg->GetID());
 
         PreAllocateParameters(Func, TM, AllocatedRegisters, LiveRanges);
         PreAllocateReturnRegister(Func, TM, AllocatedRegisters);
@@ -155,8 +174,8 @@ void RegisterAllocator::RunRA()
                 for (std::size_t i = 0; i < Instr.GetOperandsNumber(); i++)
                 {
                     auto &Operand = Instr.GetOperands()[i];
-                    if (Operand.IsVirtualReg() || Operand.IsParameter()
-                        || Operand.IsMemory())
+                    if (Operand.IsVirtualReg() || Operand.IsParameter() ||
+                        Operand.IsMemory())
                     {
                         auto UsedReg = Operand.GetReg();
 
@@ -228,7 +247,11 @@ void RegisterAllocator::RunRA()
             if (AllocatedRegisters.count(VReg) == 0)
             {
                 AllocatedRegisters[VReg] =
-                    GetNextAvaiableReg(VRegToMOMap[VReg]->GetSize(), RegisterPool, TM);
+                    GetNextAvaiableReg(VRegToMOMap[VReg]->GetSize(),
+                                       RegisterPool,
+                                       BackupRegisterPool,
+                                       TM,
+                                       Func);
 
                 FreeAbleWorkList.push_back({VReg, DefLine, KillLine});
             }
