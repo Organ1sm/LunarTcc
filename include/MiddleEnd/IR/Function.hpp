@@ -8,6 +8,7 @@
 #include "MiddleEnd/IR/BasicBlock.hpp"
 
 class IRType;
+class Value;
 class BasicBlock;
 class FunctionParameter;
 
@@ -38,6 +39,16 @@ class Function
     void SetToDeclarationOnly() { DeclarationOnly = true; }
     bool IsDeclarationOnly() const { return DeclarationOnly; }
 
+    unsigned GetReturnNumber() const { return ReturnNumber; }
+    void SetReturnNumber(unsigned N) { ReturnNumber = N; }
+
+    /// If the function had multiple return value, then this field was set
+    /// therefore it is also usable as a predicate
+    bool HasMultipleReturn() const { return ReturnValue != nullptr; }
+
+    Value *GetReturnValue() const { return ReturnValue; }
+    void SetReturnValue(Value *V) { ReturnValue = V; }
+
     void CreateBasicBlock();
 
     void Insert(std::unique_ptr<BasicBlock> BB);
@@ -50,6 +61,9 @@ class Function
     IRType ReturnType;
     ParameterList Parameters;
     BasicBlockList BasicBlocks;
+
     std::string IgnorableStructName {};
     bool DeclarationOnly {false};
+    unsigned ReturnNumber {0};
+    Value *ReturnValue {nullptr};
 };

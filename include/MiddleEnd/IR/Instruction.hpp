@@ -164,6 +164,7 @@ class JumpInstruction : public Instruction
         : Instruction(InstructionKind::Jump, P, IRType(IRType::None)), Target(D)
     {}
 
+    BasicBlock *GetTargetBB() { return Target; }
     void SetTargetBB(BasicBlock *T) { Target = T; }
 
     std::string &GetTargetLabelName();

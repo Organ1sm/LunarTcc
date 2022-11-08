@@ -258,7 +258,7 @@ bool AArch64TargetMachine::SelectMov(MachineInstruction *MI)
 
     if (MI->GetOperand(1)->IsImmediate())
     {
-        assert(IsUInt<16>(MI->GetOperand(1)->GetImmediate()) &&
+        assert(IsInt<16>(MI->GetOperand(1)->GetImmediate()) &&
                "Invalid immediate value");
         MI->SetOpcode(MOV_ri);
     }

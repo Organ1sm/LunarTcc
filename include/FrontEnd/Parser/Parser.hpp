@@ -117,4 +117,7 @@ class Parser
 
     /// Used for determining if implicit cast need or not in return statements
     Type CurrentFuncRetType {Type::Invalid};
+
+    /// The amount of return seen in the current function.
+    unsigned ReturnNumber = 0;
 };

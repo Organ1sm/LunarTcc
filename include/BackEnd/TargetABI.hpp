@@ -1,5 +1,4 @@
-#ifndef LUNARTCC_TARGETABI_HPP
-#define LUNARTCC_TARGETABI_HPP
+#pragma once
 
 #include <vector>
 #include "BackEnd/TargetRegister.hpp"
@@ -43,5 +42,3 @@ class TargetABI
     RegList CallerSavedRegisters;
     RegList ReturnRegisters;
 };
-
-#endif    // !LUNARTCC_TARGETABI_HPP

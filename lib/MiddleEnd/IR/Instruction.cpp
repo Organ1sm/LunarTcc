@@ -129,12 +129,12 @@ void CompareInstruction::Print() const
 
 void CallInstruction::Print() const
 {
-    std::string Format = "{RetValue}, {FuncName}({Args})\n";
+    std::string Format = "{RetValue}{FuncName}({Args})\n";
     std::string RetValue {};
     std::string ArgsStr {};
 
     if (!ValueType.IsVoid())
-        RetValue = ValueString();
+        RetValue = ValueString() + ", ";
 
     int i = 0;
     for (auto Arg : Arguments)
