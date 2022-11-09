@@ -48,9 +48,8 @@ int Lexer::GetNextChar()
     if (LineIndex < Source.size() && Source[LineIndex].length() == 0)
         EatNextChar();
 
-    if (LineIndex >= Source.size()
-        || (LineIndex == Source.size() - 1
-            && (ColumnIndex == Source[LineIndex].length())))
+    if (LineIndex >= Source.size() ||
+        (LineIndex == Source.size() - 1 && (ColumnIndex == Source[LineIndex].length())))
         return EOF;
 
     return Source[LineIndex][ColumnIndex];
@@ -238,8 +237,28 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::Assign;
             }
             break;
-        case '<': TokenKind = Token::Less; break;
-        case '>': TokenKind = Token::Greater; break;
+        case '<':
+            if (GetNextNthCharOnSameLine(1) == '=')
+            {
+                TokenKind = Token::LessEqual;
+                Size      = 2;
+            }
+            else
+            {
+                TokenKind = Token::Less;
+            }
+            break;
+        case '>':
+            if (GetNextNthCharOnSameLine(1) == '=')
+            {
+                TokenKind = Token::GreaterEqual;
+                Size      = 2;
+            }
+            else
+            {
+                TokenKind = Token::Greater;
+            }
+            break;
         case '!':
             if (GetNextNthCharOnSameLine(1) == '=')
             {
@@ -318,8 +337,8 @@ Token Lexer::Lex(bool LookAhead)
     std::string WhiteSpaceChars("\t\n\v\f\r ");
 
     // consume white space characters
-    while (WhiteSpaceChars.find(CurrentCharacter) != std::string::npos
-           || CurrentCharacter == '\0')
+    while (WhiteSpaceChars.find(CurrentCharacter) != std::string::npos ||
+           CurrentCharacter == '\0')
     {
         EatNextChar();
         CurrentCharacter = GetNextChar();

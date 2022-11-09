@@ -16,12 +16,12 @@ AArch64TargetABI::AArch64TargetABI(RegisterInfo *RI)
         ReturnRegisters.push_back(RI->GetRegister(i));
     }
 
-    // sp reg
-    CalleeSavedRegisters.push_back(RI->GetRegister(RI->GetStackRegister()));
-    // fp reg
-    CalleeSavedRegisters.push_back(RI->GetRegister(RI->GetFrameRegister()));
-    // lr reg
-    CalleeSavedRegisters.push_back(RI->GetRegister(RI->GetFrameRegister()));
+    // // sp reg
+    // CalleeSavedRegisters.push_back(RI->GetRegister(RI->GetStackRegister()));
+    // // fp reg
+    // CalleeSavedRegisters.push_back(RI->GetRegister(RI->GetFrameRegister()));
+    // // lr reg
+    // CalleeSavedRegisters.push_back(RI->GetRegister(RI->GetFrameRegister()));
 
     // x19 - x28 regs
     for (int i = 51; i <= 60; i++)

@@ -384,13 +384,21 @@ Value *ContinueStatement::IRCodegen(IRFactory *IRF)
 
 Value *ReturnStatement::IRCodegen(IRFactory *IRF)
 {
-    if (ReturnValue.has_value() == false || IRF->GetCurrentFunction()->IsReturnTypeVoid())
-        return IRF->CreateRet(nullptr);
+    auto RetNum = IRF->GetCurrentFunction()->GetReturnNumber();
+    IRF->GetCurrentFunction()->SetReturnNumber(RetNum - 1);
 
-    auto RetVal = ReturnValue.value()->IRCodegen(IRF);
+    bool HasRetVal =
+        ReturnValue.has_value() && !IRF->GetCurrentFunction()->IsReturnTypeVoid();
 
-    if (RetVal == nullptr)
-        return nullptr;
+    Value *RetVal = HasRetVal ? ReturnValue.value()->IRCodegen(IRF) : nullptr;
+
+    if (IRF->GetCurrentFunction()->HasMultipleReturn())
+    {
+        if (HasRetVal)
+            IRF->CreateStore(RetVal, IRF->GetCurrentFunction()->GetReturnValue());
+
+        return IRF->CreateJump(nullptr);
+    }
 
     return IRF->CreateRet(RetVal);
 }
@@ -452,6 +460,7 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
     }
 
     IRF->CreateNewFunction(Name, ReturnType);
+    IRF->GetCurrentFunction()->SetReturnNumber(ReturnNumber);
 
     if (Body == nullptr)
     {
@@ -490,7 +499,34 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
         }
     }
 
+    // if there are multiple returns, then create a local variable on the stack
+    // which will hold the different return values
+    auto HasMultipleReturn = ReturnNumber > 1 && !ReturnType.IsVoid();
+    if (HasMultipleReturn)
+        IRF->GetCurrentFunction()->SetReturnValue(
+            IRF->CreateSA(Name + ".return", ReturnType));
+
     Body->IRCodegen(IRF);
+
+    // patching JUMP -s with nullptr destination to make them point to the last BB
+    if (HasMultipleReturn)
+    {
+        auto BBName   = Name + "_end";
+        auto RetBB    = std::make_unique<BasicBlock>(BBName, IRF->GetCurrentFunction());
+        auto RetBBPtr = RetBB.get();
+        IRF->InsertBB(std::move(RetBB));
+        auto RetVal = IRF->GetCurrentFunction()->GetReturnValue();
+        auto LD     = IRF->CreateLoad(RetVal->GetType(), RetVal);
+        IRF->CreateRet(LD);
+
+        for (auto &BB : IRF->GetCurrentFunction()->GetBasicBlocks())
+            for (auto &Instr : BB->GetInstructions())
+                if (auto Jump = dynamic_cast<JumpInstruction *>(Instr.get());
+                    Jump && Jump->GetTargetBB() == nullptr)
+                {
+                    Jump->SetTargetBB(RetBBPtr);
+                }
+    }
     return nullptr;
 }
 
@@ -638,6 +674,7 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
     switch (ReturnType)
     {
         case Type::Int: ReturnIRType = IRType(IRType::SInt); break;
+        case Type::UnsignedInt: ReturnIRType = IRType(IRType::UInt); break;
         case Type::Double: ReturnIRType = IRType(IRType::FP, 64); break;
         case Type::Void: ReturnIRType = IRType(IRType::None, 0); break;
         case Type::Composite: {
@@ -649,18 +686,19 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
             StructTemp = IRF->CreateSA(Name + ".temp", ReturnIRType);
 
             // check if the call expression is returning a non pointer struct which is
-            // to big to be returned back. In this case the called function were already
-            // changed to expect an extra struct pointer parameter and use that and
-            // also its no longer returning anything, it returns type now void
-            // In this case we need to
+            // to big to be returned back. In this case the called function were
+            // already changed to expect an extra struct pointer parameter and use
+            // that and also its no longer returning anything, it returns type now
+            // void In this case we need to
             //  -allocating space for the struct, which actually do not needed since
             //   at this point its already done above (StructTemp)
             //  -adding extra parameter which is a pointer to this allocated struct
             //  -change the returned value to this newly allocated struct pointer
-            //  (even though nothing is returned, doing this so subsequent instructions
-            //  can use this struct instead)
+            //  (even though nothing is returned, doing this so subsequent
+            //  instructions can use this struct instead)
             //
-            //  FIXME: maybe an extra load will required since its now a struct pointer
+            //  FIXME: maybe an extra load will required since its now a struct
+            //  pointer
             // but originally the return is a struct (not a pointer)
             auto ReturnIRTypeSize = ReturnIRType.GetByteSize() * 8;
 
@@ -999,6 +1037,8 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
 
 Value *BinaryExpression::IRCodegen(IRFactory *IRF)
 {
+    // TODO: simplify this, specially in case if there are actually multiple
+    // logical operations like "a > 0 && a < 10 && a != 5"
     if (GetOperationKind() == LogicalAnd)
     {
         // goal IR:
@@ -1065,9 +1105,10 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
 
         // False
         IRF->InsertBB(std::move(FalseBB));
-        IRF->CreateStore(IRF->GetConstant((uint64_t)1), Result);
+        IRF->CreateStore(IRF->GetConstant((uint64_t)0), Result);
         IRF->CreateJump(FinalBB.get());
 
+        IRF->InsertBB(std::move(FinalBB));
 
         return Result;
     }
@@ -1164,6 +1205,9 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         case Less: return IRF->CreateCmp(CompareInstruction::LT, L, R);
         case Greater: return IRF->CreateCmp(CompareInstruction::GT, L, R);
         case NotEqual: return IRF->CreateCmp(CompareInstruction::NE, L, R);
+        case GreaterEqual: return IRF->CreateCmp(CompareInstruction::GE, L, R);
+        case LessEqual: return IRF->CreateCmp(CompareInstruction::LE, L, R);
+
         default: assert(!"Unhandled binary instruction type"); break;
     }
 }
@@ -1388,6 +1432,8 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
         case Token::Equal: return Equal;
         case Token::Less: return Less;
         case Token::Greater: return Greater;
+        case Token::LessEqual: return LessEqual;
+        case Token::GreaterEqual: return GreaterEqual;
         case Token::NotEqual: return NotEqual;
         case Token::LogicalAnd: return LogicalAnd;
         default: assert(false && "Invalid binary Operator kind."); break;

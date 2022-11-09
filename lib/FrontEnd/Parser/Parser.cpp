@@ -309,7 +309,7 @@ std::unique_ptr<Node> Parser::ParseExternalDeclaration()
     auto TK                             = GetCurrentToken();
 
     while (IsReturnTypeSpecifier(TK) || lexer.Is(Token::Struct) ||
-           lexer.Is(Token::Enum) || lexer.Is(Token::TypeDef))
+           lexer.Is(Token::Enum) || IsQualifer(TK.GetKind()))
     {
         auto Qualifiers = ParseQualifiers();
         TK              = GetCurrentToken();
@@ -412,6 +412,7 @@ std::unique_ptr<FunctionDeclaration>
     auto NameStr  = Name.GetString();
     InsertToSymbolTable(NameStr, FuncType, true);
 
+    this->ReturnNumber = 0;
     std::unique_ptr<CompoundStatement> Body {nullptr};
     if (lexer.Is(Token::SemiColon))
         Lex();    // eat ';'
@@ -420,7 +421,11 @@ std::unique_ptr<FunctionDeclaration>
 
     SymTabStack.PopSymbolTable();
 
-    return std::make_unique<FunctionDeclaration>(FuncType, NameStr, PL, Body);
+    return std::make_unique<FunctionDeclaration>(FuncType,
+                                                 NameStr,
+                                                 PL,
+                                                 Body,
+                                                 ReturnNumber);
 }
 
 // <ParameterDeclaration> ::= { <TypeSpecifier> '*' <Identifier>? }?
@@ -480,10 +485,20 @@ Type Parser::ParseTypeSpecifier()
 {
     auto TK = GetCurrentToken();
 
-    if (!IsTypeSpecifier(TK))
+    unsigned Qualifiers = 0;
+    if (IsQualifer(TK.GetKind()))
+    {
+        Qualifiers = ParseQualifiers();
+        TK         = GetCurrentToken();
+    }
+
+    if (!IsTypeSpecifier(TK) || (Qualifiers & Type::TypeDef))
         assert(!"Invalid type");
 
-    return ParseType(TK.GetKind());
+    auto ParsedType = ParseType(TK.GetKind());
+    ParsedType.SetQualifiers(Qualifiers);
+
+    return ParsedType;
 }
 
 Node Parser::ParseReturnTypeSpecifier() { return Node(); }
@@ -829,6 +844,7 @@ std::unique_ptr<ForStatement> Parser::ParseForStatement()
 // TODO: we need Explicit type conversioins here as well
 std::unique_ptr<ReturnStatement> Parser::ParseReturnStatement()
 {
+    ReturnNumber++;
     Expect(Token::Return);
 
     auto Expr      = ParseExpression();
@@ -862,7 +878,7 @@ std::unique_ptr<CompoundStatement> Parser::ParseCompoundStatement()
     std::vector<std::unique_ptr<VariableDeclaration>> Declarations;
     std::vector<std::unique_ptr<Statement>> Statements;
 
-    while (IsTypeSpecifier(GetCurrentToken()))
+    while (IsTypeSpecifier(GetCurrentToken()) || IsQualifer(GetCurrentTokenKind()))
         Declarations.push_back(std::move(ParseVariableDeclaration()));
 
     while (lexer.IsNot(Token::RightBrace))
@@ -1030,16 +1046,25 @@ static int GetBinOpPrecedence(Token::TokenKind TK)
         case Token::DivEqual: return 10;
         case Token::LogicalAnd: return 20;
         case Token::And: return 30;
+
+        // ==, != , <=, >=
+        case Token::GreaterEqual:
+        case Token::LessEqual:
         case Token::Equal:
         case Token::NotEqual: return 40;
+
+        /// <, >
         case Token::Less:
         case Token::Greater: return 50;
+
         case Token::Plus:
         case Token::Minus: return 60;
+
         case Token::Mul:
         case Token::Div:
         case Token::Mod: return 70;
         case Token::Not: return 80;
+
         default: return -1;
     }
 }

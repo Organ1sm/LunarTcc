@@ -25,9 +25,10 @@ void IRtoLLIR::Reset()
     IRVregToLLIRVreg.clear();
 }
 
-MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, MachineFunction *MF)
+MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val)
 {
-    assert(Val && MF);
+    assert(Val && CurrentBB && ParentFunction);
+
     if (Val->IsRegister())
     {
         unsigned NextVReg;
@@ -35,31 +36,31 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, MachineFunction 
         // (example: function return values are spilled to the stack),
         // then load the value in first into a VReg and return this VReg as LLIR VReg.
         // TODO: Investigate if this is the appropriate place and way to do this
-        if (MF->IsStackSlot(Val->GetID()) && IRVregToLLIRVreg.count(Val->GetID()) == 0)
+        if (ParentFunction->IsStackSlot(Val->GetID()) &&
+            IRVregToLLIRVreg.count(Val->GetID()) == 0)
         {
             auto Instr = MachineInstruction(MachineInstruction::Load,
-                                            &MF->GetBasicBlocks().back());
+                                            &ParentFunction->GetBasicBlocks().back());
 
-            NextVReg = MF->GetNextAvailableVirtualRegister();
+            NextVReg = ParentFunction->GetNextAvailableVirtualRegister();
             Instr.AddVirtualRegister(NextVReg);
             Instr.AddStackAccess(Val->GetID());
-            MF->GetBasicBlocks().back().InsertInstr(Instr);
 
-            IRVregToLLIRVreg[Val->GetID()] = NextVReg;
+            CurrentBB->InsertInstr(Instr);
         }
         // If the IR VReg is mapped already to an LLIR VReg then use that
         else if (IRVregToLLIRVreg.count(Val->GetID()) > 0)
         {
-            if (MF->IsStackSlot(IRVregToLLIRVreg[Val->GetID()]))
+            if (ParentFunction->IsStackSlot(IRVregToLLIRVreg[Val->GetID()]))
             {
                 auto Instr = MachineInstruction(MachineInstruction::Load,
-                                                &MF->GetBasicBlocks().back());
-                NextVReg   = MF->GetNextAvailableVirtualRegister();
+                                                &ParentFunction->GetBasicBlocks().back());
+                NextVReg   = ParentFunction->GetNextAvailableVirtualRegister();
 
                 Instr.AddVirtualRegister(NextVReg);
                 Instr.AddStackAccess(IRVregToLLIRVreg[Val->GetID()]);
 
-                MF->GetBasicBlocks().back().InsertInstr(Instr);
+                CurrentBB->InsertInstr(Instr);
             }
             else
                 NextVReg = IRVregToLLIRVreg[Val->GetID()];
@@ -67,7 +68,7 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, MachineFunction 
         // Otherwise get the next available LLIR VReg and create a mapping entry
         else
         {
-            NextVReg                       = MF->GetNextAvailableVirtualRegister();
+            NextVReg = ParentFunction->GetNextAvailableVirtualRegister();
             IRVregToLLIRVreg[Val->GetID()] = NextVReg;
         }
 
@@ -115,9 +116,9 @@ MachineInstruction IRtoLLIR::HandleBinaryInstruction(BinaryInstruction *I)
     auto Operation = I->GetInstructionKind();
     auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
 
-    auto Result     = GetMachineOperandFromValue((Value *)I, ParentFunction);
-    auto FirstStep  = GetMachineOperandFromValue(I->GetLHS(), ParentFunction);
-    auto SecondStep = GetMachineOperandFromValue(I->GetRHS(), ParentFunction);
+    auto Result     = GetMachineOperandFromValue((Value *)I);
+    auto FirstStep  = GetMachineOperandFromValue(I->GetLHS());
+    auto SecondStep = GetMachineOperandFromValue(I->GetRHS());
 
     ResultMI.AddOperand(Result);
     ResultMI.AddOperand(FirstStep);
@@ -131,8 +132,8 @@ MachineInstruction IRtoLLIR::HandleUnaryInstruction(UnaryInstruction *I)
     auto Operation = I->GetInstructionKind();
     auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
 
-    auto Result = GetMachineOperandFromValue((Value *)I, ParentFunction);
-    auto Op     = GetMachineOperandFromValue(I->GetOperand(), ParentFunction);
+    auto Result = GetMachineOperandFromValue((Value *)I);
+    auto Op     = GetMachineOperandFromValue(I->GetOperand());
 
     ResultMI.AddOperand(Result);
     ResultMI.AddOperand(Op);
@@ -241,8 +242,7 @@ MachineInstruction IRtoLLIR::HandleStoreInstruction(StoreInstruction *I)
     }
     else
     {
-        ResultMI.AddOperand(
-            GetMachineOperandFromValue(I->GetSavedValue(), ParentFunction));
+        ResultMI.AddOperand(GetMachineOperandFromValue(I->GetSavedValue()));
     }
 
     return ResultMI;
@@ -279,7 +279,7 @@ MachineInstruction IRtoLLIR::HandleLoadInstruction(LoadInstruction *I)
     }
 
     ResultMI.AddAttribute(MachineInstruction::IsLOAD);
-    ResultMI.AddOperand(GetMachineOperandFromValue((Value *)I, ParentFunction));
+    ResultMI.AddOperand(GetMachineOperandFromValue((Value *)I));
 
     if (ParentFunction->IsStackSlot(AddressReg))
         ResultMI.AddStackAccess(AddressReg);
@@ -387,9 +387,19 @@ MachineInstruction IRtoLLIR::HandleCallInstruction(CallInstruction *I)
         {
             Ins = MachineInstruction(MachineInstruction::Mov, CurrentBB);
 
-            Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
-                            TargetArgRegs[ParamCounter]->GetBitWidth());
-            Ins.AddOperand(GetMachineOperandFromValue(Param, ParentFunction));
+            auto Src              = GetMachineOperandFromValue(Param);
+            auto ParamPhysReg     = TargetArgRegs[ParamCounter]->GetID();
+            auto ParamPhysRegSize = TargetArgRegs[ParamCounter]->GetBitWidth();
+
+            if (Src.GetSize() < ParamPhysRegSize)
+            {
+                ParamPhysReg = TargetArgRegs[ParamCounter]->GetSubRegs()[0];
+                ParamPhysRegSize =
+                    TM->GetRegInfo()->GetRegisterByID(ParamPhysReg)->GetBitWidth();
+            }
+
+            Ins.AddRegister(ParamPhysReg, ParamPhysRegSize);
+            Ins.AddOperand(Src);
 
             CurrentBB->InsertInstr(Ins);
             ParamCounter++;
@@ -462,7 +472,7 @@ MachineInstruction IRtoLLIR::HandleBranchInstruction(BranchInstruction *I,
             FalseLabel = bb.GetName().c_str();
     }
 
-    ResultMI.AddOperand(GetMachineOperandFromValue(I->GetCondition(), ParentFunction));
+    ResultMI.AddOperand(GetMachineOperandFromValue(I->GetCondition()));
     ResultMI.AddLabel(TrueLabel);
 
     if (I->HasFalseLabel())
@@ -487,7 +497,7 @@ MachineInstruction IRtoLLIR::HandleGetElemPtrInstruction(GetElemPointerInstructi
     else if (IsStack)
         GoalInst = MachineInstruction(MachineInstruction::StackAddress, CurrentBB);
 
-    auto Dest = GetMachineOperandFromValue((Value *)I, ParentFunction);
+    auto Dest = GetMachineOperandFromValue((Value *)I);
     GoalInst.AddOperand(Dest);
 
     if (IsGlobal)
@@ -500,7 +510,7 @@ MachineInstruction IRtoLLIR::HandleGetElemPtrInstruction(GetElemPointerInstructi
     unsigned ConstantIndexPart = 0;
     bool IndexIsInReg          = false;
     unsigned MULResVReg        = 0;
-    auto IndexReg = GetMachineOperandFromValue(I->GetIndex(), ParentFunction);
+    auto IndexReg              = GetMachineOperandFromValue(I->GetIndex());
     if (I->GetIndex()->IsConstant())
     {
         auto Index = ((Constant *)I->GetIndex())->GetIntValue();
@@ -594,7 +604,7 @@ MachineInstruction IRtoLLIR::HandleGetElemPtrInstruction(GetElemPointerInstructi
     ADD.AddOperand(Dest);
 
     if (IsReg)
-        ADD.AddOperand(GetMachineOperandFromValue(I->GetSource(), ParentFunction));
+        ADD.AddOperand(GetMachineOperandFromValue(I->GetSource()));
     else
         // Otherwise (stack or global case) the base address is loaded in Dest by
         // the preceding STACK_ADDRESS or GLOBAL_ADDRESS instruction
@@ -631,9 +641,9 @@ MachineInstruction IRtoLLIR::HandleCompareInstruction(CompareInstruction *I)
     auto Operation = I->GetInstructionKind();
     auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
 
-    auto Result      = GetMachineOperandFromValue((Value *)I, ParentFunction);
-    auto FirstSrcOp  = GetMachineOperandFromValue(I->GetLHS(), ParentFunction);
-    auto SecondSrcOp = GetMachineOperandFromValue(I->GetRHS(), ParentFunction);
+    auto Result      = GetMachineOperandFromValue((Value *)I);
+    auto FirstSrcOp  = GetMachineOperandFromValue(I->GetLHS());
+    auto SecondSrcOp = GetMachineOperandFromValue(I->GetRHS());
 
     ResultMI.AddOperand(Result);
     ResultMI.AddOperand(FirstSrcOp);
@@ -652,7 +662,7 @@ MachineInstruction IRtoLLIR::HandleReturnInstruction(ReturnInstruction *I)
     if (I->GetRetVal() == nullptr)
         return ResultMI;
 
-    auto Result = GetMachineOperandFromValue(I->GetRetVal(), ParentFunction);
+    auto Result = GetMachineOperandFromValue(I->GetRetVal());
 
     ResultMI.AddOperand(Result);
 
@@ -681,7 +691,7 @@ MachineInstruction IRtoLLIR::HandleReturnInstruction(ReturnInstruction *I)
         auto LoadImm  = MachineInstruction(MachineInstruction::LoadImm, CurrentBB);
 
         LoadImm.AddRegister(RetRegs[0]->GetID(), RetRegs[0]->GetBitWidth());
-        LoadImm.AddOperand(GetMachineOperandFromValue(I->GetRetVal(), ParentFunction));
+        LoadImm.AddOperand(GetMachineOperandFromValue(I->GetRetVal()));
 
         CurrentBB->InsertInstr(LoadImm);
     }
@@ -782,7 +792,7 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
     {
         return HandleBranchInstruction(I, BBS);
     }
-    // Compare Instruction: cmp relation br1, br2
+    // Compare Instruction: cmp relation dest br1, br2
     else if (auto I = dynamic_cast<CompareInstruction *>(Instr); I != nullptr)
     {
         return HandleCompareInstruction(I);
@@ -804,13 +814,19 @@ MachineInstruction IRtoLLIR::ConvertToMachineInstr(Instruction *Instr,
     return {};
 }
 
-void HandleStackAllocation(StackAllocationInstruction *Instr, MachineFunction *Func)
+void HandleStackAllocation(StackAllocationInstruction *Instr,
+                           MachineFunction *Func,
+                           TargetMachine *TM)
 {
     auto ReferedType = Instr->GetType();
     assert(ReferedType.GetPointerLevel() > 0);
     ReferedType.DecrementPointerLevel();
 
-    Func->InsertStackSlot(Instr->GetID(), ReferedType.GetByteSize());
+    auto IsPointer = ReferedType.GetPointerLevel() > 0;
+
+    Func->InsertStackSlot(Instr->GetID(),
+                          IsPointer ? TM->GetPointerSize() / 8 :
+                                      ReferedType.GetByteSize());
 }
 
 void IRtoLLIR::HandleFunctionParams(Function &F, MachineFunction *Func)
@@ -896,7 +912,8 @@ void IRtoLLIR::GenerateLLIRFromIR()
                 if (InstrPtr->IsStackAllocation())
                 {
                     HandleStackAllocation((StackAllocationInstruction *)InstrPtr,
-                                          MFunction);
+                                          MFunction,
+                                          TM);
                     continue;
                 }
 
@@ -907,55 +924,54 @@ void IRtoLLIR::GenerateLLIRFromIR()
 
             BBCounter++;
         }
+    }
 
-        for (auto &GlobalVar : IRM.GetGlobalVars())
+    for (auto &GlobalVar : IRM.GetGlobalVars())
+    {
+        auto Name = ((GlobalVariable *)GlobalVar.get())->GetName();
+        auto Size = GlobalVar->GetTypeRef().GetByteSize();
+
+        auto GD        = GlobalData(Name, Size);
+        auto &InitList = ((GlobalVariable *)GlobalVar.get())->GetInitList();
+
+        if (GlobalVar->GetTypeRef().IsStruct() || GlobalVar->GetTypeRef().IsArray())
         {
-            auto Name = ((GlobalVariable *)GlobalVar.get())->GetName();
-            auto Size = GlobalVar->GetTypeRef().GetByteSize();
-
-            auto GD        = GlobalData(Name, Size);
-            auto &InitList = ((GlobalVariable *)GlobalVar.get())->GetInitList();
-
-            if (GlobalVar->GetTypeRef().IsStruct() || GlobalVar->GetTypeRef().IsArray())
-            {
-                // If the init list is empty, then just allocate Size amount of zeros
-                if (InitList.empty())
-                    GD.InsertAllocation(Size, 0);
-                // if the list is not empty then allocate the appropriate type of memories
-                // with initialization
-                else
-                {
-                    // struct case
-                    if (GlobalVar->GetTypeRef().IsStruct())
-                    {
-                        size_t InitListIndex = 0;
-                        for (auto &MemberType : GlobalVar->GetTypeRef().GetMemberTypes())
-                        {
-                            assert(InitListIndex < InitList.size());
-                            GD.InsertAllocation(MemberType.GetByteSize(),
-                                                InitList[InitListIndex]);
-                            InitListIndex++;
-                        }
-                    }
-                    // array case
-                    else
-                    {
-                        const auto Size =
-                            GlobalVar->GetTypeRef().GetBaseType().GetByteSize();
-                        for (auto InitVal : InitList)
-                            GD.InsertAllocation(Size, InitVal);
-                    }
-                }
-            }
-            // scalar case
-            else if (InitList.empty())
+            // If the init list is empty, then just allocate Size amount of zeros
+            if (InitList.empty())
                 GD.InsertAllocation(Size, 0);
+            // if the list is not empty then allocate the appropriate type of memories
+            // with initialization
             else
             {
-                GD.InsertAllocation(Size, InitList[0]);
+                // struct case
+                if (GlobalVar->GetTypeRef().IsStruct())
+                {
+                    size_t InitListIndex = 0;
+                    for (auto &MemberType : GlobalVar->GetTypeRef().GetMemberTypes())
+                    {
+                        assert(InitListIndex < InitList.size());
+                        GD.InsertAllocation(MemberType.GetByteSize(),
+                                            InitList[InitListIndex]);
+                        InitListIndex++;
+                    }
+                }
+                // array case
+                else
+                {
+                    const auto Size = GlobalVar->GetTypeRef().GetBaseType().GetByteSize();
+                    for (auto InitVal : InitList)
+                        GD.InsertAllocation(Size, InitVal);
+                }
             }
-
-            TU->AddGlobalData(GD);
         }
+        // scalar case
+        else if (InitList.empty())
+            GD.InsertAllocation(Size, 0);
+        else
+        {
+            GD.InsertAllocation(Size, InitList[0]);
+        }
+
+        TU->AddGlobalData(GD);
     }
 }

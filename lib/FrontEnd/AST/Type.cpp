@@ -59,7 +59,6 @@ Type &Type::operator=(Type &&ct)
     return *this;
 }
 
-
 std::vector<unsigned> &Type::GetDimensions()
 {
     assert(IsArray() && "Must be an Array type to access Dimensions.");

@@ -21,7 +21,7 @@ class LowLevelType
 
     bool IsInteger() const { return Type == Integer; }
     bool IsValid() const { return Type != Invalid; }
-    bool IsPointer() const { return Type != Pointer; }
+    bool IsPointer() const { return Type == Pointer; }
 
     static LowLevelType CreateInt(unsigned BW);
     static LowLevelType CreatePtr(unsigned BW = 32);

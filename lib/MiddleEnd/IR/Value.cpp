@@ -23,7 +23,7 @@ std::string Constant::ValueString() const
     if (IsFPConst())
         return std::to_string(std::get<double>(Val));
     else
-        return std::to_string(std::get<uint64_t>(Val));
+        return std::to_string((int64_t)std::get<uint64_t>(Val));
 }
 
 
@@ -44,7 +44,7 @@ void GlobalVariable::Print() const
 
         for (std::size_t i = 0; i < InitList.size(); i++)
         {
-            OutputStr += fmt::format(" {}", InitList[i]);
+            OutputStr += fmt::format("{}", InitList[i]);
             if (i + 1 < InitList.size())
                 OutputStr += ", ";
         }

@@ -33,7 +33,7 @@ class MachineFunction
 
     ParamList GetParameters() { return Parameters; }
     StackFrame &GetStackFrame() { return SF; }
-    PhysRegList &GetUsedCalleeSavedRegs() { return UsedCalleSavedRegs; }
+    PhysRegList &GetUsedCalleeSavedRegs() { return UsedCalleeSavedRegs; }
 
     unsigned GetStackFrameSize() { return SF.GetSize(); }
     unsigned GetStackObjectPosition(unsigned ID) { return SF.GetPosition(ID); }
@@ -59,5 +59,6 @@ class MachineFunction
     /// To keep track what registers were used in the function which must be saved
     /// by the called function if clobbered. This information is used for the
     /// prolog and epilog insertion to restore these registers.
-    PhysRegList UsedCalleSavedRegs;
+    PhysRegList UsedCalleeSavedRegs;
+
 };

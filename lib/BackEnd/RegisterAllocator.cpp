@@ -13,6 +13,7 @@
 #include <tuple>
 #include <vector>
 
+
 using VirtualReg     = unsigned;
 using PhysicalReg    = unsigned;
 using LiveRangeMap   = std::map<VirtualReg, std::pair<unsigned, unsigned>>;
@@ -77,6 +78,8 @@ PhysicalReg GetNextAvaiableReg(uint8_t BitSize,
                                TargetMachine *TM,
                                MachineFunction &MFunc)
 {
+
+    // TODO: implement spilling and remove this assertion then
     assert(!(Pool.empty() && BackupPool.empty()) && "Ran out of registers");
 
     if (Pool.empty())
@@ -200,6 +203,7 @@ void RegisterAllocator::RunRA()
         }
 
 #ifdef DEBUG
+        fmt::print("{:*^60}\n\n", " In Function " + Func.GetName());
         for (const auto &[VReg, LiveRange] : LiveRanges)
         {
             auto [DefLine, KillLine] = LiveRange;
@@ -232,7 +236,7 @@ void RegisterAllocator::RunRA()
         std::sort(SortedLiveRanges.begin(), SortedLiveRanges.end(), Compare);
 
 #ifdef DEBUG
-        std::cout << "SortedLiveRanges" << std::endl;
+        fmt::print("SortedLiveRanges\n");
         for (const auto &[VReg, DefLine, KillLine] : SortedLiveRanges)
             fmt::print("VReg: {}, LiveRange({}, {})\n", VReg, DefLine, KillLine);
         fmt::print("\n");
@@ -296,7 +300,7 @@ void RegisterAllocator::RunRA()
         for (auto [VReg, PhysReg] : AllocatedRegisters)
             fmt::print("VReg: {} to {}\n",
                        VReg,
-                       TM->GetRegInfo->GetRegisterByID(PhysReg)->GetName());
+                       TM->GetRegInfo()->GetRegisterByID(PhysReg)->GetName());
 
         fmt::print("\n\n");
 #endif

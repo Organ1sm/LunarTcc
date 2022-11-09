@@ -362,6 +362,16 @@ class FunctionDeclaration : public Statement
     using ParamVec = std::vector<std::unique_ptr<FunctionParameterDeclaration>>;
 
   public:
+    FunctionDeclaration() = delete;
+    FunctionDeclaration(Type FT,
+                        std::string Name,
+                        ParamVec &Args,
+                        std::unique_ptr<CompoundStatement> &Body,
+                        unsigned RetNum)
+        : FuncType(FT), Name(Name), Arguments(std::move(Args)), Body(std::move(Body)),
+          ReturnNumber(RetNum)
+    {}
+
     Type GetType() { return FuncType; }
     void SetType(Type ft) { FuncType = ft; }
 
@@ -377,18 +387,11 @@ class FunctionDeclaration : public Statement
 
     static Type CreateType(const Type &t, const ParamVec &params);
 
-    FunctionDeclaration() = delete;
-    FunctionDeclaration(Type FT,
-                        std::string Name,
-                        ParamVec &Args,
-                        std::unique_ptr<CompoundStatement> &Body)
-        : FuncType(FT), Name(Name), Arguments(std::move(Args)), Body(std::move(Body))
-    {}
-
     void ASTDump(unsigned int tab = 0) override;
     Value *IRCodegen(IRFactory *IRF) override;
 
   private:
+    unsigned ReturnNumber;
     Type FuncType;
     std::string Name;
     ParamVec Arguments;
@@ -473,6 +476,8 @@ class BinaryExpression : public Expression
         Equal,
         Less,
         Greater,
+        LessEqual,
+        GreaterEqual,
         NotEqual,
         LogicalAnd
     };
@@ -570,13 +575,13 @@ class IntegerLiteralExpression : public Expression
 {
   public:
     unsigned GetValue() { return IntValue; }
-    void SetValue(unsigned v) { IntValue = v; }
+    void SetValue(uint64_t v) { IntValue = v; }
 
     int64_t GetSIntValue() const { return IntValue; }
     uint64_t GetUIntValue() const { return IntValue; }
 
     IntegerLiteralExpression() = delete;
-    IntegerLiteralExpression(unsigned v) : IntValue(v) { SetResultType(Type(Type::Int)); }
+    IntegerLiteralExpression(uint64_t v) : IntValue(v) { SetResultType(Type(Type::Int)); }
 
     void ASTDump(unsigned int tab = 0) override;
     Value *IRCodegen(IRFactory *IRF) override;
