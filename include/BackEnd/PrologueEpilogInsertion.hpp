@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-
 class TargetMachine;
 class MachineIRModule;
 class MachineFunction;

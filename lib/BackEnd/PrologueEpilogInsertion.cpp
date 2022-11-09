@@ -12,11 +12,6 @@
 static int NextStackSlot = 0;
 std::map<unsigned, unsigned> LocalPhysRegToStackSlotMap;
 
-/// TODO: Solve the stack issue: inserting physregs can collide with existing
-/// stack slot with the same ID
-static int NextStackSlot = 0;
-std::map<unsigned, unsigned> LocalPhysRegToStackSlotMap;
-
 MachineInstruction
     PrologueEpilogInsertion::CreateAddInstruction(int64_t StackAdjustmentSize)
 {
@@ -47,6 +42,7 @@ void PrologueEpilogInsertion::InsertLinkRegisterSave(MachineFunction &Func)
 
     auto LROffset = Func.GetStackObjectPosition(
         LocalPhysRegToStackSlotMap[TM->GetRegInfo()->GetLinkRegister()]);
+    LROffset = GetNextAlignedValue(LROffset, 16);
 
     auto SPReg = TM->GetRegInfo()->GetStackRegister();
     auto Dest  = TM->GetRegInfo()->GetLinkRegister();
@@ -67,7 +63,6 @@ void PrologueEpilogInsertion::InsertLinkRegisterReload(MachineFunction &Func)
 {
     if (!Func.IsCaller())
         return;
-
 
     MachineInstruction LOAD(MachineInstruction::Load, nullptr);
 
@@ -190,11 +185,10 @@ void PrologueEpilogInsertion::Run()
 
         NextStackSlot = 10000;
 
-        for (auto CalleeSavedReg : Func.GetUsedCalleeSavedRegs())
+        for (auto CalleSavedReg : Func.GetUsedCalleeSavedRegs())
         {
-            Func.GetStackFrame().InsertStackSlot(CalleeSavedRegs,
-                                                 TM->GetPointerSize() / 8);
-            LocalPhysRegToStackSlotMap[CalleeSavedRegs] = NextStackSlot++;
+            Func.GetStackFrame().InsertStackSlot(CalleSavedReg, TM->GetPointerSize() / 8);
+            LocalPhysRegToStackSlotMap[CalleSavedReg] = NextStackSlot++;
         }
 
         if (Func.IsCaller())
@@ -205,78 +199,10 @@ void PrologueEpilogInsertion::Run()
         }
 
         InsertStackAdjustmentUpward(Func);
-
         InsertLinkRegisterSave(Func);
         SpillClobberedCalleeSavedRegisters(Func);
         ReloadClobberedCalleeSavedRegisters(Func);
         InsertLinkRegisterReload(Func);
-
         InsertStackAdjustmentDownward(Func);
-    }
-}
-
-MachineInstruction PrologueEpilogInsertion::CreateStore(MachineFunction &Func,
-                                                        unsigned Register)
-{
-    MachineInstruction STR(MachineInstruction::Store, nullptr);
-
-    auto Offset =
-        GetNextAlignedValue(Func.GetStackObjectPosition(Register), TM->GetPointerSize());
-
-    auto SPReg = TM->GetRegInfo()->GetStackRegister();
-
-    STR.AddRegister(Register, TM->GetPointerSize());
-    STR.AddRegister(SPReg);
-    STR.AddImmediate(Offset);
-
-    if (!TM->SelectInstruction(&STR))
-        assert(!"Unable to select instruciton.");
-
-    return STR;
-}
-
-MachineInstruction PrologueEpilogInsertion::CreateLoad(MachineFunction &Func,
-                                                       unsigned Register)
-{
-    MachineInstruction LOAD(MachineInstruction::Load, nullptr);
-
-    auto Offset =
-        GetNextAlignedValue(Func.GetStackObjectPosition(Register), TM->GetPointerSize());
-
-    auto SPReg = TM->GetRegInfo()->GetStackRegister();
-
-    LOAD.AddRegister(Register, TM->GetPointerSize());
-    LOAD.AddRegister(SPReg);
-    LOAD.AddImmediate(Offset);
-
-    if (!TM->SelectInstruction(&LOAD))
-        assert(!"Unable to select instruciton.");
-
-    return LOAD;
-}
-
-void PrologueEpilogInsertion::SpillClobberedCalleeSavedRegisters(MachineFunction &Func)
-{
-    unsigned Counter                = 0;
-    const unsigned StartOfInsertion = Func.IsCaller() ? 2 : 1;
-
-    for (auto Reg : Func.GetUsedCalleeSavedRegs())
-    {
-        auto STR = CreateStore(Func, LocalPhysRegToStackSlotMap[Reg]);
-        Func.GetBasicBlocks().front().InsertInstr(STR, StartOfInsertion + Counter);
-        Counter++;
-    }
-}
-
-void PrologueEpilogInsertion::ReloadClobberedCalleeSavedRegisters(MachineFunction &Func)
-{
-    unsigned Counter = 0;
-    auto &LastBB     = Func.GetBasicBlocks().back();
-
-    for (auto Reg : Func.GetUsedCalleeSavedRegs())
-    {
-        auto LOAD = CreateLoad(Func, LocalPhysRegToStackSlotMap[Reg]);
-        LastBB.InsertInstr(LOAD, LastBB.GetInstructions().size() - 1 - Counter);
-        Counter++;
     }
 }

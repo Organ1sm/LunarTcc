@@ -78,7 +78,6 @@ PhysicalReg GetNextAvaiableReg(uint8_t BitSize,
                                TargetMachine *TM,
                                MachineFunction &MFunc)
 {
-
     // TODO: implement spilling and remove this assertion then
     assert(!(Pool.empty() && BackupPool.empty()) && "Ran out of registers");
 
