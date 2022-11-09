@@ -1,5 +1,4 @@
-#ifndef LUNARTCC_LEXER_H
-#define LUNARTCC_LEXER_H
+#pragma once
 
 #include "FrontEnd/Lexer/Token.hpp"
 #include <cassert>
@@ -43,4 +42,3 @@ class Lexer
     unsigned LineIndex;
     unsigned ColumnIndex;
 };
-#endif

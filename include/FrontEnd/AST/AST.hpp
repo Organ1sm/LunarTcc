@@ -476,6 +476,8 @@ class BinaryExpression : public Expression
         Equal,
         Less,
         Greater,
+        LessEqual,
+        GreaterEqual,
         NotEqual,
         LogicalAnd
     };
@@ -573,13 +575,13 @@ class IntegerLiteralExpression : public Expression
 {
   public:
     unsigned GetValue() { return IntValue; }
-    void SetValue(unsigned v) { IntValue = v; }
+    void SetValue(uint64_t v) { IntValue = v; }
 
     int64_t GetSIntValue() const { return IntValue; }
     uint64_t GetUIntValue() const { return IntValue; }
 
     IntegerLiteralExpression() = delete;
-    IntegerLiteralExpression(unsigned v) : IntValue(v) { SetResultType(Type(Type::Int)); }
+    IntegerLiteralExpression(uint64_t v) : IntValue(v) { SetResultType(Type(Type::Int)); }
 
     void ASTDump(unsigned int tab = 0) override;
     Value *IRCodegen(IRFactory *IRF) override;

@@ -1205,6 +1205,9 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         case Less: return IRF->CreateCmp(CompareInstruction::LT, L, R);
         case Greater: return IRF->CreateCmp(CompareInstruction::GT, L, R);
         case NotEqual: return IRF->CreateCmp(CompareInstruction::NE, L, R);
+        case GreaterEqual: return IRF->CreateCmp(CompareInstruction::GE, L, R);
+        case LessEqual: return IRF->CreateCmp(CompareInstruction::LE, L, R);
+
         default: assert(!"Unhandled binary instruction type"); break;
     }
 }
@@ -1429,6 +1432,8 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
         case Token::Equal: return Equal;
         case Token::Less: return Less;
         case Token::Greater: return Greater;
+        case Token::LessEqual: return LessEqual;
+        case Token::GreaterEqual: return GreaterEqual;
         case Token::NotEqual: return NotEqual;
         case Token::LogicalAnd: return LogicalAnd;
         default: assert(false && "Invalid binary Operator kind."); break;

@@ -44,7 +44,7 @@ void GlobalVariable::Print() const
 
         for (std::size_t i = 0; i < InitList.size(); i++)
         {
-            OutputStr += fmt::format(" {}", InitList[i]);
+            OutputStr += fmt::format("{}", InitList[i]);
             if (i + 1 < InitList.size())
                 OutputStr += ", ";
         }

@@ -10,9 +10,9 @@
 #include <cassert>
 #include <string>
 
-
 void AssemblyEmitter::GenerateAssembly()
 {
+    unsigned FunctionCounter = 0;
     for (auto &Func : MIRM->GetFunctions())
     {
         fmt::print(".globl\t{}\n", Func.GetName());
@@ -23,7 +23,7 @@ void AssemblyEmitter::GenerateAssembly()
         for (auto &BB : Func.GetBasicBlocks())
         {
             if (!IsFirstBB)
-                fmt::print(".L{}:\n", BB.GetName());
+                fmt::print(".L{}_{}:\n", FunctionCounter, BB.GetName());
             else
                 IsFirstBB = false;
 
@@ -82,12 +82,13 @@ void AssemblyEmitter::GenerateAssembly()
                         AssemblyTemplateStr.replace(DollarPos, 2, ImmStr);
                     }
                     // Label and FunctionName (func call) case
-                    else if (CurrentOperand->IsLabel() || CurrentOperand->IsGlobalSymbol()
-                             || CurrentOperand->IsFunctionName())
+                    else if (CurrentOperand->IsLabel() ||
+                             CurrentOperand->IsGlobalSymbol() ||
+                             CurrentOperand->IsFunctionName())
                     {
                         std::string Str = "";
                         if (CurrentOperand->IsLabel())
-                            Str += ".L";
+                            Str += fmt::format(".L{}_", FunctionCounter);
 
                         if (!CurrentOperand->IsGlobalSymbol())
                             Str.append(CurrentOperand->GetLabel());
@@ -114,6 +115,7 @@ void AssemblyEmitter::GenerateAssembly()
             }
         }
         fmt::print("\n");
+        FunctionCounter++;
     }
     if (!MIRM->GetGlobalDatas().empty())
         fmt::print(".section .data\n");

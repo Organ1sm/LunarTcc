@@ -186,8 +186,6 @@ bool AArch64TargetMachine::SelectCmp(MachineInstruction *MI)
     return false;
 }
 
-
-
 bool AArch64TargetMachine::SelectSExt(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 2 && "SEXT must have 2 operands");
@@ -258,8 +256,7 @@ bool AArch64TargetMachine::SelectMov(MachineInstruction *MI)
 
     if (MI->GetOperand(1)->IsImmediate())
     {
-        assert(IsInt<16>(MI->GetOperand(1)->GetImmediate()) &&
-               "Invalid immediate value");
+        assert(IsInt<16>(MI->GetOperand(1)->GetImmediate()) && "Invalid immediate value");
         MI->SetOpcode(MOV_ri);
     }
     else
@@ -288,6 +285,9 @@ bool AArch64TargetMachine::SelectLoad(MachineInstruction *MI)
     if (OprType.GetBitWidth() == 8 && !OprType.IsPointer())
     {
         MI->SetOpcode(LDRB);
+        if (MI->GetOperand(0)->GetSize() < 32)
+            MI->GetOperand(0)->GetTypeRef().SetBitWidth(32);
+
         return true;
     }
 
@@ -300,6 +300,8 @@ bool AArch64TargetMachine::SelectLoad(MachineInstruction *MI)
         if (Size == 1)
         {
             MI->SetOpcode(LDRB);
+            if (MI->GetOperand(0)->GetSize() < 32)
+                MI->GetOperand(0)->GetTypeRef().SetBitWidth(32);
             return true;
         }
         else if (Size == 4)

@@ -20,7 +20,7 @@ void IRType::DecrementPointerLevel()
 void IRType::ReduceDimension()
 {
     if (Dimensions.size() > 0)
-        Dimensions.erase(Dimensions.begin() + (Dimensions.size() - 1u));
+        Dimensions.erase(Dimensions.begin());
 }
 
 std::size_t IRType::GetByteSize() const

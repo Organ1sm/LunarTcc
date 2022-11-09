@@ -13,6 +13,7 @@
 #include <tuple>
 #include <vector>
 
+
 using VirtualReg     = unsigned;
 using PhysicalReg    = unsigned;
 using LiveRangeMap   = std::map<VirtualReg, std::pair<unsigned, unsigned>>;
@@ -71,9 +72,22 @@ void PreAllocateReturnRegister(MachineFunction &Func,
     }
 }
 
-PhysicalReg
-    GetNextAvaiableReg(uint8_t BitSize, std::vector<PhysicalReg> &Pool, TargetMachine *TM)
+PhysicalReg GetNextAvaiableReg(uint8_t BitSize,
+                               std::vector<PhysicalReg> &Pool,
+                               std::vector<PhysicalReg> &BackupPool,
+                               TargetMachine *TM,
+                               MachineFunction &MFunc)
 {
+    // TODO: implement spilling and remove this assertion then
+    assert(!(Pool.empty() && BackupPool.empty()) && "Ran out of registers");
+
+    if (Pool.empty())
+    {
+        Pool.push_back(BackupPool[0]);
+        MFunc.GetUsedCalleeSavedRegs().push_back(BackupPool[0]);
+        BackupPool.erase(BackupPool.begin());
+    }
+
     unsigned loopCounter = 0;
     for (auto UnAllocatedReg : Pool)
     {
@@ -119,9 +133,16 @@ void RegisterAllocator::RunRA()
         std::map<VirtualReg, PhysicalReg> AllocatedRegisters;
         std::vector<PhysicalReg> RegisterPool;    // available registers
 
+        // Used if run out of caller saved registers
+        std::vector<PhysicalReg> BackupRegisterPool;
+
         // Initialize the usable register's pool
         for (auto TargetReg : TM->GetABI()->GetCallerSavedRegisters())
             RegisterPool.push_back(TargetReg->GetID());
+
+        // Initialize the backup register pool with the callee saved ones
+        for (auto TargetReg : TM->GetABI()->GetCalleeSavedRegisters())
+            BackupRegisterPool.push_back(TargetReg->GetID());
 
         PreAllocateParameters(Func, TM, AllocatedRegisters, LiveRanges);
         PreAllocateReturnRegister(Func, TM, AllocatedRegisters);
@@ -155,8 +176,8 @@ void RegisterAllocator::RunRA()
                 for (std::size_t i = 0; i < Instr.GetOperandsNumber(); i++)
                 {
                     auto &Operand = Instr.GetOperands()[i];
-                    if (Operand.IsVirtualReg() || Operand.IsParameter()
-                        || Operand.IsMemory())
+                    if (Operand.IsVirtualReg() || Operand.IsParameter() ||
+                        Operand.IsMemory())
                     {
                         auto UsedReg = Operand.GetReg();
 
@@ -181,6 +202,7 @@ void RegisterAllocator::RunRA()
         }
 
 #ifdef DEBUG
+        fmt::print("{:*^60}\n\n", " In Function " + Func.GetName());
         for (const auto &[VReg, LiveRange] : LiveRanges)
         {
             auto [DefLine, KillLine] = LiveRange;
@@ -213,7 +235,7 @@ void RegisterAllocator::RunRA()
         std::sort(SortedLiveRanges.begin(), SortedLiveRanges.end(), Compare);
 
 #ifdef DEBUG
-        std::cout << "SortedLiveRanges" << std::endl;
+        fmt::print("SortedLiveRanges\n");
         for (const auto &[VReg, DefLine, KillLine] : SortedLiveRanges)
             fmt::print("VReg: {}, LiveRange({}, {})\n", VReg, DefLine, KillLine);
         fmt::print("\n");
@@ -228,7 +250,11 @@ void RegisterAllocator::RunRA()
             if (AllocatedRegisters.count(VReg) == 0)
             {
                 AllocatedRegisters[VReg] =
-                    GetNextAvaiableReg(VRegToMOMap[VReg]->GetSize(), RegisterPool, TM);
+                    GetNextAvaiableReg(VRegToMOMap[VReg]->GetSize(),
+                                       RegisterPool,
+                                       BackupRegisterPool,
+                                       TM,
+                                       Func);
 
                 FreeAbleWorkList.push_back({VReg, DefLine, KillLine});
             }
@@ -273,7 +299,7 @@ void RegisterAllocator::RunRA()
         for (auto [VReg, PhysReg] : AllocatedRegisters)
             fmt::print("VReg: {} to {}\n",
                        VReg,
-                       TM->GetRegInfo->GetRegisterByID(PhysReg)->GetName());
+                       TM->GetRegInfo()->GetRegisterByID(PhysReg)->GetName());
 
         fmt::print("\n\n");
 #endif

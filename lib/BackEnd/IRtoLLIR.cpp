@@ -924,55 +924,54 @@ void IRtoLLIR::GenerateLLIRFromIR()
 
             BBCounter++;
         }
+    }
 
-        for (auto &GlobalVar : IRM.GetGlobalVars())
+    for (auto &GlobalVar : IRM.GetGlobalVars())
+    {
+        auto Name = ((GlobalVariable *)GlobalVar.get())->GetName();
+        auto Size = GlobalVar->GetTypeRef().GetByteSize();
+
+        auto GD        = GlobalData(Name, Size);
+        auto &InitList = ((GlobalVariable *)GlobalVar.get())->GetInitList();
+
+        if (GlobalVar->GetTypeRef().IsStruct() || GlobalVar->GetTypeRef().IsArray())
         {
-            auto Name = ((GlobalVariable *)GlobalVar.get())->GetName();
-            auto Size = GlobalVar->GetTypeRef().GetByteSize();
-
-            auto GD        = GlobalData(Name, Size);
-            auto &InitList = ((GlobalVariable *)GlobalVar.get())->GetInitList();
-
-            if (GlobalVar->GetTypeRef().IsStruct() || GlobalVar->GetTypeRef().IsArray())
-            {
-                // If the init list is empty, then just allocate Size amount of zeros
-                if (InitList.empty())
-                    GD.InsertAllocation(Size, 0);
-                // if the list is not empty then allocate the appropriate type of memories
-                // with initialization
-                else
-                {
-                    // struct case
-                    if (GlobalVar->GetTypeRef().IsStruct())
-                    {
-                        size_t InitListIndex = 0;
-                        for (auto &MemberType : GlobalVar->GetTypeRef().GetMemberTypes())
-                        {
-                            assert(InitListIndex < InitList.size());
-                            GD.InsertAllocation(MemberType.GetByteSize(),
-                                                InitList[InitListIndex]);
-                            InitListIndex++;
-                        }
-                    }
-                    // array case
-                    else
-                    {
-                        const auto Size =
-                            GlobalVar->GetTypeRef().GetBaseType().GetByteSize();
-                        for (auto InitVal : InitList)
-                            GD.InsertAllocation(Size, InitVal);
-                    }
-                }
-            }
-            // scalar case
-            else if (InitList.empty())
+            // If the init list is empty, then just allocate Size amount of zeros
+            if (InitList.empty())
                 GD.InsertAllocation(Size, 0);
+            // if the list is not empty then allocate the appropriate type of memories
+            // with initialization
             else
             {
-                GD.InsertAllocation(Size, InitList[0]);
+                // struct case
+                if (GlobalVar->GetTypeRef().IsStruct())
+                {
+                    size_t InitListIndex = 0;
+                    for (auto &MemberType : GlobalVar->GetTypeRef().GetMemberTypes())
+                    {
+                        assert(InitListIndex < InitList.size());
+                        GD.InsertAllocation(MemberType.GetByteSize(),
+                                            InitList[InitListIndex]);
+                        InitListIndex++;
+                    }
+                }
+                // array case
+                else
+                {
+                    const auto Size = GlobalVar->GetTypeRef().GetBaseType().GetByteSize();
+                    for (auto InitVal : InitList)
+                        GD.InsertAllocation(Size, InitVal);
+                }
             }
-
-            TU->AddGlobalData(GD);
         }
+        // scalar case
+        else if (InitList.empty())
+            GD.InsertAllocation(Size, 0);
+        else
+        {
+            GD.InsertAllocation(Size, InitList[0]);
+        }
+
+        TU->AddGlobalData(GD);
     }
 }
