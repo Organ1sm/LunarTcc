@@ -574,7 +574,7 @@ class ReferenceExpression : public Expression
 class IntegerLiteralExpression : public Expression
 {
   public:
-    unsigned GetValue() { return IntValue; }
+    int64_t GetValue() { return IntValue; }
     void SetValue(uint64_t v) { IntValue = v; }
 
     int64_t GetSIntValue() const { return IntValue; }
