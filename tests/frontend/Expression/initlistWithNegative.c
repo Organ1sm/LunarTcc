@@ -1,6 +1,6 @@
 // RUN: AArch64
 // FUNC-DECL: int test()
-// TEST-CASE: test() -> 4
+// TEST-CASE: test() -> -4
 
 
 int test()
