@@ -214,12 +214,13 @@ Value *IfStatement::IRCodegen(IRFactory *IRF)
 // <default_case>
 //   # generate default case body
 // <switch_end>
-
 Value *SwitchStatement::IRCodegen(IRFactory *IRF)
 {
     const auto FuncPtr = IRF->GetCurrentFunction();
     auto SwitchEnd     = std::make_unique<BasicBlock>("switch_end", FuncPtr);
     auto DefaultCase   = std::make_unique<BasicBlock>("switch_default", FuncPtr);
+
+    IRF->GetBreakEndBBsTable().push_back(SwitchEnd.get());
 
     auto Cond = Condition->IRCodegen(IRF);
 
@@ -256,12 +257,6 @@ Value *SwitchStatement::IRCodegen(IRFactory *IRF)
             for (auto &Statement : Statements)
             {
                 Statement->IRCodegen(IRF);
-
-                // If the statement is a "break" then insert jump to the default case
-                // here, since cannot generate that jump simply, it would require context
-                if (auto Break = dynamic_cast<BreakStatement *>(Statement.get());
-                    Break != nullptr)
-                    IRF->CreateJump(SwitchEnd.get());
             }
 
             CaseBodies.erase(CaseBodies.begin());
@@ -274,6 +269,7 @@ Value *SwitchStatement::IRCodegen(IRFactory *IRF)
         Statement->IRCodegen(IRF);
 
     IRF->InsertBB(std::move(SwitchEnd));
+    IRF->GetBreakEndBBsTable().pop_back();
 
     return nullptr;
 }
@@ -297,6 +293,7 @@ Value *WhileStatement::IRCodegen(IRFactory *IRF)
     auto HeaderPtr     = Header.get();
 
     IRF->CreateJump(Header.get());
+    IRF->GetBreakEndBBsTable().push_back(LoopEnd.get());
 
     IRF->InsertBB(std::move(Header));
     auto Cond = Condition->IRCodegen(IRF);
@@ -315,9 +312,11 @@ Value *WhileStatement::IRCodegen(IRFactory *IRF)
 
     IRF->InsertBB(std::move(LoopBody));
     Body->IRCodegen(IRF);
+
     IRF->CreateJump(HeaderPtr);
 
     IRF->InsertBB(std::move(LoopEnd));
+    IRF->GetBreakEndBBsTable().pop_back();
 
     return nullptr;
 }
@@ -335,6 +334,8 @@ Value *ForStatement::IRCodegen(IRFactory *IRF)
     auto LoopEnd       = std::make_unique<BasicBlock>("loop_end", FuncPtr);
     auto HeaderPtr     = Header.get();
 
+    IRF->GetLoopIncrementBBsTable().push_back(LoopIncrement.get());
+    IRF->GetBreakEndBBsTable().push_back(LoopEnd.get());
     // Generating code for the initializing expression or the variable initialization and
     // adding and explicit unconditional jump to the loop header basic block
     if (Init)
@@ -362,16 +363,16 @@ Value *ForStatement::IRCodegen(IRFactory *IRF)
     }
 
     IRF->InsertBB(std::move(LoopBody));
-
-    IRF->GetLoopIncrementBBsTable().push_back(LoopIncrement.get());
     Body->IRCodegen(IRF);
-    IRF->GetLoopIncrementBBsTable().erase(IRF->GetLoopIncrementBBsTable().end() - 1);
+
     IRF->CreateJump(LoopIncrement.get());
     IRF->InsertBB(std::move(LoopIncrement));
+    IRF->GetLoopIncrementBBsTable().pop_back();
 
     Increment->IRCodegen(IRF);
     IRF->CreateJump(HeaderPtr);
 
+    IRF->GetBreakEndBBsTable().pop_back();
     IRF->InsertBB(std::move(LoopEnd));
 
     return nullptr;
@@ -380,6 +381,12 @@ Value *ForStatement::IRCodegen(IRFactory *IRF)
 Value *ContinueStatement::IRCodegen(IRFactory *IRF)
 {
     return IRF->CreateJump(IRF->GetLoopIncrementBBsTable().back());
+}
+
+Value *BreakStatement::IRCodegen(IRFactory *IRF)
+{
+    assert(IRF->GetBreakEndBBsTable().size() > 0);
+    return IRF->CreateJump(IRF->GetBreakEndBBsTable().back());
 }
 
 Value *ReturnStatement::IRCodegen(IRFactory *IRF)
@@ -1266,6 +1273,7 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
 //    str [$result], ExprIfFalse
 //    j <end>
 // <end>
+
 Value *TernaryExpression::IRCodegen(IRFactory *IRF)
 {
     const auto FuncPtr = IRF->GetCurrentFunction();

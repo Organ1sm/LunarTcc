@@ -373,3 +373,8 @@ std::vector<BasicBlock *> &IRFactory::GetLoopIncrementBBsTable()
 {
     return LoopIncrementBBsTable;
 }
+
+std::vector<BasicBlock *> &IRFactory::GetBreakEndBBsTable()
+{
+    return BreaksTargetBBsTable;
+}
