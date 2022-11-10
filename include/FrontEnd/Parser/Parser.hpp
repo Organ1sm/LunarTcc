@@ -96,6 +96,7 @@ class Parser
     ExprPtr ParseInitializerListExpression();
     ExprPtr ParseIdentifierExpression();
     ExprPtr ParseConstantExpression();
+    ExprPtr ParseTernaryExpression(ExprPtr Condition);
     ExprPtr ParseBinaryExpressionRHS(int Precedence,
                                      std::unique_ptr<Expression> LeftExpression);
 
