@@ -106,6 +106,7 @@ void PrologueEpilogInsertion::InsertStackAdjustmentDownward(MachineFunction &Fun
     // NOTE: for now assuming that there is only one ret instruction and its
     // the last one of the last basic block, so we want to insert above it
     auto &LastBB = Func.GetBasicBlocks().back();
+    assert(LastBB.GetInstructions().size() > 0);
 
     LastBB.InsertInstr(AddToSP, LastBB.GetInstructions().size() - 1);
 }

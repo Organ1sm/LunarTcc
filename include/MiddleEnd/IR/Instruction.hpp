@@ -256,7 +256,9 @@ class StoreInstruction : public Instruction
   public:
     StoreInstruction(Value *S, Value *D, BasicBlock *P)
         : Instruction(InstructionKind::Store, P, IRType::None), Source(S), Destination(D)
-    {}
+    {
+        assert(Source && Destination);
+    }
 
     Value *GetMemoryLocation() { return Destination; }
     Value *GetSavedValue() { return Source; }

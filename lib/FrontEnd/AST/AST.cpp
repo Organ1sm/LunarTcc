@@ -660,6 +660,7 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
                         IRF->GetConstant((uint64_t)ConstantExpr->GetUIntValue()),
                         GEP);
                 }
+
                 LoopCounter++;
             }
         }
