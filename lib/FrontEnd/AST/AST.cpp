@@ -1529,7 +1529,7 @@ void IntegerLiteralExpression::ASTDump(unsigned int tab)
     auto TyStr = "'" + ResultType.ToString() + "' ";
     Print(TyStr.c_str());
 
-    auto ValStr = "'" + std::to_string(IntValue) + "'";
+    auto ValStr = "'" + std::to_string((int64_t)IntValue) + "'";
     PrintLn(ValStr.c_str());
 }
 

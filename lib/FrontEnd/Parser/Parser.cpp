@@ -878,11 +878,14 @@ std::unique_ptr<CompoundStatement> Parser::ParseCompoundStatement()
     std::vector<std::unique_ptr<VariableDeclaration>> Declarations;
     std::vector<std::unique_ptr<Statement>> Statements;
 
-    while (IsTypeSpecifier(GetCurrentToken()) || IsQualifer(GetCurrentTokenKind()))
-        Declarations.push_back(std::move(ParseVariableDeclaration()));
-
-    while (lexer.IsNot(Token::RightBrace))
-        Statements.push_back(std::move(ParseStatement()));
+    while (IsTypeSpecifier(GetCurrentToken()) || IsQualifer(GetCurrentTokenKind()) ||
+           lexer.IsNot(Token::RightBrace))
+    {
+        if (IsTypeSpecifier(GetCurrentToken()) || IsQualifer(GetCurrentTokenKind()))
+            Declarations.push_back(std::move(ParseVariableDeclaration()));
+        else
+            Statements.push_back(std::move(ParseStatement()));
+    }
 
     Expect(Token::RightBrace);
 
@@ -1264,10 +1267,17 @@ std::unique_ptr<Expression> Parser::ParseArrayExpression(std::unique_ptr<Express
     return std::make_unique<ArrayExpression>(Base, IndexExpr, type);
 }
 
-// <ConstantExpression> ::= [1-9][0-9]*
-//                        | [0-9]+.[0-9]+
+// <ConstantExpression> ::= '-'? [1-9][0-9]*
+//                        | '-'? [0-9]+.[0-9]+
 std::unique_ptr<Expression> Parser::ParseConstantExpression()
 {
+    bool IsNegative = false;
+    if (lexer.Is(Token::Minus))
+    {
+        Lex();
+        IsNegative = true;
+    }
+
     if (lexer.Is(Token::Identifier))
     {
         auto Id    = Expect(Token::Identifier);
@@ -1276,7 +1286,14 @@ std::unique_ptr<Expression> Parser::ParseConstantExpression()
         if (auto SymEntry = SymTabStack.Contains(IdStr))
         {
             if (auto Val = std::get<2>(SymEntry.value()); !Val.IsEmpty())
-                return std::make_unique<IntegerLiteralExpression>(Val.GetIntVal());
+            {
+                auto EnumILExpr =
+                    std::make_unique<IntegerLiteralExpression>(Val.GetIntVal());
+                if (IsNegative)
+                    EnumILExpr->SetValue(-EnumILExpr->GetSIntValue());
+
+                return EnumILExpr;
+            }
             else
                 assert(!"Not an enumerator constant");
         }
@@ -1284,9 +1301,24 @@ std::unique_ptr<Expression> Parser::ParseConstantExpression()
             assert(!"Not an enumerator constant");
     }
     else if (lexer.Is(Token::Integer))
-        return std::make_unique<IntegerLiteralExpression>(ParseIntegerConstant());
+    {
+        auto IntLitExpr =
+            std::make_unique<IntegerLiteralExpression>(ParseIntegerConstant());
+
+        if (IsNegative)
+            IntLitExpr->SetValue(-IntLitExpr->GetSIntValue());
+
+        return IntLitExpr;
+    }
     else
-        return std::make_unique<FloatLiteralExpression>(ParseRealConstant());
+    {
+        auto FPLitExpr = std::make_unique<FloatLiteralExpression>(ParseRealConstant());
+
+        if (IsNegative)
+            FPLitExpr->SetValue(-FPLitExpr->GetValue());
+
+        return FPLitExpr;
+    }
 }
 
 std::unique_ptr<Expression>
