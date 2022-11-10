@@ -270,6 +270,7 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::Not;
             }
             break;
+        case '?': TokenKind = Token::Cond; break;
         case '&':
             if (GetNextNthCharOnSameLine(1) == '&')
             {

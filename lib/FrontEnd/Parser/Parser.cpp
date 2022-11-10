@@ -1098,6 +1098,10 @@ std::unique_ptr<Expression> Parser::ParseBinaryExpression()
     auto LeftExpression = ParseUnaryExpression();
     assert(LeftExpression && "Cannot be Null");
 
+    // TODO: learn llvm
+    if (lexer.Is(Token::Cond))
+        LeftExpression = ParseTernaryExpression(std::move(LeftExpression));
+
     return ParseBinaryExpressionRHS(0, std::move(LeftExpression));
 }
 
@@ -1439,10 +1443,28 @@ std::unique_ptr<Expression>
                      //           BinaryOperator);
         }
 
+        // TODO: This will only work here if the ternary condition was in
+        //  parenthesis, which for the time being is sufficient. Make it work as it
+        //  should.
+        if (lexer.Is(Token::Cond))
+            RightExpression = ParseTernaryExpression(std::move(RightExpression));
+
         LeftExpression = std::make_unique<BinaryExpression>(std::move(LeftExpression),
                                                             BinaryOperator,
                                                             std::move(RightExpression));
     }
+}
+
+// <TernaryExpression> ::= <Expression> '?' <Expression> ':' <Expression>
+std::unique_ptr<Expression> Parser::ParseTernaryExpression(ExprPtr Condition)
+{
+    Expect(Token::Cond);
+
+    auto TrueExpr = ParseExpression();
+    Expect(Token::Colon);
+    auto FalseExpr = ParseExpression();
+
+    return std::make_unique<TernaryExpression>(Condition, TrueExpr, FalseExpr);
 }
 
 // TODO: To report the location of error we would need the token holding the
