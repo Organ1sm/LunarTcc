@@ -258,7 +258,7 @@ class BreakStatement : public Statement
     BreakStatement() = default;
 
     void ASTDump(unsigned tab = 0) override { PrintLn("BreakStatement", tab); }
-    Value *IRCodegen(IRFactory *IRF) override { return nullptr; }
+    Value *IRCodegen(IRFactory *IRF) override ;
 };
 
 class ContinueStatement : public Statement

@@ -96,6 +96,8 @@ class IRFactory
 
     std::vector<BasicBlock *> &GetLoopIncrementBBsTable();
 
+    std::vector<BasicBlock*> &GetBreakEndBBsTable();
+
     TargetMachine *GetTargetMachine() { return TM; }
 
   private:
@@ -134,8 +136,11 @@ class IRFactory
     /// to make it unique.
     std::map<std::string, unsigned> LabelTable;
 
-
     /// For context information for "continue" statements. Containing the pointer
     /// to the basic block which will be the target of the generated jump.
     std::vector<BasicBlock *> LoopIncrementBBsTable;
+
+    /// For context information for "break" statements. Containing the pointer
+    /// to the basic block which will be the target of the generated jump.
+    std::vector<BasicBlock *> BreaksTargetBBsTable;
 };
