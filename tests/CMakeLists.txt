@@ -39,12 +39,12 @@ add_executable(
   ../lib/BackEnd/TargetArchs/AArch64/AArch64TargetABI.cpp
   ../lib/BackEnd/TargetArchs/AArch64/AArch64TargetMachine.cpp
   ../lib/BackEnd/TargetArchs/AArch64/AArch64RegisterInfo.cpp
+  ../lib/BackEnd/TargetArchs/AArch64/AArch64MovFixPass.cpp
   ../lib/BackEnd/TargetArchs/AArch64/AArch64InstructionLegalizer.cpp
   ../lib/BackEnd/TargetArchs/AArch64/AArch64InstructionDefinitions.cpp
   ../lib/BackEnd/TargetArchs/RISCV/RISCVRegisterInfo.cpp
   ../lib/BackEnd/TargetArchs/RISCV/RISCVInstructionDefinitions.cpp
   ../lib/BackEnd/TargetArchs/RISCV/RISCVTargetABI.cpp
-  ../lib/BackEnd/TargetArchs/RISCV/RISCVTargetMachine.cpp
-)
+  ../lib/BackEnd/TargetArchs/RISCV/RISCVTargetMachine.cpp)
 
 target_link_libraries(LunarTcc PRIVATE fmt::fmt)

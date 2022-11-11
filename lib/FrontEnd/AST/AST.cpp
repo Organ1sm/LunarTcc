@@ -722,6 +722,10 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
     {
         case Type::Int: ReturnIRType = IRType(IRType::SInt); break;
         case Type::UnsignedInt: ReturnIRType = IRType(IRType::UInt); break;
+        case Type::Long: ReturnIRType = IRType(IRType::SInt, 64); break;
+        case Type::UnsignedLong: ReturnIRType = IRType(IRType::UInt, 64); break;
+        case Type::LongLong: ReturnIRType = IRType(IRType::SInt, 64); break;
+        case Type::UnsignedLongLong: ReturnIRType = IRType(IRType::UInt, 64); break;
         case Type::Double: ReturnIRType = IRType(IRType::FP, 64); break;
         case Type::Void: ReturnIRType = IRType(IRType::None, 0); break;
         case Type::Composite: {
@@ -758,8 +762,10 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
 
             break;
         }
-        default: break;
+        default: assert(!"Unreachable"); break;
     }
+
+    assert(!ReturnIRType.IsInvalid() && "Must be a valid type.");
 
     // in case if the ret type was a struct, so StructTemp not nullptr
     if (StructTemp)

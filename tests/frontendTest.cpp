@@ -6,6 +6,7 @@
 #include <memory>
 #include <fmt/core.h>
 #include <fmt/color.h>
+#include "BackEnd/TargetArchs/AArch64/AArch64MovFixPass.hpp"
 #include "Utils/ErrorLogger.hpp"
 #include "BackEnd/MachineIRModule.hpp"
 #include "FrontEnd/Lexer/Lexer.hpp"
@@ -204,6 +205,9 @@ int main(int argc, char *argv[])
 
     PrologueEpilogInsertion PEI(&LLIRModule, TM.get());
     PEI.Run();
+
+    if (TargetArch == "aarch64")
+        AArch64MovFixPass(&LLIRModule, TM.get()).Run();
 
     if (PrintBeforePasses)
     {
