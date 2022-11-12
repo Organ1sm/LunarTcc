@@ -32,6 +32,7 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val)
     if (Val->IsRegister())
     {
         unsigned NextVReg;
+        auto BitWidth = Val->GetBitWidth();
         // If the register were spilled,
         // (example: function return values are spilled to the stack),
         // then load the value in first into a VReg and return this VReg as LLIR VReg.
@@ -43,7 +44,7 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val)
                                             &ParentFunction->GetBasicBlocks().back());
 
             NextVReg = ParentFunction->GetNextAvailableVirtualRegister();
-            Instr.AddVirtualRegister(NextVReg);
+            Instr.AddVirtualRegister(NextVReg, BitWidth);
             Instr.AddStackAccess(Val->GetID());
 
             CurrentBB->InsertInstr(Instr);
@@ -57,7 +58,7 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val)
                                                 &ParentFunction->GetBasicBlocks().back());
                 NextVReg   = ParentFunction->GetNextAvailableVirtualRegister();
 
-                Instr.AddVirtualRegister(NextVReg);
+                Instr.AddVirtualRegister(NextVReg, BitWidth);
                 Instr.AddStackAccess(IRVregToLLIRVreg[Val->GetID()]);
 
                 CurrentBB->InsertInstr(Instr);
@@ -72,7 +73,6 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val)
             IRVregToLLIRVreg[Val->GetID()] = NextVReg;
         }
 
-        auto BitWidth = Val->GetBitWidth();
         auto VReg     = MachineOperand::CreateVirtualRegister(NextVReg);
 
         if (Val->GetTypeRef().IsPointer())

@@ -10,7 +10,7 @@ class StackFrame
   public:
     StackFrame() {}
 
-    unsigned GetSize() const { return ObjectSize; }
+    unsigned GetSize() const { return ObjectsSize; }
     unsigned GetEntriesCount() const { return StackSlots.size(); }
 
     // FIXME: Size should be incremented way more sophistaced way. For
@@ -27,7 +27,7 @@ class StackFrame
     void Print() const;
 
   private:
-    unsigned ObjectSize {0};
+    unsigned ObjectsSize {0};
 
     // Maps an object ID to Its size. The order of the entries represents
     // the order of the objects pushed to the stack.

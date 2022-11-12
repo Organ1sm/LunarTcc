@@ -8,7 +8,7 @@ void StackFrame::InsertStackSlot(unsigned int ID, unsigned int Size)
 {
     assert(StackSlots.count(ID) == 0 && "Already existing object on the stack.");
 
-    ObjectSize += Size;
+    ObjectsSize = GetNextAlignedValue(ObjectsSize, Size);
     StackSlots.insert({ID, Size});
 }
 
@@ -20,7 +20,7 @@ unsigned StackFrame::GetPosition(unsigned int ID)
     for (const auto &[ObjectID, ObjectSize] : StackSlots)
     {
         if (ObjectID == ID)
-            return Position;
+            return GetNextAlignedValue(Position, ObjectSize);
 
         Position = GetNextAlignedValue(Position, ObjectSize);
         Position += ObjectSize;
@@ -41,7 +41,7 @@ void StackFrame::Print() const
     unsigned Num         = 0;
     std::string SFFormat = "\t\tPosition: {}, ID: {}, Size: {}\n";
 
-    fmt::print("{:>14}: {}\n", "FrameSize", ObjectSize);
+    fmt::print("{:>14}: {}\n", "FrameSize", ObjectsSize);
 
     for (const auto &[FrameObjID, FrameObjSize] : StackSlots)
     {
