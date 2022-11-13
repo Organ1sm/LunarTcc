@@ -342,7 +342,17 @@ bool AArch64TargetMachine::SelectStore(MachineInstruction *MI)
     assert((MI->GetOperandsNumber() == 2 || MI->GetOperandsNumber() == 3) &&
            "STORE must have 2 or 3 operands");
 
-    if (MI->GetOperand(MI->GetOperandsNumber() - 1)->GetType().GetBitWidth() == 8)
+    MachineFunction *ParentMF {nullptr};
+
+    if (MI->GetOperandsNumber() == 2)
+        ParentMF = MI->GetParent()->GetParent();
+
+    auto BeginOP = MI->GetOperand(0);
+    auto EndOp   = *MI->GetOperand(MI->GetOperandsNumber() - 1);
+
+    if (EndOp.GetType().GetBitWidth() == 8 ||
+        (MI->GetOperandsNumber() == 2 && ParentMF->IsStackSlot(BeginOP->GetSlot()) &&
+         ParentMF->GetStackObjectSize(BeginOP->GetSlot()) == 1))
     {
         MI->SetOpcode(STRB);
         return true;

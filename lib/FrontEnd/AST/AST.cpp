@@ -1112,11 +1112,11 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         auto FalseBB       = std::make_unique<BasicBlock>("false", FuncPtr);
         auto FinalBB       = std::make_unique<BasicBlock>("final", FuncPtr);
 
-
-        auto L = Lhs->IRCodegen(IRF);
-
         // LHS test
         auto Result = IRF->CreateSA("result", IRType::CreateBool());
+        IRF->CreateStore(IRF->GetConstant((uint64_t)0), Result);
+
+        auto L = Lhs->IRCodegen(IRF);
 
         // if L was a compare instruction then just revert its relation
         if (auto LCMP = dynamic_cast<CompareInstruction *>(L); LCMP != nullptr)
@@ -1160,7 +1160,8 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
 
         IRF->InsertBB(std::move(FinalBB));
 
-        return Result;
+        // the result seems to be always an rvalue so loading it also
+        return IRF->CreateLoad(IRType::CreateBool(), Result);
     }
 
     if (GetOperationKind() == Assign)
