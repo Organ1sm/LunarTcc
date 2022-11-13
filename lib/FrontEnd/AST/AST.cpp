@@ -117,9 +117,6 @@ static IRType GetIRTypeFromASTType(Type CT)
 
 Value *CompoundStatement::IRCodegen(IRFactory *IRF)
 {
-    for (auto &Declaration : Declarations)
-        Declaration->IRCodegen(IRF);
-
     for (auto &Statement : Statements)
         Statement->IRCodegen(IRF);
 
@@ -1392,9 +1389,6 @@ void EnumDeclaration::ASTDump(unsigned tab)
 void CompoundStatement::ASTDump(unsigned int tab)
 {
     PrintLn("CompoundStatement ", tab);
-
-    for (auto &d : Declarations)
-        d->ASTDump(tab + 2);
 
     for (auto &s : Statements)
         s->ASTDump(tab + 2);
