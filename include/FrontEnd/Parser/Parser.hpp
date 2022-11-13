@@ -70,7 +70,7 @@ class Parser
     std::vector<std::unique_ptr<FunctionParameterDeclaration>> ParseParameterList();
     std::unique_ptr<MemberDeclaration> ParseMemberDeclaration();
     std::unique_ptr<StructDeclaration> ParseStructDeclaration(unsigned Qualifiers = 0);
-    std::unique_ptr<EnumDeclaration> ParseEnumDeclaration();
+    std::unique_ptr<EnumDeclaration> ParseEnumDeclaration(unsigned Qualifiers);
 
     Type ParseTypeSpecifier();
     Node ParseReturnTypeSpecifier();
