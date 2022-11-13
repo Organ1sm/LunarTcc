@@ -46,28 +46,28 @@ class Token
         Cond,       // '?'
 
         // Multichar Operators
-        Arrow,           // ->
-        Inc,             // ++
-        Dec,             // --
-        Left,            // <<
-        Right,           // >>
-        LessEqual,       // <=
-        GreaterEqual,    // >=
-        Equal,           // ==
-        NotEqual,        // !=
-        LogicalAnd,      // &&
-        LogicalOr,       // ||
-        MulEqual,        // *=
-        DivEqual,        // /=
-        ModEqual,        // %=
-        PlusEqual,       // +=
-        MinusEuqal,      // -=
-        LeftAssign,      // <<=
-        RightAssign,     // >>=
-        XorAssign,       // ^=
-        OrAssign,        // |=
-        AndAssign,       // &=
-        Ellipsis,        // ...
+        Arrow,               // ->
+        Inc,                 // ++
+        Dec,                 // --
+        LeftShift,           // <<
+        RightShift,          // >>
+        LessEqual,           // <=
+        GreaterEqual,        // >=
+        Equal,               // ==
+        NotEqual,            // !=
+        LogicalAnd,          // &&
+        LogicalOr,           // ||
+        MulEqual,            // *=
+        DivEqual,            // /=
+        ModEqual,            // %=
+        PlusEqual,           // +=
+        MinusEuqal,          // -=
+        LeftShiftAssign,     // <<=
+        RightShiftAssign,    // >>=
+        XorAssign,           // ^=
+        OrAssign,            // |=
+        AndAssign,           // &=
+        Ellipsis,            // ...
 
         // Comment
         SingleComment,

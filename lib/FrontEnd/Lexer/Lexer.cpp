@@ -243,6 +243,11 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::LessEqual;
                 Size      = 2;
             }
+            else if (GetNextNthCharOnSameLine(1) == '<')
+            {
+                TokenKind = Token::RightShift;
+                Size      = 2;
+            }
             else
             {
                 TokenKind = Token::Less;
@@ -252,6 +257,11 @@ std::optional<Token> Lexer::LexSymbol()
             if (GetNextNthCharOnSameLine(1) == '=')
             {
                 TokenKind = Token::GreaterEqual;
+                Size      = 2;
+            }
+            else if (GetNextNthCharOnSameLine(1) == '>')
+            {
+                TokenKind = Token::RightShift;
                 Size      = 2;
             }
             else

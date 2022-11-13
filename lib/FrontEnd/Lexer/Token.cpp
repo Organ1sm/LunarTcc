@@ -44,6 +44,8 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Arrow,         "->"         },
     {Inc,           "++"         },
     {Dec,           "--"         },
+    {LeftShift,     "<<"         },
+    {RightShift,    ">>"         },
     {PlusEqual,     "+="         },
     {MinusEuqal,    "-="         },
     {MulEqual,      "*="         },

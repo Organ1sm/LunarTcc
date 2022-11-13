@@ -1518,6 +1518,8 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
         case Token::MinusEuqal: return SubAssign;
         case Token::MulEqual: return MulAssign;
         case Token::DivEqual: return DivAssign;
+        case Token::LeftShift: return LShiftLeft;
+        case Token::RightShift: return LShiftRight;
         case Token::Plus: return Add;
         case Token::Minus: return Sub;
         case Token::Mul: return Mul;
