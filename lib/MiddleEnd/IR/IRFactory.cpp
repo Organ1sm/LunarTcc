@@ -1,6 +1,7 @@
 //
 // Created by Organ1sm.
 //
+#include "MiddleEnd/IR/Instruction.hpp"
 #include "MiddleEnd/IR/Value.hpp"
 #include "MiddleEnd/IR/Module.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
@@ -68,6 +69,16 @@ Instruction *IRFactory::CreateOr(Value *LHS, Value *RHS)
 Instruction *IRFactory::CreateAnd(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::And, LHS, RHS);
+}
+
+Instruction *IRFactory::CreateLSL(Value *LHS, Value *RHS)
+{
+    return CreateBinaryInstruction(Instruction::LSL, LHS, RHS);
+}
+
+Instruction *IRFactory::CreateLSR(Value *LHS, Value *RHS)
+{
+    return CreateBinaryInstruction(Instruction::LSR, LHS, RHS);
 }
 
 UnaryInstruction *IRFactory::CreateMov(Value *Operand, uint8_t BitWidth)

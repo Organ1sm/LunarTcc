@@ -33,6 +33,8 @@ class IRFactory
     Instruction *CreateMod(Value *LHS, Value *RHS);
     Instruction *CreateDivU(Value *LHS, Value *RHS);
     Instruction *CreateModU(Value *LHS, Value *RHS);
+    Instruction *CreateLSL(Value *LHS, Value *RHS);
+    Instruction *CreateLSR(Value *LHS, Value *RHS);
 
     Instruction *CreateOr(Value *LHS, Value *RHS);
     Instruction *CreateAnd(Value *LHS, Value *RHS);
@@ -96,7 +98,7 @@ class IRFactory
 
     std::vector<BasicBlock *> &GetLoopIncrementBBsTable();
 
-    std::vector<BasicBlock*> &GetBreakEndBBsTable();
+    std::vector<BasicBlock *> &GetBreakEndBBsTable();
 
     TargetMachine *GetTargetMachine() { return TM; }
 

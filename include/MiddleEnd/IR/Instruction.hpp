@@ -18,6 +18,8 @@ class Instruction : public Value
         // Arithmetic and Logical
         And,
         Or,
+        LSL,
+        LSR,
         Add,
         Sub,
         Mul,
