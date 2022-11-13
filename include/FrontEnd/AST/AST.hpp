@@ -159,17 +159,9 @@ class StructDeclaration : public Statement
 
 class CompoundStatement : public Statement
 {
-    using DeclVec = std::vector<std::unique_ptr<VariableDeclaration>>;
     using StmtVec = std::vector<std::unique_ptr<Statement>>;
 
   public:
-    DeclVec &GetDeclarations() { return Declarations; }
-    void SetDeclarations(DeclVec &d) { Declarations = std::move(d); }
-    void AddDeclarations(std::unique_ptr<VariableDeclaration> &d)
-    {
-        Declarations.push_back(std::move(d));
-    }
-
     StmtVec &GetStatements() { return Statements; }
     void SetStatements(StmtVec &s) { Statements = std::move(s); }
     void AddStatements(std::unique_ptr<Statement> &s)
@@ -182,15 +174,12 @@ class CompoundStatement : public Statement
     CompoundStatement &operator=(const CompoundStatement &) = delete;
     CompoundStatement(CompoundStatement &&)                 = default;
 
-    CompoundStatement(DeclVec &Decls, StmtVec &Stats)
-        : Declarations(std::move(Decls)), Statements(std::move(Stats))
-    {}
+    CompoundStatement(StmtVec &Stats) : Statements(std::move(Stats)) {}
 
     void ASTDump(unsigned int tab = 0) override;
     Value *IRCodegen(IRFactory *IRF) override;
 
   private:
-    DeclVec Declarations;
     StmtVec Statements;
 };
 
@@ -258,7 +247,7 @@ class BreakStatement : public Statement
     BreakStatement() = default;
 
     void ASTDump(unsigned tab = 0) override { PrintLn("BreakStatement", tab); }
-    Value *IRCodegen(IRFactory *IRF) override ;
+    Value *IRCodegen(IRFactory *IRF) override;
 };
 
 class ContinueStatement : public Statement

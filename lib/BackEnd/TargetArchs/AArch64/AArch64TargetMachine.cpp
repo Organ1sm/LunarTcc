@@ -186,11 +186,18 @@ bool AArch64TargetMachine::SelectCmp(MachineInstruction *MI)
     return false;
 }
 
+bool AArch64TargetMachine::SelectZExt(MachineInstruction *MI) { return SelectSExt(MI); }
+
 bool AArch64TargetMachine::SelectSExt(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 2 && "SEXT must have 2 operands");
 
-    if (MI->GetOperand(1)->GetType().GetBitWidth() == 8)
+    if (MI->GetOperand(1)->IsImmediate())
+    {
+        MI->SetOpcode(MOV_ri);
+        return true;
+    }
+    else if (MI->GetOperand(1)->GetType().GetBitWidth() == 8)
     {
         MI->SetOpcode(SXTB);
         return true;

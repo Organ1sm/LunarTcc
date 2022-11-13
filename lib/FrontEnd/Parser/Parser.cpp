@@ -540,7 +540,26 @@ std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration()
         if (lexer.Is(Token::LeftBrace))
             InitExpr = ParseInitializerListExpression();
         else
+        {
             InitExpr = ParseExpression();
+
+            // if the variable type not match the size of the initializer expression
+            // then also do an Implicit Cast.
+            auto LHS = Ty.GetTypeVariant();
+            auto RHS = InitExpr->GetResultType().GetTypeVariant();
+            if ((LHS != RHS) && !Type::OnlySignednessDifference(LHS, RHS))
+            {
+                if (!Type::IsImplicitlyCastable(RHS, LHS))
+                {
+                    assert(!"Invalid initialization");
+                }
+                else
+                {
+                    InitExpr =
+                        std::make_unique<ImplicitCastExpression>(std::move(InitExpr), Ty);
+                }
+            }
+        }
     }
 
     Expect(Token::SemiColon);
@@ -875,21 +894,20 @@ std::unique_ptr<CompoundStatement> Parser::ParseCompoundStatement()
 {
     Expect(Token::LeftBrace);
 
-    std::vector<std::unique_ptr<VariableDeclaration>> Declarations;
     std::vector<std::unique_ptr<Statement>> Statements;
 
     while (IsTypeSpecifier(GetCurrentToken()) || IsQualifer(GetCurrentTokenKind()) ||
            lexer.IsNot(Token::RightBrace))
     {
         if (IsTypeSpecifier(GetCurrentToken()) || IsQualifer(GetCurrentTokenKind()))
-            Declarations.push_back(std::move(ParseVariableDeclaration()));
+            Statements.push_back(std::move(ParseVariableDeclaration()));
         else
             Statements.push_back(std::move(ParseStatement()));
     }
 
     Expect(Token::RightBrace);
 
-    return std::make_unique<CompoundStatement>(Declarations, Statements);
+    return std::make_unique<CompoundStatement>(Statements);
 }
 
 // <ExpressionStatement> ::= <Expression>? ';'
