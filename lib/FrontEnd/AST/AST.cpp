@@ -1244,6 +1244,8 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
 
     switch (GetOperationKind())
     {
+        case LShiftLeft: return IRF->CreateLSL(L, R);
+        case LShiftRight: return IRF->CreateLSR(L, R);
         case Add: return IRF->CreateAdd(L, R);
         case Sub: return IRF->CreateSub(L, R);
         case Mul: return IRF->CreateMul(L, R);
