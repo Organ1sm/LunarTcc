@@ -39,7 +39,7 @@ class IRtoLLIR
     void Reset();
 
     void GenerateLLIRFromIR();
-    MachineOperand GetMachineOperandFromValue(Value *Val);
+    MachineOperand GetMachineOperandFromValue(Value *Val, bool IsDef = false);
 
     MachineIRModule *GetMachineIRModule() { return TU; }
 
@@ -57,6 +57,9 @@ class IRtoLLIR
     MachineInstruction HandleBranchInstruction(BranchInstruction *I,
                                                std::vector<MachineBasicBlock> &BBs);
 
+    /// return the ID of the Value, but checks if it was mapped and if so then
+    /// returning the mapped value
+    unsigned GetIDFromValue(Value *Val);
 
     void HandleFunctionParams(Function &F, MachineFunction *Func);
     MachineInstruction ConvertToMachineInstr(Instruction *Instr,
