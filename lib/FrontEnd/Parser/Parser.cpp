@@ -324,7 +324,7 @@ std::unique_ptr<Node> Parser::ParseExternalDeclaration()
 
         if (lexer.Is(Token::Enum))
         {
-            TU->AddDeclaration(ParseEnumDeclaration());
+            TU->AddDeclaration(ParseEnumDeclaration(Qualifiers));
             TK = GetCurrentToken();
             continue;
         }
@@ -639,7 +639,7 @@ std::unique_ptr<StructDeclaration> Parser::ParseStructDeclaration(unsigned Quali
 }
 
 // <EnumDeclaration> ::= 'enum' '{' <Identifier> (, <Identifier>)* '}' ';'
-std::unique_ptr<EnumDeclaration> Parser::ParseEnumDeclaration()
+std::unique_ptr<EnumDeclaration> Parser::ParseEnumDeclaration(unsigned Qualifiers)
 {
     Expect(Token::Enum);
     Expect(Token::LeftBrace);
@@ -666,6 +666,13 @@ std::unique_ptr<EnumDeclaration> Parser::ParseEnumDeclaration()
     while (lexer.Is(Token::Comma));
 
     Expect(Token::RightBrace);
+
+    if (Qualifiers & Type::TypeDef)
+    {
+        auto AliasName             = Expect(Token::Identifier).GetString();
+        TypeDefinitions[AliasName] = Type(Type::Int);
+    }
+
     Expect(Token::SemiColon);
 
     return std::make_unique<EnumDeclaration>(Enumerators);
