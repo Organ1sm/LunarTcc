@@ -30,12 +30,12 @@ bool AArch64TargetMachine::SelectLSL(MachineInstruction *MI)
         assert(IsUInt<12>((int64_t)ImmMO->GetImmediate()) &&
                "Immediate must 12 bit wide");
 
-        MI->SetOpcode(SLL_rri);
+        MI->SetOpcode(LSL_rri);
         return true;
     }
     else
     {
-        MI->SetOpcode(SLL_rrr);
+        MI->SetOpcode(LSL_rrr);
         return true;
     }
 
@@ -51,12 +51,12 @@ bool AArch64TargetMachine::SelectLSR(MachineInstruction *MI)
         assert(IsUInt<12>((int64_t)ImmMO->GetImmediate()) &&
                "Immediate must 12 bit wide");
 
-        MI->SetOpcode(SLR_rri);
+        MI->SetOpcode(LSR_rri);
         return true;
     }
     else
     {
-        MI->SetOpcode(SLR_rrr);
+        MI->SetOpcode(LSR_rrr);
         return true;
     }
 

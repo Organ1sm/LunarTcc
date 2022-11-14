@@ -1340,6 +1340,39 @@ std::unique_ptr<Expression> Parser::ParseConstantExpression()
         if (IsNegative)
             IntLitExpr->SetValue(-IntLitExpr->GetSIntValue());
 
+        // TODO: example: 
+        // currently `1 ull` would be valid since the lexer will ignore the
+        // white spaces, make such input invalid
+        if (lexer.Is(Token::Identifier))
+        {
+            auto Str = GetCurrentToken().GetString();
+            if (Str == "u")
+            {
+                Lex();
+                IntLitExpr->SetResultType(Type::UnsignedInt);
+            }
+            else if (Str == "l")
+            {
+                Lex();
+                IntLitExpr->SetResultType(Type::Long);
+            }
+            else if (Str == "ul")
+            {
+                Lex();
+                IntLitExpr->SetResultType(Type::UnsignedLong);
+            }
+            else if (Str == "ll")
+            {
+                Lex();
+                IntLitExpr->SetResultType(Type::LongLong);
+            }
+            else if (Str == "ull")
+            {
+                Lex();
+                IntLitExpr->SetResultType(Type::UnsignedLongLong);
+            }
+        }
+
         return IntLitExpr;
     }
     else
