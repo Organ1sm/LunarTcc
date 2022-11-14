@@ -56,6 +56,7 @@ UnaryExpression::UnaryExpression(Token Op, UnaryExpression::ExprPtr E)
             ResultType = Expr->GetResultType();
             ResultType.DecrementPointerLevel();
             break;
+        case UnaryOperation::Not: ResultType = Type(Type::Int); break;
         case UnaryOperation::Minus:
         case UnaryOperation::PostIncrement:
         case UnaryOperation::PostDecrement: ResultType = Expr->GetResultType(); break;
@@ -1591,6 +1592,7 @@ UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
         case Token::And: return UnaryOperation::Address;
         case Token::Mul: return UnaryOperation::DeRef;
         case Token::Minus: return UnaryOperation::Minus;
+        case Token::Not: return UnaryOperation::Not;
         case Token::Inc: return UnaryOperation::PostIncrement;
         case Token::Dec: return UnaryOperation::PostDecrement;
 
