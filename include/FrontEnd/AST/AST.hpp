@@ -503,7 +503,7 @@ class UnaryExpression : public Expression
     using ExprPtr = std::unique_ptr<Expression>;
 
   public:
-    enum UnaryOperation { Address, DeRef, Minus, PostIncrement, PostDecrement };
+    enum UnaryOperation { Address, DeRef, Minus, Not, PostIncrement, PostDecrement };
 
     UnaryExpression() = default;
     UnaryExpression(Token Op, ExprPtr E);

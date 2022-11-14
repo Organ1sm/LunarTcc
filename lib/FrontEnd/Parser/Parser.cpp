@@ -35,6 +35,7 @@ static bool IsUnaryOperator(Token::TokenKind tk)
     {
         case Token::And:
         case Token::Minus:
+        case Token::Not:
         case Token::Mul: return true;
 
         default: break;
@@ -1094,7 +1095,6 @@ static int GetBinOpPrecedence(Token::TokenKind TK)
         case Token::Mul:
         case Token::Div:
         case Token::Mod: return 80;
-        case Token::Not: return 90;
 
         default: return -1;
     }
