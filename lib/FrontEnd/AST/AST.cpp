@@ -1059,6 +1059,51 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
 
             return IRF->CreateSub(IRF->GetConstant((uint64_t)0), E);
         }
+        case UnaryOperation::Not: {
+            // goal IR:
+            //    # E generated here
+            //    sa $result
+            //    str [$result], 1
+            //    cmp.eq $c1, $E, 0
+            //    br $c1, <end>
+            // <true>
+            //    str [$result], 0
+            //    j <end>
+            // <end>
+
+            const auto FuncPtr = IRF->GetCurrentFunction();
+            auto TrueBB        = std::make_unique<BasicBlock>("not_op_true", FuncPtr);
+            auto FinalBB       = std::make_unique<BasicBlock>("not_op_final", FuncPtr);
+
+            // LHS
+            auto Result = IRF->CreateSA("result", IRType::CreateBool());
+            // default true
+            IRF->CreateStore(IRF->GetConstant((uint64_t)1), Result);
+
+            if (auto LCMP = dynamic_cast<CompareInstruction *>(E); LCMP != nullptr)
+            {
+                LCMP->InvertRelation();
+                IRF->CreateBranch(E, FinalBB.get());
+            }
+            else
+            {
+                auto LHSTest = IRF->CreateCmp(CompareInstruction::EQ,
+                                              E,
+                                              IRF->GetConstant((uint64_t)0));
+                IRF->CreateBranch(LHSTest, FinalBB.get());
+            }
+
+            // true
+            IRF->InsertBB(std::move(TrueBB));
+            IRF->CreateStore(IRF->GetConstant((uint64_t)0), Result);
+            IRF->CreateJump(FinalBB.get());
+
+            IRF->InsertBB(std::move(FinalBB));
+
+
+            // the result seems to be always rvalue so loading it.
+            return IRF->CreateLoad(IRType::CreateBool(), Result);
+        }
 
         case UnaryOperation::PostDecrement:
         case UnaryOperation::PostIncrement: {
