@@ -448,13 +448,13 @@ class BinaryExpression : public Expression
 
   public:
     enum BinaryOperation {
-        Assign,         // a = b
-        AddAssign,      // a += b
-        SubAssign,      // a -= b
-        MulAssign,      // a *= b
-        DivAssign,      // a /= b
-        LShiftLeft,     // a << 1
-        LShiftRight,    // a >> 2
+        Assign,       // a = b
+        AddAssign,    // a += b
+        SubAssign,    // a -= b
+        MulAssign,    // a *= b
+        DivAssign,    // a /= b
+        LSL,          // a << 1
+        LSR,          // a >> 2
         Add,
         Sub,
         Mul,
