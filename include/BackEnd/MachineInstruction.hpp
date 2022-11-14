@@ -16,14 +16,16 @@ class MachineInstruction
         // Arithmetic and Logical
         And = 1 << 16,    // 65536
         Or,               // 65537
-        Add,              // 65538
-        Sub,              // 65539
-        Mul,              // 65540
-        Div,              // 65541
+        LSL,
+        LSR,
+        Add,
+        Sub,
+        Mul,
+        Div,
         DivU,
-        Mod,              // 65542
+        Mod,
         ModU,
-        Cmp,              // 65543
+        Cmp,
 
         // Conversions
         SExt,     // Sign extension
@@ -78,7 +80,7 @@ class MachineInstruction
 
     std::size_t GetOperandsNumber() const { return Operands.size(); }
 
-    MachineOperand *GetOperand(std::size_t Index) ;
+    MachineOperand *GetOperand(std::size_t Index);
     OperandList &GetOperands() { return Operands; }
 
     void AddOperand(MachineOperand MO) { Operands.push_back(MO); }

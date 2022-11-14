@@ -24,6 +24,8 @@ class TargetMachine
 
     bool SelectInstruction(MachineInstruction *MI);
 
+    virtual bool SelectLSL(MachineInstruction *MI) { return false; }
+    virtual bool SelectLSR(MachineInstruction *MI) { return false; }
     virtual bool SelectAdd(MachineInstruction *MI) { return false; }
     virtual bool SelectSub(MachineInstruction *MI) { return false; }
     virtual bool SelectMul(MachineInstruction *MI) { return false; }

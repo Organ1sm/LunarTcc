@@ -1244,8 +1244,8 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
 
     switch (GetOperationKind())
     {
-        case LShiftLeft: return IRF->CreateLSL(L, R);
-        case LShiftRight: return IRF->CreateLSR(L, R);
+        case LSL: return IRF->CreateSLL(L, R);
+        case LSR: return IRF->CreateSLR(L, R);
         case Add: return IRF->CreateAdd(L, R);
         case Sub: return IRF->CreateSub(L, R);
         case Mul: return IRF->CreateMul(L, R);
@@ -1520,8 +1520,8 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
         case Token::MinusEuqal: return SubAssign;
         case Token::MulEqual: return MulAssign;
         case Token::DivEqual: return DivAssign;
-        case Token::LeftShift: return LShiftLeft;
-        case Token::RightShift: return LShiftRight;
+        case Token::LeftShift: return LSL;
+        case Token::RightShift: return LSR;
         case Token::Plus: return Add;
         case Token::Minus: return Sub;
         case Token::Mul: return Mul;
