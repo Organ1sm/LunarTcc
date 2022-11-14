@@ -21,6 +21,48 @@ AArch64TargetMachine::AArch64TargetMachine()
     this->Legalizer = std::make_unique<AArch64InstructionLegalizer>(this);
 }
 
+bool AArch64TargetMachine::SelectLSL(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 3 && "SLL must have 3 operands");
+
+    if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
+    {
+        assert(IsUInt<12>((int64_t)ImmMO->GetImmediate()) &&
+               "Immediate must 12 bit wide");
+
+        MI->SetOpcode(SLL_rri);
+        return true;
+    }
+    else
+    {
+        MI->SetOpcode(SLL_rrr);
+        return true;
+    }
+
+    return false;
+}
+
+bool AArch64TargetMachine::SelectLSR(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 3 && "SLR must have 3 operands");
+
+    if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
+    {
+        assert(IsUInt<12>((int64_t)ImmMO->GetImmediate()) &&
+               "Immediate must 12 bit wide");
+
+        MI->SetOpcode(SLR_rri);
+        return true;
+    }
+    else
+    {
+        MI->SetOpcode(SLR_rrr);
+        return true;
+    }
+
+    return false;
+}
+
 bool AArch64TargetMachine::SelectAdd(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 3 && "Add must have 3 operands");

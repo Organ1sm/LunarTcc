@@ -88,6 +88,8 @@ void MachineInstruction::Print(TargetMachine *TM) const
     {
         case OperationCode::And: OpcodeStr = "And"; break;
         case OperationCode::Or: OpcodeStr = "Or"; break;
+        case OperationCode::LSL: OpcodeStr = "LSL"; break;
+        case OperationCode::LSR: OpcodeStr = "LSR"; break;
         case OperationCode::Add: OpcodeStr = "Add"; break;
         case OperationCode::Sub: OpcodeStr = "Sub"; break;
         case OperationCode::Mul: OpcodeStr = "Mul"; break;

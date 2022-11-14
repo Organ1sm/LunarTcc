@@ -13,6 +13,8 @@ namespace AArch64
 
         uint8_t GetPointerSize() override { return 64; }
 
+        bool SelectLSL(MachineInstruction *MI) override;
+        bool SelectLSR(MachineInstruction *MI) override;
         bool SelectAdd(MachineInstruction *MI) override;
         bool SelectSub(MachineInstruction *MI) override;
         bool SelectMul(MachineInstruction *MI) override;
