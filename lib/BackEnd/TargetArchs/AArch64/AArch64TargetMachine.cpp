@@ -1,3 +1,4 @@
+#include "BackEnd/MachineOperand.hpp"
 #include "BackEnd/Support.hpp"
 #include "BackEnd/MachineFunction.hpp"
 #include "BackEnd/MachineBasicBlock.hpp"
@@ -21,9 +22,18 @@ AArch64TargetMachine::AArch64TargetMachine()
     this->Legalizer = std::make_unique<AArch64InstructionLegalizer>(this);
 }
 
+void ExtendRegSize(MachineOperand *MO, uint8_t BitWidth = 32)
+{
+    if (MO->GetSize() < 32)
+        MO->GetTypeRef().SetBitWidth(BitWidth);
+}
+
 bool AArch64TargetMachine::SelectLSL(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 3 && "SLL must have 3 operands");
+
+    ExtendRegSize(MI->GetOperand(0));
+    ExtendRegSize(MI->GetOperand(1));
 
     if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
     {
@@ -46,6 +56,9 @@ bool AArch64TargetMachine::SelectLSR(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 3 && "SLR must have 3 operands");
 
+    ExtendRegSize(MI->GetOperand(0));
+    ExtendRegSize(MI->GetOperand(1));
+
     if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
     {
         assert(IsUInt<12>((int64_t)ImmMO->GetImmediate()) &&
@@ -66,6 +79,9 @@ bool AArch64TargetMachine::SelectLSR(MachineInstruction *MI)
 bool AArch64TargetMachine::SelectAdd(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 3 && "Add must have 3 operands");
+
+    ExtendRegSize(MI->GetOperand(0));
+    ExtendRegSize(MI->GetOperand(1));
 
     if (auto Symbol = MI->GetOperand(2); Symbol->IsGlobalSymbol())
     {
@@ -108,6 +124,9 @@ bool AArch64TargetMachine::SelectSub(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 3 && "SUB must have 3 operands");
 
+    ExtendRegSize(MI->GetOperand(0));
+    ExtendRegSize(MI->GetOperand(1));
+
     // If last operand is an immediate then select "SUB_rri"
     if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
     {
@@ -132,6 +151,9 @@ bool AArch64TargetMachine::SelectMul(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 3 && "MUL must have 3 operands");
 
+    ExtendRegSize(MI->GetOperand(0));
+    ExtendRegSize(MI->GetOperand(1));
+
     // If last operand is an immediate then select "MUL_rri"
     if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
     {
@@ -155,6 +177,9 @@ bool AArch64TargetMachine::SelectDiv(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 3 && "DIV must have 3 operands");
 
+    ExtendRegSize(MI->GetOperand(0));
+    ExtendRegSize(MI->GetOperand(1));
+
     // If last operand is an immediate then select "addi"
     if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
     {
@@ -177,6 +202,9 @@ bool AArch64TargetMachine::SelectDiv(MachineInstruction *MI)
 bool AArch64TargetMachine::SelectDivU(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 3 && "DIVU must have 3 operands");
+
+    ExtendRegSize(MI->GetOperand(0));
+    ExtendRegSize(MI->GetOperand(1));
 
     // If last operand is an immediate then select "addi"
     if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
@@ -208,6 +236,9 @@ bool AArch64TargetMachine::SelectCmp(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 3 && "CMP must have 3 operands");
 
+    ExtendRegSize(MI->GetOperand(0));
+    ExtendRegSize(MI->GetOperand(1));
+
     if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
     {
         MI->SetOpcode(CMP_ri);
@@ -233,6 +264,8 @@ bool AArch64TargetMachine::SelectZExt(MachineInstruction *MI) { return SelectSEx
 bool AArch64TargetMachine::SelectSExt(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 2 && "SEXT must have 2 operands");
+
+    ExtendRegSize(MI->GetOperand(0));
 
     if (MI->GetOperand(1)->IsImmediate())
     {
