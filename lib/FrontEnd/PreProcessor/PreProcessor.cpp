@@ -20,8 +20,8 @@ void PreProcessor::ParseDirective(std::string &Line)
     if (Directive.GetKind() == PPToken::Define)
     {
         auto DefinedID = lexer.Lex();
-        assert(DefinedID.GetKind() != PPToken::EndOfFile
-               && DefinedID.GetKind() == PPToken::Identifier);
+        assert(DefinedID.GetKind() != PPToken::EndOfFile &&
+               DefinedID.GetKind() == PPToken::Identifier);
 
         // must be called here otherwise the token lookaheads mess up the lineindex
         // TODO: solve this problem, maybe with giving tokens the line number
@@ -112,21 +112,22 @@ void PreProcessor::SubstituteMacros(std::string &Line)
             }
 
             // replace actual param by $N
+            auto ReplacedMacroBody = MacroBody;
             for (std::size_t i = 0; i < ActualParams.size(); i++)
             {
                 auto Param = "$" + std::to_string(i);
-                while (MacroBody.find(Param) != std::string::npos)
+                while (ReplacedMacroBody.find(Param) != std::string::npos)
                 {
-                    MacroBody.replace(MacroBody.find(Param),
-                                      Param.length(),
-                                      ActualParams[i]);
+                    ReplacedMacroBody.replace(ReplacedMacroBody.find(Param),
+                                              Param.length(),
+                                              ActualParams[i]);
                 }
             }
 
             if (Line.find(MacroID) != std::string::npos)
                 Line.replace(Line.find(MacroID),
                              MacroID.length() + StartPos + 1,
-                             MacroBody);
+                             ReplacedMacroBody);
         }
     }
 }
