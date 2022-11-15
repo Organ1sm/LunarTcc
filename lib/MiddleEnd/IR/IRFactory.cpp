@@ -66,6 +66,11 @@ Instruction *IRFactory::CreateOr(Value *LHS, Value *RHS)
     return CreateBinaryInstruction(Instruction::Or, LHS, RHS);
 }
 
+Instruction *IRFactory::CreateXOr(Value *LHS, Value *RHS)
+{
+    return CreateBinaryInstruction(Instruction::XOr, LHS, RHS);
+}
+
 Instruction *IRFactory::CreateAnd(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::And, LHS, RHS);

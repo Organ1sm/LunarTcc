@@ -37,6 +37,7 @@ class IRFactory
     Instruction *CreateLSR(Value *LHS, Value *RHS);
 
     Instruction *CreateOr(Value *LHS, Value *RHS);
+    Instruction *CreateXOr(Value *LHS, Value *RHS);
     Instruction *CreateAnd(Value *LHS, Value *RHS);
 
     UnaryInstruction *CreateMov(Value *Operand, uint8_t BitWidth = 32);

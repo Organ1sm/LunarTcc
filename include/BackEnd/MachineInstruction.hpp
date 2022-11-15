@@ -16,6 +16,7 @@ class MachineInstruction
         // Arithmetic and Logical
         And = 1 << 16,    // 65536
         Or,               // 65537
+        XOr,
         LSL,
         LSR,
         Add,
