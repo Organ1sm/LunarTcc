@@ -81,23 +81,26 @@ void Type::DecrementPointerLevel()
 
 std::string Type::ToString(const Type &t)
 {
+    std::string Result;
     switch (t.GetTypeVariant())
     {
-        case Double: return "double";
-        case Long: return "long";
-        case UnsignedLong: return "unsigned long";
-        case LongLong: return "long long";
-        case UnsignedLongLong: return "unsigned long long";
-        case Int: return "int";
-        case UnsignedInt: return "unsigned int";
-        case Char: return "char";
-        case UnsignedChar: return "unsigned char";
-        case Void: return "void";
+        case Double: Result = "double"; break;
+        case Long: Result = "long"; break;
+        case UnsignedLong: Result = "unsigned long"; break;
+        case LongLong: Result = "long long"; break;
+        case UnsignedLongLong: Result = "unsigned long long"; break;
+        case Int: Result = "int"; break;
+        case UnsignedInt: Result = "unsigned int"; break;
+        case Char: Result = "char"; break;
+        case UnsignedChar: Result = "unsigned char"; break;
+        case Void: Result = "void"; break;
         case Composite: return t.GetName();
         case Invalid: return "invalid";
 
-        default: assert(false && "Unknown type."); break;
+        default: assert(!"Unknown type."); break;
     }
+
+    return Result + std::string(t.GetPointerLevel(), '*');
 }
 
 std::string Type::ToString() const
@@ -178,6 +181,24 @@ bool Type::IsImplicitlyCastable(const Type::VariantKind from, const Type::Varian
 
         default: return false;
     }
+}
+
+bool Type::IsImplicitlyCastable(const Type from, const Type to)
+{
+    const auto IsFromPtr   = from.IsPointerType();
+    const auto IsFromArray = from.IsArray();
+    const auto IsToPtr     = to.IsPointerType();
+
+    // array to pointer decay case
+    if (IsFromArray && !IsFromPtr && IsToPtr)
+    {
+        if (from.GetTypeVariant() == to.GetTypeVariant())
+            return true;
+
+        return false;
+    }
+
+    return IsImplicitlyCastable(from.GetTypeVariant(), to.GetTypeVariant());
 }
 
 bool Type::IsSmallerThanInt(const Type::VariantKind V)
