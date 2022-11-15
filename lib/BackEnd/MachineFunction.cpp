@@ -24,6 +24,8 @@ unsigned MachineFunction::GetNextAvailableVirtualRegister()
     {
         if (ParamID > NextVirtualReg)
             NextVirtualReg = ParamID;
+        else if (ParamID > NextVirtualReg)
+            NextVirtualReg++;
     }
 
     for (auto &BB : BasicBlocks)
@@ -32,8 +34,10 @@ unsigned MachineFunction::GetNextAvailableVirtualRegister()
         {
             for (auto &Operand : Instr.GetOperands())
             {
-                if (Operand.IsVirtualReg() && Operand.GetReg() > NextVirtualReg)
-                    NextVirtualReg = Operand.GetReg();
+                if (Operand.IsVirtualReg() && Operand.GetReg() >= NextVirtualReg)
+                    NextVirtualReg = Operand.GetReg() == NextVirtualReg ?
+                                         NextVirtualReg + 1 :
+                                         Operand.GetReg();
             }
         }
     }
