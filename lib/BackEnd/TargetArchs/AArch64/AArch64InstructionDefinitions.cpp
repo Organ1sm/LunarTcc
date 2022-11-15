@@ -6,6 +6,7 @@ AArch64InstructionDefinitions::AArch64InstructionDefinitions()
 {
     InstrEnumStrings = {"ADD_rrr",  "ADD_rri",             //
                         "AND_rri",                         //
+                        "EOR_rrr",  "EOR_rri",             //
                         "LSL_rrr",  "LSL_rri",             //
                         "LSR_rrr",  "LSR_rri",             //
                         "SUB_rrr",  "SUB_rri",  "SUBS",    //
@@ -44,6 +45,18 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             ADD_rri,
             32,
             "and\t$1, $2, #$3",
+            {GPR, GPR, UIMM12}
+        };
+        ret[EOR_rrr] = {
+            EOR_rrr,
+            32,
+            "eor\t$1, $2, $3",
+            {GPR, GPR, GPR}
+        };
+        ret[EOR_rri] = {
+            EOR_rri,
+            32,
+            "eor\t$1, $2, #$3",
             {GPR, GPR, UIMM12}
         };
         ret[LSL_rrr] = {

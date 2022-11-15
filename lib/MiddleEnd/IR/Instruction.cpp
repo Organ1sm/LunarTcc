@@ -32,6 +32,7 @@ std::string Instruction::AsString(Instruction::InstructionKind IK)
     {
         case And: return "and";
         case Or: return "or";
+        case XOr: return "xor";
         case LSL: return "lsl";
         case LSR: return "lsr";
         case Add: return "add";

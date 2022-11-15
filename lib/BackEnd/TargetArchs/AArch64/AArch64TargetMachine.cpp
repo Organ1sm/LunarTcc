@@ -28,6 +28,31 @@ void ExtendRegSize(MachineOperand *MO, uint8_t BitWidth = 32)
         MO->GetTypeRef().SetBitWidth(BitWidth);
 }
 
+bool AArch64TargetMachine::SelectXOR(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 3 && "XOR must have 3 operands");
+
+    ExtendRegSize(MI->GetOperand(0));
+    ExtendRegSize(MI->GetOperand(1));
+
+    if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
+    {
+        assert(IsUInt<12>((int64_t)ImmMO->GetImmediate()) &&
+               "Immediate must 12 bit wide");
+
+        MI->SetOpcode(EOR_rri);
+        return true;
+    }
+    else
+    {
+        MI->SetOpcode(EOR_rrr);
+        return true;
+    }
+
+    assert(!"Unreachable");
+    return false;
+}
+
 bool AArch64TargetMachine::SelectLSL(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 3 && "SLL must have 3 operands");
