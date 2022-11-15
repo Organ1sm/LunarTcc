@@ -990,7 +990,7 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
             }
 
             MemberList.push_back(Member);
-            InitList.push_back(ParseConstantExpression());
+            InitList.push_back(ParseExpression());
 
             if (!lexer.Is(Token::Comma))
                 break;
@@ -1340,7 +1340,7 @@ std::unique_ptr<Expression> Parser::ParseConstantExpression()
         if (IsNegative)
             IntLitExpr->SetValue(-IntLitExpr->GetSIntValue());
 
-        // TODO: example: 
+        // TODO: example:
         // currently `1 ull` would be valid since the lexer will ignore the
         // white spaces, make such input invalid
         if (lexer.Is(Token::Identifier))

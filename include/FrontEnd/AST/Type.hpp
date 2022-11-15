@@ -89,6 +89,7 @@ class Type
         return std::max(T1, T2);
     }
 
+    static bool IsImplicitlyCastable(const Type from, const Type to);
     static bool IsImplicitlyCastable(const VariantKind from, const VariantKind to);
     static bool IsSmallerThanInt(const Type::VariantKind V);
     static bool OnlySignednessDifference(const Type::VariantKind V1,
