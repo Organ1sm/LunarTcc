@@ -822,10 +822,24 @@ Value *ArrayExpression::IRCodegen(IRFactory *IRF)
     auto IndexValue = IndexExpression->IRCodegen(IRF);
 
     auto ResultType = BaseValue->GetType();
-    ResultType.ReduceDimension();
 
-    if (ResultType.GetPointerLevel() == 0)
-        ResultType.IncrementPointerLevel();
+    if (ResultType.IsPointer() && !ResultType.IsArray())
+    {
+        // if the base value is on the stack
+        if (auto SA = dynamic_cast<StackAllocationInstruction *>(BaseValue);
+            SA != nullptr)
+        {
+            BaseValue = IRF->CreateLoad(ResultType, SA);
+            ResultType.DecrementPointerLevel();
+        }
+    }
+    else
+    {
+        ResultType.ReduceDimension();
+
+        if (ResultType.GetPointerLevel() == 0)
+            ResultType.IncrementPointerLevel();
+    }
 
     auto GEP = IRF->CreateGEP(ResultType, BaseValue, IndexValue);
 
@@ -839,7 +853,28 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
 {
     auto SourceTypeVariant = CastableExpression->GetResultType().GetTypeVariant();
     auto DestTypeVariant   = GetResultType().GetTypeVariant();
-    auto Val               = CastableExpression->IRCodegen(IRF);
+
+    if (CastableExpression->GetResultType().IsArray() && GetResultType().IsPointerType())
+    {
+        assert(SourceTypeVariant == DestTypeVariant);
+
+        auto RefExpr = dynamic_cast<ReferenceExpression *>(CastableExpression.get());
+        assert(RefExpr);
+
+        auto ReferID = RefExpr->GetIdentifier();
+        auto Res     = IRF->GetSymbolValue(ReferID);
+
+        if (!Res)
+            Res = IRF->GetGlobalVar(ReferID);
+        assert(Res);
+
+        auto GEP = IRF->CreateGEP(GetIRTypeFromASTType(GetResultType()),
+                                  Res,
+                                  IRF->GetConstant((uint64_t)0));
+
+        return GEP;
+    }
+    auto Val = CastableExpression->IRCodegen(IRF);
 
     if (Type::OnlySignednessDifference(SourceTypeVariant, DestTypeVariant))
         return Val;
@@ -1703,9 +1738,12 @@ void ArrayExpression::ASTDump(unsigned int tab)
 {
     std::string TypeStr = ResultType.ToString();
 
-    for (auto Dim : BaseExpression->GetResultType().GetDimensions())
+    if (BaseExpression->GetResultType().IsArray())
     {
-        TypeStr += fmt::format("[{}]", Dim);
+        for (auto Dim : BaseExpression->GetResultType().GetDimensions())
+        {
+            TypeStr += fmt::format("[{}]", Dim);
+        }
     }
 
     auto Str = fmt::format("`{}`", TypeStr);

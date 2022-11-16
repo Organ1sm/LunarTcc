@@ -116,7 +116,7 @@ std::string Type::ToString() const
         {
             TyStr += Type::ToString(ParamList[i]);
             if (i + 1 < ArgSize)
-                TyStr += ",";
+                TyStr += ", ";
             else
                 TyStr += ")";
         }
@@ -234,6 +234,7 @@ bool Type::OnlySignednessDifference(const Type::VariantKind V1,
 bool operator==(const Type &lhs, const Type &rhs)
 {
     bool result = lhs.Kind == rhs.Kind && lhs.Ty == rhs.Ty;
+    result      = result && lhs.GetPointerLevel() == rhs.GetPointerLevel();
 
     if (!result)
         return false;
@@ -245,6 +246,8 @@ bool operator==(const Type &lhs, const Type &rhs)
     }
     return result;
 }
+
+bool operator!=(const Type &lhs, const Type &rhs) { return !(lhs == rhs); }
 
 int ValueType::GetIntVal()
 {

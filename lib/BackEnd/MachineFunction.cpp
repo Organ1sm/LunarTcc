@@ -22,10 +22,10 @@ unsigned MachineFunction::GetNextAvailableVirtualRegister()
     // register ID is searched and NextVReg is set to that.
     for (auto &[ParamID, ParamLLT] : Parameters)
     {
-        if (ParamID > NextVirtualReg)
-            NextVirtualReg = ParamID;
-        else if (ParamID > NextVirtualReg)
+        if (ParamID == NextVirtualReg)
             NextVirtualReg++;
+        else if (ParamID > NextVirtualReg)
+            NextVirtualReg = ParamID;
     }
 
     for (auto &BB : BasicBlocks)
