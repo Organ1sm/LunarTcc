@@ -80,6 +80,7 @@ class Type
     bool IsUnsigned() const;
 
     friend bool operator==(const Type &lhs, const Type &rhs);
+    friend bool operator !=(const Type &lhs, const Type &rhs);
 
     std::string ToString() const;
     static std::string ToString(const Type &);
