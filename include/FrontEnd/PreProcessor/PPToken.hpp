@@ -13,13 +13,16 @@ class PPToken
         Identifier,
 
         // Symbols
+        Dot,
         Colon,
         Hashtag,
         LeftParen,
         RightParen,
+        DoubleQuote,
 
         // Keywords
         Define,
+        Include,
     };
 
     PPToken() : Kind(Invalid) {}

@@ -2,30 +2,7 @@
 // FUNC-DECL: int test()
 // TEST-CASE: test() -> 3
 
-#define BOARD_HEIGHT 20
-#define BOARD_WIDTH  10
-#define bool int
-#define true 1
-#define false 0
-
-typedef unsigned uint;
-
-typedef struct piece
-{
-    uint kind;
-    int x;
-    int y;
-    uint rotation;
-} Piece;
-
-typedef struct tetris
-{
-    unsigned char board[20][10];
-    Piece curr_piece;
-    uint next_piece_kind;
-    uint score;
-    Piece bot_target_piece;
-} Tetris;
+#include "tetris.h"
 
 const unsigned char tetrominos[7][16] = {
     {0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0},

@@ -1,4 +1,5 @@
 #include "FrontEnd/PreProcessor/PreProcessor.hpp"
+#include "BackEnd/Support.hpp"
 #include "FrontEnd/PreProcessor/PPLexer.hpp"
 #include "FrontEnd/PreProcessor/PPToken.hpp"
 #include "fmt/core.h"
@@ -9,7 +10,16 @@
 
 const std::string WhiteSpaceChars("\t ");
 
-void PreProcessor::ParseDirective(std::string &Line)
+PreProcessor::PreProcessor(std::vector<std::string> &Src, std::string Path) : Source(Src)
+{
+    FilePath = Path.substr(0, Path.rfind('/'));
+
+    if (FilePath.length() > 0 && FilePath[FilePath.length() - 1] != '/')
+        FilePath.push_back('/');
+}
+
+
+void PreProcessor::ParseDirective(std::string &Line, std::size_t LineIdx)
 {
     PPLexer lexer(Line);
     lexer.Lex();    // eat '#'
@@ -72,6 +82,35 @@ void PreProcessor::ParseDirective(std::string &Line)
         {
             DefinedMacros[DefinedID.GetString()] = {RemainingText, 0};
         }
+    }
+    else if (Directive.GetKind() == PPToken::Include)
+    {
+        assert(lexer.Is(PPToken::DoubleQuote));
+        lexer.Lex();    // eat '"'
+
+        auto FilenameToken = lexer.Lex();
+        assert(FilenameToken.GetKind() == PPToken::Identifier);
+
+        assert(lexer.Is(PPToken::Dot));
+        lexer.Lex();
+
+        auto FileName = FilenameToken.GetString();
+        FileName.push_back('.');
+
+        auto FileExtensionToken = lexer.Lex();
+        assert(FileExtensionToken.GetKind() == PPToken::Identifier);
+        FileName.append(FileExtensionToken.GetString());
+
+        assert(lexer.Is(PPToken::DoubleQuote));
+        lexer.Lex();
+
+        std::vector<std::string> FileContent;
+        auto Success = Filer::getFileContent(FilePath + FileName, FileContent);
+        assert(Success && "Cannot open file.");
+
+        Source.insert(Source.begin() + LineIdx + 1,
+                      FileContent.begin(),
+                      FileContent.end());
     }
 }
 
@@ -142,7 +181,7 @@ void PreProcessor::Run()
 
         if (Line[0] == '#')
         {
-            ParseDirective(Line);
+            ParseDirective(Line, LineIndex);
 
             /// delete current line, assuming the directive only used one line
             Source.erase(Source.begin() + LineIndex);

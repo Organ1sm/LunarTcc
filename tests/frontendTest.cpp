@@ -1,14 +1,8 @@
 //
 // Created by yw.
 //
-#include <iostream>
-#include <fstream>
-#include <memory>
-#include <fmt/core.h>
-#include <fmt/color.h>
-#include "BackEnd/TargetArchs/AArch64/AArch64MovFixPass.hpp"
+#include "BackEnd/Support.hpp"
 #include "Utils/ErrorLogger.hpp"
-#include "BackEnd/MachineIRModule.hpp"
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include "FrontEnd/AST/AST.hpp"
 #include "FrontEnd/Parser/Parser.hpp"
@@ -20,34 +14,17 @@
 #include "BackEnd/IRtoLLIR.hpp"
 #include "BackEnd/TargetMachine.hpp"
 #include "BackEnd/InstructionSelection.hpp"
+#include "BackEnd/MachineIRModule.hpp"
 #include "BackEnd/MachineInstructionLegalizer.hpp"
 #include "BackEnd/PrologueEpilogInsertion.hpp"
 #include "BackEnd/RegisterAllocator.hpp"
 #include "BackEnd/TargetArchs/AArch64/AArch64TargetMachine.hpp"
 #include "BackEnd/TargetArchs/RISCV/RISCVTargetMachine.hpp"
+#include "BackEnd/TargetArchs/AArch64/AArch64MovFixPass.hpp"
+#include <memory>
+#include <fmt/core.h>
 #include "fmt/format.h"
-
-
-bool getFileContent(const std::string &fileName, std::vector<std::string> &VecOfStrs)
-{
-    std::ifstream in(fileName.c_str());
-
-    if (!in)
-    {
-        PrintError("Cannot open the file: '{}'\n", fileName);
-        return false;
-    }
-
-    std::string str;
-
-    while (std::getline(in, str))
-    {
-        VecOfStrs.push_back(std::move(str));
-    }
-
-    in.close();
-    return true;
-}
+#include <fmt/color.h>
 
 int main(int argc, char *argv[])
 {
@@ -114,12 +91,11 @@ int main(int argc, char *argv[])
         }
     }
 
-
     std::vector<std::string> src;
 
     if (DumpTokens)
     {
-        getFileContent(FilePath, src);
+        Filer::getFileContent(FilePath, src);
         Lexer lexer(src);
         auto t = lexer.Lex();
 
@@ -130,9 +106,9 @@ int main(int argc, char *argv[])
         }
     }
 
-    getFileContent(FilePath, src);
+    Filer::getFileContent(FilePath, src);
 
-    PreProcessor(src).Run();
+    PreProcessor(src, FilePath).Run();
 
     if (DumpPreProcessedFile)
     {

@@ -22,4 +22,3 @@ include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR}/include ${CMAKE_CURRENT_S
 
 add_subdirectory(lib)
 add_subdirectory(tests)
-# add_subdirectory(tools)
