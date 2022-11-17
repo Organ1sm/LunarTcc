@@ -25,7 +25,7 @@ def CleanTestCacheFile():
         os.remove("test")
 
 
-def CheckAndCompileFile(fileName):
+def CheckFile(fileName):
     Arch = ""
     FunctionDecls = []
     TestCases = []
@@ -46,31 +46,35 @@ def CheckAndCompileFile(fileName):
             if m:
                 TestCases.append((m.group(1), m.group(2)))
                 continue
+    return Arch, FunctionDecls, TestCases
 
-    if len(TestCases) == 0:
-        return False, False
 
+def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases):
     if len(Arch) == 0:
         return False, True
 
-    testMain_C_TemPlate = ""
+    testMain_C_TemPlate = "#include <stdio.h>\n\n"
     for funcDecl in FunctionDecls:
         testMain_C_TemPlate += funcDecl + ";\n"
 
-    testMain_C_TemPlate += "int main() { return $; }"
+    testMain_C_TemPlate += "int main() {"
+    testMain_C_TemPlate += "int res = $;"
+    testMain_C_TemPlate += r'  if (res != @) { printf("\nExpected: %d, Actual: %d\n", @, res); return 1; }'
+    testMain_C_TemPlate += "  return 0; }"
 
     commandList = [CompilerPath, fileName]
     retCode = subprocess.run(commandList, stdout=subprocess.DEVNULL).returncode
 
     if retCode != 0:
-        return False, True
+        return False
 
     testAsm = subprocess.check_output(commandList).decode("utf-8")
     CreateFile("test.s", testAsm)
 
     for case, expectedResult in TestCases:
         currentTestMain = testMain_C_TemPlate
-        currentTestMain = currentTestMain.replace("$", case + " == " + expectedResult)
+        currentTestMain = currentTestMain.replace("$", case)
+        currentTestMain = currentTestMain.replace("@", expectedResult)
 
         CreateFile("testMain.c", currentTestMain)
 
@@ -84,13 +88,13 @@ def CheckAndCompileFile(fileName):
         ]
         compileRet = subprocess.run(LinkCommandList).returncode
         if compileRet != 0:
-            return False, True
+            return False
 
         retCode = subprocess.run([RunCommand + Arch, "test"]).returncode
-        if retCode != 1:
-            return False, True
+        if retCode != 0:
+            return False
 
-        return True, True
+        return True
 
 
 failedTests = []
@@ -104,10 +108,13 @@ for subDir, dirs, files in os.walk(WorkDir):
         prettyFilePath = "[orange]" + simplifyFilePath + "[/orange]"
 
         if filePath.endswith(".c") or filePath.endswith(".s"):
-            success, hasCases = CheckAndCompileFile(filePath)
+            Arch, FunctionDeclarations, TestCases = CheckFile(filePath)
 
-            if not hasCases:
+            if Arch == "":
                 continue
+
+            success = CompileAndExecuteTestFile(
+                filePath, Arch, FunctionDeclarations, TestCases)
 
             testsCount += 1
             if success:
