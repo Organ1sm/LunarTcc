@@ -23,7 +23,7 @@ Instruction *BasicBlock::InsertSA(std::unique_ptr<Instruction> Ins)
         if (!Instructions[i]->IsStackAllocation())
         {
             auto InstPtr = Ins.get();
-            Instructions.insert(Instructions.begin() + 1, std::move(Ins));
+            Instructions.insert(Instructions.begin() + i, std::move(Ins));
             return InstPtr;
         }
     }

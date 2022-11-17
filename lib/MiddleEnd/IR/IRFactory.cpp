@@ -6,6 +6,7 @@
 #include "MiddleEnd/IR/Module.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
 #include "MiddleEnd/IR/Function.hpp"
+#include <cstdint>
 #include <memory>
 
 Instruction *
@@ -28,6 +29,17 @@ Instruction *IRFactory::Insert(std::unique_ptr<Instruction> I)
 
 Instruction *IRFactory::CreateAdd(Value *LHS, Value *RHS)
 {
+    if (LHS->IsConstant() && RHS->IsConstant())
+    {
+        auto ConstL = dynamic_cast<Constant *>(LHS);
+        auto ConstR = dynamic_cast<Constant *>(RHS);
+
+        assert(ConstL && ConstR);
+
+        const auto Val = ConstL->GetIntValue() + ConstR->GetIntValue();
+        return CreateMov(GetConstant((uint64_t)Val));
+    }
+
     return CreateBinaryInstruction(Instruction::Add, LHS, RHS);
 }
 
@@ -203,7 +215,7 @@ StackAllocationInstruction *IRFactory::CreateSA(std::string Indentifier, IRType 
     auto InstPtr = Inst.get();
 
     Inst->SetId(ID++);
-    CurrentModule.GetBB(0)->Insert(std::move(Inst));
+    CurrentModule.GetBB(0)->InsertSA(std::move(Inst));
 
     return InstPtr;
 }

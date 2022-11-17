@@ -1189,7 +1189,7 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         // <end>
         const auto FuncPtr = IRF->GetCurrentFunction();
         auto TestRhsBB     = std::make_unique<BasicBlock>("test_RHS", FuncPtr);
-        auto TrueBB        = std::make_unique<BasicBlock>("ture", FuncPtr);
+        auto TrueBB        = std::make_unique<BasicBlock>("true", FuncPtr);
         auto FalseBB       = std::make_unique<BasicBlock>("false", FuncPtr);
         auto FinalBB       = std::make_unique<BasicBlock>("final", FuncPtr);
 
@@ -1322,6 +1322,9 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
             default: break;
         }
     }
+
+    if (L->IsConstant())
+        L = IRF->CreateMov(L, R->GetBitWidth());
 
     switch (GetOperationKind())
     {

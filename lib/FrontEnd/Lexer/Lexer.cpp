@@ -207,7 +207,8 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::MulEqual;
                 Size      = 2;
             }
-            TokenKind = Token::Mul;
+            else
+                TokenKind = Token::Mul;
             break;
         case '/':
             if (GetNextNthCharOnSameLine(1) == '/')
@@ -245,7 +246,7 @@ std::optional<Token> Lexer::LexSymbol()
             }
             else if (GetNextNthCharOnSameLine(1) == '<')
             {
-                TokenKind = Token::RightShift;
+                TokenKind = Token::LeftShift;
                 Size      = 2;
             }
             else

@@ -43,14 +43,14 @@ class Instruction : public Value
         Branch,
         Ret,
 
+        Mov, // 58
+
         // Memory Operations.
         Load = Ret + 3,
         Store,
         MemCopy,
         StackAlloc,
         GetELemPtr,
-
-        Mov,
     };
 
     static std::string AsString(InstructionKind IK);
