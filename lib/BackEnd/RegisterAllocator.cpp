@@ -166,6 +166,36 @@ void RegisterAllocator::RunRA()
             }
         }
 
+        std::set<PhysicalReg> RegsToCheck;
+
+        for (auto &BB : Func.GetBasicBlocks())
+        {
+            for (auto &Instr : BB.GetInstructions())
+            {
+                for (std::size_t i = 0; i < Instr.GetOperandsNumber(); i++)
+                {
+                    auto &Operand = Instr.GetOperands()[i];
+
+                    if (Operand.IsRegister())
+                    {
+                        auto PhysReg   = Operand.GetReg();
+                        auto ParentReg = TM->GetRegInfo()->GetParentReg(PhysReg);
+
+                        if (ParentReg)
+                            RegsToCheck.insert(ParentReg->GetID());
+                        else
+                            RegsToCheck.insert(PhysReg);
+                    }
+                }
+            }
+        }
+
+        for (auto Reg : RegsToCheck)
+        {
+            auto Pos = std::find(RegisterPool.begin(), RegisterPool.end(), Reg);
+            if (Pos != RegisterPool.end())
+                RegisterPool.erase(Pos);
+        }
 
         // Caculating the live ranges for virtual registers.
         unsigned InstrCounter = 0;
