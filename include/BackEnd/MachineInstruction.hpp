@@ -26,34 +26,34 @@ class MachineInstruction
         DivU,
         Mod,
         ModU,
-        Cmp,
+        Cmp,    // 65548
 
         // Conversions
         SExt,     // Sign extension
         ZExt,     // Zero extension
         Trunc,    // Truncating
         FloatToInt,
-        IntToFloat,
+        IntToFloat,    // 65553
 
         // Control Flow Operations
         Call,
         Jump,
         Branch,
-        Ret,
+        Ret,    // 65557
 
         // Moves and constant materializations
         LoadImm,
         Mov,
 
         // Memory Access
-        Load,
+        Load,    // 65560
         Store,
         StackAlloc,
         StackAddress,
         GlobalAddress,
 
         // Combined load and sign/zero extension
-        SExtLoad,
+        SExtLoad,    // 65565
         ZExtLoad,
         InvalidOp,
     };

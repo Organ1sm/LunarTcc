@@ -161,7 +161,6 @@ int main(int argc, char *argv[])
     if (DumpIR)
         IRModule.Print();
 
-
     MachineIRModule LLIRModule;
     IRtoLLIR I2LLIR(IRModule, &LLIRModule, TM.get());
     I2LLIR.GenerateLLIRFromIR();
