@@ -2,6 +2,8 @@
 #define LUNARTCC_SUPPORT_HPP
 
 #include <cstdint>
+#include <string>
+#include <vector>
 
 template <unsigned BitWidth>
 bool IsInt(uint64_t Number)
@@ -18,9 +20,14 @@ bool IsUInt(uint64_t NUmber)
 }
 
 
-// Only use with power of 2 alignments 
+// Only use with power of 2 alignments
 // FixMe: make it moore general and safe
 uint64_t GetNextAlignedValue(unsigned Val, unsigned Alginment);
 
+struct Filer
+{
+    static bool getFileContent(const std::string &fileName,
+                               std::vector<std::string> &VecOfStrs);
+};
 
 #endif    // !LUNARTCC_SUPPORT_HPP

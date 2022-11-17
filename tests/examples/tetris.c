@@ -4,23 +4,6 @@
 
 typedef unsigned uint;
 
-typedef struct piece
-{
-    uint kind;
-    int x;
-    int y;
-    uint rotation;
-} Piece;
-
-typedef struct tetris
-{
-    unsigned char board[20][10];
-    Piece curr_piece;
-    uint next_piece_kind;
-    uint score;
-    Piece bot_target_piece;
-} Tetris;
-
 uint new_tetris()
 {
     unsigned char board[20][10];

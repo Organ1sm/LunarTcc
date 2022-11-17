@@ -4,7 +4,8 @@
 #include <vector>
 
 std::unordered_map<std::string, PPToken::PPTokenKind> PPLexer::Keywords = {
-    {"define", PPToken::Define},
+    {"define", PPToken::Define },
+    {"include", PPToken::Include},
 };
 
 PPLexer::PPLexer(std::string &s)
@@ -43,7 +44,8 @@ void PPLexer::EatNextChar() { LineIndex++; }
 
 std::string PPLexer::GetRemainingText()
 {
-    assert(LineIndex < Source.size());
+    if (LineIndex > Source.size())
+        return "";
 
     return Source.substr(LineIndex);
 }
@@ -92,10 +94,13 @@ std::optional<PPToken> PPLexer::LexSymbol()
 
     switch (GetNextChar())
     {
+        case '.': PPTokenKind = PPToken::Dot; break;
         case ',': PPTokenKind = PPToken::Colon; break;
         case '#': PPTokenKind = PPToken::Hashtag; break;
         case '(': PPTokenKind = PPToken::LeftParen; break;
         case ')': PPTokenKind = PPToken::RightParen; break;
+        case '"': PPTokenKind = PPToken::DoubleQuote; break;
+
         default: return std::nullopt; break;
     }
 
