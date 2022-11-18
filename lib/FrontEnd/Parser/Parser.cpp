@@ -77,6 +77,16 @@ Type Parser::GetUserDefinedType(std::string Name)
         return TypeDefinitions[Name];
 }
 
+std::vector<std::string> Parser::GetUserDefinedTypeMembers(std::string Name)
+{
+    assert(IsUserDefinedType(Name));
+
+    if (TypeDefinitions.count(Name) > 0)
+        Name = TypeDefinitions[Name].GetName();
+
+    return std::get<1>(UserDefinedTypes[Name]);
+}
+
 unsigned Parser::ParseQualifiers()
 {
     unsigned Qualifiers   = 0;
@@ -975,7 +985,7 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
 
         Expect(Token::LeftBrace);
 
-        StructInitExpression::StrList MemberList;
+        std::vector<std::string> MemberList;
         StructInitExpression::ExprPtrList InitList;
 
         while (lexer.Is(Token::Dot) || lexer.Is(Token::Identifier))
@@ -1000,9 +1010,38 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
 
         Expect(Token::RightBrace);
 
+        // construct a list of the orders how the fields are initialized
+        // example:
+        //      ```
+        //      struct P {int x; int y};
+        //      ...
+        //
+        //      struct P Obj = (struct P) { .y = 2, .x = 1}
+        //
+        //      ```
+        //  in the above case the InitOrder would look like: {1, 0}, so the first
+        //  init expression actually initializing the 2nd (index 1) struct member
+
+        auto MemberNames = GetUserDefinedTypeMembers(UserDTypeName);
+        std::vector<unsigned> InitOrder;
+
+        for (auto &Member : MemberList)
+        {
+            unsigned Order = 0;
+            for (auto &TypeMemberName : MemberNames)
+            {
+                if (TypeMemberName == Member)
+                {
+                    InitOrder.push_back(Order);
+                    break;
+                }
+                Order++;
+            }
+        }
+
         return std::make_unique<StructInitExpression>(GetUserDefinedType(UserDTypeName),
-                                                      std::move(MemberList),
-                                                      std::move(InitList));
+                                                      std::move(InitList),
+                                                      std::move(InitOrder));
     }
 
     auto Expr = ParsePrimaryExpression();
@@ -1294,7 +1333,7 @@ std::unique_ptr<Expression> Parser::ParseArrayExpression(std::unique_ptr<Express
 
     else
         type.DecrementPointerLevel();
-    
+
     Base->SetLValueness(true);
     return std::make_unique<ArrayExpression>(Base, IndexExpr, type);
 }

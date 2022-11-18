@@ -60,6 +60,7 @@ class Parser
 
     bool IsUserDefinedType(std::string Name);
     Type GetUserDefinedType(std::string Name);
+    std::vector<std::string> GetUserDefinedTypeMembers(std::string Name);
 
     std::unique_ptr<Node> ParseTranslationUnit();
     std::unique_ptr<Node> ParseExternalDeclaration();
