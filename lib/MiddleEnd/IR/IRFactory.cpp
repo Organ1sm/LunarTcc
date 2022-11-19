@@ -183,10 +183,16 @@ UnaryInstruction *IRFactory::CreateIntToFloat(Value *Operand, uint8_t IntBitWidt
     return InstPtr;
 }
 
-CallInstruction *
-    IRFactory::CreateCall(std::string &FuncName, std::vector<Value *> Args, IRType Type)
+CallInstruction *IRFactory::CreateCall(std::string &FuncName,
+                                       std::vector<Value *> Args,
+                                       IRType Type,
+                                       int StructIdx)
 {
-    auto Inst = std::make_unique<CallInstruction>(FuncName, Args, Type, GetCurrentBB());
+    auto Inst    = std::make_unique<CallInstruction>(FuncName,
+                                                  Args,
+                                                  Type,
+                                                  GetCurrentBB(),
+                                                  StructIdx);
     auto InstPtr = Inst.get();
 
     if (!Type.IsVoid())

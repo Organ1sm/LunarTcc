@@ -50,7 +50,7 @@ class Constant : public Value
     Constant(double V) : Value(Value::Const, IRType(IRType::FP, 64)), Val(V) {}
 
     bool IsFPConst() const { return ValueType.IsFP(); }
-    uint64_t GetIntValue(); 
+    uint64_t GetIntValue();
 
     std::string ValueString() const override;
 
@@ -62,14 +62,18 @@ class FunctionParameter : public Value
 {
   public:
     FunctionParameter() = delete;
-    FunctionParameter(std::string &Name, IRType T) : Value(Value::Param, T), Name(Name) {}
+    FunctionParameter(std::string &Name, IRType T, bool IsStruct = false)
+        : Value(Value::Param, T), Name(Name), ImplicitStructPtr(IsStruct)
+    {}
 
     std::string &GetName() { return Name; }
+    bool IsImplicitStructPtr() const { return ImplicitStructPtr; }
 
     std::string ValueString() const override { return "$" + Name; }
 
   private:
     std::string Name;
+    bool ImplicitStructPtr {false};
 };
 
 class GlobalVariable : public Value

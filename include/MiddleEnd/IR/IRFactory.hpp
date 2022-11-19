@@ -47,8 +47,10 @@ class IRFactory
     UnaryInstruction *CreateFloatToInt(Value *Operand, uint8_t FloatBitWidth = 32);
     UnaryInstruction *CreateIntToFloat(Value *Operand, uint8_t IntBitWidth = 32);
 
-    CallInstruction *
-        CreateCall(std::string &FuncName, std::vector<Value *> Args, IRType Type);
+    CallInstruction *CreateCall(std::string &FuncName,
+                                std::vector<Value *> Args,
+                                IRType Type,
+                                int StructIdx = -1);
 
     ReturnInstruction *CreateRet(Value *ReturnVal);
 

@@ -112,6 +112,7 @@ class Parser
     IRFactory *IRF;
 
     // Type name to type, and the list of names for the struct field
+    // TODO: write example to explain it.
     std::map<std::string, std::tuple<Type, std::vector<std::string>>> UserDefinedTypes;
 
     /// Mapping identifiers to types. Eg: "typedef int i32" -> {"i32", Type::Int}

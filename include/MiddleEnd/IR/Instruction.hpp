@@ -43,7 +43,7 @@ class Instruction : public Value
         Branch,
         Ret,
 
-        Mov, // 58
+        Mov,    // 58
 
         // Memory Operations.
         Load = Ret + 3,
@@ -145,17 +145,20 @@ class CallInstruction : public Instruction
     CallInstruction(const std::string &N,
                     std::vector<Value *> &A,
                     IRType T,
-                    BasicBlock *P)
-        : Instruction(InstructionKind::Call, P, T), Name(N), Arguments(A)
+                    BasicBlock *P,
+                    int StructIdx)
+        : Instruction(InstructionKind::Call, P, T), Name(N), Arguments(A),
+          ImplicitStructArgIndex(StructIdx)
     {}
 
     std::string &GetName() { return Name; }
-
     std::vector<Value *> &GetArgs() { return Arguments; }
+    int GetImplicitStructArgIndex() const { return ImplicitStructArgIndex; }
 
     void Print() const override;
 
   private:
+    int ImplicitStructArgIndex = -1;
     std::string Name;
     std::vector<Value *> Arguments;
 };

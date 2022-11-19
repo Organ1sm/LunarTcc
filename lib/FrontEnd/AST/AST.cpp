@@ -443,7 +443,7 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
                     // on the same note create the extra struct pointer operand
                     auto ParamName = "struct." + ParamType.GetStructName();
                     ImplicitStructPtr =
-                        std::make_unique<FunctionParameter>(ParamName, ParamType);
+                        std::make_unique<FunctionParameter>(ParamName, ParamType, true);
                 }
             }
             else
@@ -670,7 +670,13 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
             }
         }
         else
-            IRF->CreateStore(Init->IRCodegen(IRF), SA);
+        {
+            auto InitExpr = Init->IRCodegen(IRF);
+            if (InitExpr->GetType().IsStruct())
+                IRF->CreateMemCopy(SA, InitExpr, InitExpr->GetType().GetByteSize());
+            else
+                IRF->CreateStore(InitExpr, SA);
+        }
     }
 
     IRF->AddToSymbolTable(Name, SA);
@@ -693,20 +699,28 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
     for (auto &Arg : Arguments)
 
     {
-        auto ArgIR = Arg->IRCodegen(IRF);
-        auto IRTy  = ArgIR->GetTypeRef();
-        auto ArgTy = Arg->GetResultType();
+        auto ArgIR   = Arg->IRCodegen(IRF);
+        auto ArgIRTy = ArgIR->GetTypeRef();
+        auto ArgTy   = Arg->GetResultType();
 
-        auto IRTySize = IRTy.GetByteSize() * 8;
+        auto IRTySize = ArgIRTy.GetByteSize() * 8;
 
         // if the generated IR result is a struct pointer, but the actual function
         // expects a struct by value, then issue an extra load
-        if (IRTy.IsStruct() && IRTy.IsPointer() && ArgTy.IsStruct() &&
+        if (ArgIR->GetTypeRef().IsStruct() && ArgIRTy.IsPointer() && ArgTy.IsStruct() &&
             !ArgTy.IsPointerType())
         {
             if (!(IRTySize > MaxStructSize))
                 ArgIR = IRF->CreateLoad(ArgIR->GetType(), ArgIR);
         }
+
+        // if the pointers level does not match then issune loads until it will
+        while ((ArgTy.IsPointerType() && ArgIR->GetTypeRef().IsPointer() &&
+                (ArgTy.GetPointerLevel() < ArgIR->GetTypeRef().GetPointerLevel())))
+        {
+            ArgIR = IRF->CreateLoad(ArgIR->GetType(), ArgIR);
+        }
+
         Args.push_back(ArgIR);
     }
 
@@ -715,6 +729,7 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
     IRType ReturnIRType;
     StackAllocationInstruction *StructTemp {nullptr};
     bool IsRetChanged {false};
+    int ImplicitStructIndex = -1;
 
     switch (ReturnType)
     {
@@ -754,7 +769,8 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
             if (!(!ReturnIRType.IsPointer() && (ReturnIRTypeSize) > MaxStructSize))
                 break;    // actually checking the opposite and break if it is true
 
-            IsRetChanged = true;
+            IsRetChanged        = true;
+            ImplicitStructIndex = Args.size();
             Args.push_back(StructTemp);
             ReturnIRType = IRType::None;
 
@@ -769,7 +785,7 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
     if (StructTemp)
     {
         // make the call
-        auto CallRes = IRF->CreateCall(Name, Args, ReturnIRType);
+        auto CallRes = IRF->CreateCall(Name, Args, ReturnIRType, ImplicitStructIndex);
         // issue a store using the freshly allocated temporary StructTemp if needed
         if (!IsRetChanged)
             IRF->CreateStore(CallRes, StructTemp);
@@ -1022,20 +1038,21 @@ Value *StructInitExpression::IRCodegen(IRFactory *IRF)
     auto IRResultType = GetIRTypeFromASTType(this->ResultType);
     auto StructTemp   = IRF->CreateSA(ResultType.GetName() + ".temp", IRResultType);
 
-    unsigned CurrentMemberIndex = 0;
+    unsigned LoopIndex = 0;
     for (auto &InitExpr : InitValues)
     {
         auto InitExprCode = InitExpr->IRCodegen(IRF);
-        auto ResultType   = IRResultType.GetMemberTypes()[CurrentMemberIndex];
+        auto MemberIndex  = MemberOrdering[LoopIndex];
+        auto ResultType   = IRResultType.GetMemberTypes()[MemberIndex];
 
         ResultType.IncrementPointerLevel();
 
         auto MemberPtr = IRF->CreateGEP(ResultType,
                                         StructTemp,
-                                        IRF->GetConstant((uint64_t)CurrentMemberIndex));
+                                        IRF->GetConstant((uint64_t)MemberIndex));
 
         IRF->CreateStore(InitExprCode, MemberPtr);
-        ++CurrentMemberIndex;
+        ++LoopIndex;
     }
 
     return StructTemp;
@@ -1368,9 +1385,9 @@ Value *TernaryExpression::IRCodegen(IRFactory *IRF)
 {
     const auto FuncPtr = IRF->GetCurrentFunction();
 
-    auto TrueBB  = std::make_unique<BasicBlock>("true", FuncPtr);
-    auto FalseBB = std::make_unique<BasicBlock>("false", FuncPtr);
-    auto FinalBB = std::make_unique<BasicBlock>("end", FuncPtr);
+    auto TrueBB  = std::make_unique<BasicBlock>("tenary_true", FuncPtr);
+    auto FalseBB = std::make_unique<BasicBlock>("tenary_false", FuncPtr);
+    auto FinalBB = std::make_unique<BasicBlock>("tenary_end", FuncPtr);
 
     auto C = Condition->IRCodegen(IRF);
 
@@ -1403,7 +1420,8 @@ Value *TernaryExpression::IRCodegen(IRFactory *IRF)
 
     IRF->InsertBB(std::move(FinalBB));
 
-    return Result;
+
+    return IRF->CreateLoad(Result->GetType(), Result);
 }
 
 Value *TranslationUnit::IRCodegen(IRFactory *IRF)
