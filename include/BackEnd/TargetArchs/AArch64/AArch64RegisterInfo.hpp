@@ -26,6 +26,7 @@ namespace AArch64
         unsigned GetLinkRegister() override;
         unsigned GetStackRegister() override;
         unsigned GetZeroRegister() override;
+        unsigned GetStructPtrRegister() override;
 
       private:
         TargetRegister Registers[67];

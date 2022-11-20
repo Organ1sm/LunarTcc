@@ -20,7 +20,6 @@ namespace AArch64
         bool ExpandMul(MachineInstruction *MI) override;
         bool ExpandDiv(MachineInstruction *MI) override;
         bool ExpandDivU(MachineInstruction *MI) override;
-        bool ExpandZExt(MachineInstruction *MI) override;
         bool ExpandStore(MachineInstruction *MI) override;
         bool ExpandGlobalAddress(MachineInstruction *MI) override;
 

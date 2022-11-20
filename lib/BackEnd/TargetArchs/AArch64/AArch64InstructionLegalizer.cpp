@@ -31,14 +31,6 @@ bool AArch64InstructionLegalizer::Check(MachineInstruction *MI)
             if (MI->GetOperands().back().IsImmediate())
                 return false;
             break;
-        case MachineInstruction::ZExt: {
-            auto PrevInst = MI->GetParent()->GetPrecedingInstr(MI);
-
-            // if not a load instr, then do nothing
-            if (PrevInst && PrevInst->GetOpcode() == MachineInstruction::Load)
-                return false;
-            break;
-        }
         case MachineInstruction::GlobalAddress: return false;
 
         default: break;
@@ -58,7 +50,6 @@ bool AArch64InstructionLegalizer::IsExpandable(const MachineInstruction *MI)
         case MachineInstruction::DivU:
         case MachineInstruction::Sub:
         case MachineInstruction::Store:
-        case MachineInstruction::ZExt:
         case MachineInstruction::GlobalAddress: return true;
 
         default: break;
@@ -116,28 +107,6 @@ bool AArch64InstructionLegalizer::ExpandDivU(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 3 && "DIVU must have exactly 3 operands");
     return ExpandArithmeticInstWithImm(MI, 2);
-}
-
-/// Since AArch64 do sign extension when loading therefore if the ZEXT is
-/// used only to zero extend a load result then it can be merged with the
-/// previous load into a ZExtLoad.
-bool AArch64InstructionLegalizer::ExpandZExt(MachineInstruction *MI)
-{
-    assert(MI->GetOperandsNumber() == 2 && "ZEXT must have exactly 2 operands");
-    auto ParentBB = MI->GetParent();
-
-    auto PrevInst = ParentBB->GetPrecedingInstr(MI);
-
-    // If not a LOAD then do nothing
-    if (!(PrevInst->GetOpcode() == MachineInstruction::Load))
-        return false;
-
-    auto ZEXTDest = *MI->GetOperand(0);
-    PrevInst->InsertOperand(0, ZEXTDest);
-    PrevInst->SetOpcode(MachineInstruction::ZExtLoad);
-    ParentBB->Erase(MI);
-
-    return true;
 }
 
 /// Use wzr register if the stored immediate is 0

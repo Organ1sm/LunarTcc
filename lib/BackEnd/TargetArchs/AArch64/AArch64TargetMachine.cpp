@@ -284,7 +284,37 @@ bool AArch64TargetMachine::SelectCmp(MachineInstruction *MI)
     return false;
 }
 
-bool AArch64TargetMachine::SelectZExt(MachineInstruction *MI) { return SelectSExt(MI); }
+bool AArch64TargetMachine::SelectZExt(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 2 && "ZEXT must have 2 operands");
+
+    ExtendRegSize(MI->GetOperand(0));
+
+    if (MI->GetOperand(1)->IsImmediate())
+    {
+        MI->SetOpcode(MOV_ri);
+        return true;
+    }
+    else if (MI->GetOperand(1)->GetType().GetBitWidth() == 32)
+    {
+        MI->SetOpcode(UXTW);
+        return true;
+    }
+    else if (MI->GetOperand(1)->GetType().GetBitWidth() == 8)
+    {
+        MI->SetOpcode(UXTB);
+        return true;
+    }
+    else if (MI->GetOperand(1)->GetType().GetBitWidth() == 64)
+    {
+        MI->SetOpcode(MOV_rr);
+        return true;
+    }
+
+    assert(!"Unimplemented!");
+    return false;
+}
+
 
 bool AArch64TargetMachine::SelectSExt(MachineInstruction *MI)
 {
