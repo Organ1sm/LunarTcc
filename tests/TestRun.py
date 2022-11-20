@@ -76,7 +76,6 @@ def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases):
         currentTestMain = currentTestMain.replace("$", case)
         currentTestMain = currentTestMain.replace("@", expectedResult)
 
-        print(currentTestMain)
         CreateFile("testMain.c", currentTestMain)
 
         LinkCommandList = [

@@ -16,6 +16,7 @@ AArch64InstructionDefinitions::AArch64InstructionDefinitions()
                         "CMP_ri",   "CMP_rr",              //
                         "CSET",                            //
                         "SXTB",     "SXTW",                //
+                        "UXTB",     "UXTW",                //
                         "MOV_rc",   "MOV_rr",              //
                         "ADRP",                            //
                         "LDR",      "LDRB",                //
@@ -165,6 +166,18 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             SXTW,
             32,
             "sxtw\t$1, $2",
+            {GPR, GPR}
+        };
+        ret[UXTB] = {
+            UXTB,
+            32,
+            "uxtb\t$1, $2",
+            {GPR, GPR}
+        };
+        ret[UXTW] = {
+            UXTW,
+            32,
+            "uxtw\t$1, $2",
             {GPR, GPR}
         };
         ret[MOV_ri] = {

@@ -30,6 +30,8 @@ namespace AArch64
         CSET,
         SXTB,
         SXTW,
+        UXTB,
+        UXTW,
         MOV_ri,
         MOV_rr,
         ADRP,

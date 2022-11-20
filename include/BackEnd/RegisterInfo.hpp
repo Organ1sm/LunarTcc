@@ -13,6 +13,7 @@ class RegisterInfo
     virtual unsigned GetLinkRegister() { return 0; }
     virtual unsigned GetStackRegister() { return 0; }
     virtual unsigned GetZeroRegister() { return ~0; }
+    virtual unsigned GetStructPtrRegister() { return ~0; }
 
     virtual TargetRegister *GetParentReg(unsigned ID)
     {
