@@ -26,6 +26,7 @@
 #include "fmt/format.h"
 #include <fmt/color.h>
 
+// TODO: finish a better driver.
 int main(int argc, char *argv[])
 {
     std::string FilePath = "../tests/test.c";
