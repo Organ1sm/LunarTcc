@@ -60,6 +60,12 @@ void MachineInstruction::AddMemory(uint64_t Id, unsigned BitWidth)
     AddOperand(MachineOperand::CreateMemory(Id, BitWidth));
 }
 
+
+void MachineInstruction::AddMemory(uint64_t Id, int Offset, unsigned BitWidth)
+{
+    AddOperand(MachineOperand::CreateMemory(Id, Offset, BitWidth));
+}
+
 void MachineInstruction::AddStackAccess(uint64_t Slot, unsigned Offset)
 {
     AddOperand(MachineOperand::CreateStackAccess(Slot, Offset));

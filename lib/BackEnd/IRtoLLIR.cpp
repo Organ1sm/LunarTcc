@@ -132,7 +132,7 @@ MachineInstruction IRtoLLIR::HandleBinaryInstruction(BinaryInstruction *I)
     auto Operation = I->GetInstructionKind();
     auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
 
-    auto Result     = GetMachineOperandFromValue((Value *)I);
+    auto Result     = GetMachineOperandFromValue((Value *)I, true);
     auto FirstStep  = GetMachineOperandFromValue(I->GetLHS());
     auto SecondStep = GetMachineOperandFromValue(I->GetRHS());
 
@@ -148,7 +148,7 @@ MachineInstruction IRtoLLIR::HandleUnaryInstruction(UnaryInstruction *I)
     auto Operation = I->GetInstructionKind();
     auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
 
-    auto Result = GetMachineOperandFromValue((Value *)I);
+    auto Result = GetMachineOperandFromValue((Value *)I, true);
     auto Op     = GetMachineOperandFromValue(I->GetOperand());
 
     ResultMI.AddOperand(Result);
@@ -370,15 +370,26 @@ MachineInstruction IRtoLLIR::HandleCallInstruction(CallInstruction *I)
         else if (Param->GetTypeRef().IsPointer() &&
                  (Param->IsGlobalVar() || ParentFunction->IsStackSlot(Param->GetID())))
         {
+            unsigned DestinationReg;
+            unsigned RegBitWidth = TargetArgRegs[ParamCounter]->GetBitWidth();
+
+            if ((int)ParamCounter == I->GetImplicitStructArgIndex())
+            {
+                DestinationReg = TM->GetRegInfo()->GetStructPtrRegister();
+            }
+            else
+            {
+                DestinationReg = TargetArgRegs[ParamCounter]->GetID();
+            }
+
             if (Param->IsGlobalVar())
             {
                 Ins = MachineInstruction(MachineInstruction::GlobalAddress, CurrentBB);
 
-                Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
-                                TargetArgRegs[ParamCounter]->GetBitWidth());
-
                 auto Symbol = ((GlobalVariable *)Param)->GetName();
+                Ins.AddRegister(DestinationReg, RegBitWidth);
                 Ins.AddGlobalSymbol(Symbol);
+
                 CurrentBB->InsertInstr(Ins);
                 ParamCounter++;
             }
@@ -386,10 +397,9 @@ MachineInstruction IRtoLLIR::HandleCallInstruction(CallInstruction *I)
             {
                 Ins = MachineInstruction(MachineInstruction::StackAddress, CurrentBB);
 
-                Ins.AddRegister(TargetArgRegs[ParamCounter]->GetID(),
-                                TargetArgRegs[ParamCounter]->GetBitWidth());
-
+                Ins.AddRegister(DestinationReg, RegBitWidth);
                 Ins.AddStackAccess(Param->GetID());
+
                 CurrentBB->InsertInstr(Ins);
                 ParamCounter++;
             }
@@ -732,7 +742,12 @@ MachineInstruction IRtoLLIR::HandleMemoryCopyInstruction(MemoryCopyInstruction *
         auto NewVReg = ParentFunction->GetNextAvailableVirtualRegister();
 
         Load.AddVirtualRegister(NewVReg, /* TODO: use alignment here */ 32);
-        Load.AddStackAccess(SrcID, i * /* TODO: use alignment here */ 4);
+
+        if (ParentFunction->IsStackSlot(SrcID))
+            Load.AddStackAccess(SrcID, i * /* TODO: use alignment here */ 4);
+        else
+            Load.AddMemory(SrcID, i * 4, TM->GetPointerSize());
+
         CurrentBB->InsertInstr(Load);
 
         auto Store = MachineInstruction(MachineInstruction::Store, CurrentBB);
@@ -849,8 +864,9 @@ void IRtoLLIR::HandleFunctionParams(Function &F, MachineFunction *Func)
 {
     for (auto &Param : F.GetParameters())
     {
-        auto ParamID   = Param->GetID();
-        auto ParamSize = Param->GetBitWidth();
+        auto ParamID     = Param->GetID();
+        auto ParamSize   = Param->GetBitWidth();
+        auto IsStructPtr = Param->IsImplicitStructPtr();
 
         // Handle structs
         if (Param->GetTypeRef().IsStruct() && !Param->GetTypeRef().IsPointer())
@@ -880,9 +896,13 @@ void IRtoLLIR::HandleFunctionParams(Function &F, MachineFunction *Func)
         }
 
         if (Param->GetTypeRef().IsPointer())
-            Func->InsertParameter(ParamID, LowLevelType::CreatePtr(TM->GetPointerSize()));
+            Func->InsertParameter(ParamID,
+                                  LowLevelType::CreatePtr(TM->GetPointerSize()),
+                                  IsStructPtr);
         else
-            Func->InsertParameter(ParamID, LowLevelType::CreateInt(ParamSize));
+            Func->InsertParameter(ParamID,
+                                  LowLevelType::CreateInt(ParamSize),
+                                  IsStructPtr);
     }
 }
 

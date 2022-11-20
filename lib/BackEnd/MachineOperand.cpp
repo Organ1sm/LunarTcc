@@ -46,6 +46,14 @@ MachineOperand MachineOperand::CreateMemory(uint64_t Id, unsigned BitWidth)
     return MO;
 }
 
+MachineOperand MachineOperand::CreateMemory(uint64_t Id, int Offset, unsigned BitWidth)
+{
+    MachineOperand MO = CreateMemory(Id, BitWidth);
+    MO.SetOffset(Offset);
+
+    return MO;
+}
+
 MachineOperand MachineOperand::CreateStackAccess(uint64_t Slot, int Offset)
 {
     MachineOperand MO;
