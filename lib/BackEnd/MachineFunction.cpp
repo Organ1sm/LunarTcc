@@ -11,16 +11,18 @@ void MachineFunction::InsertStackSlot(unsigned int ID, unsigned int Size)
     SF.InsertStackSlot(ID, Size);
 }
 
-void MachineFunction::InsertParameter(unsigned int ID, LowLevelType LLT)
+void MachineFunction::InsertParameter(unsigned int ID,
+                                      LowLevelType LLT,
+                                      bool IsImplicitStructPtr)
 {
-    Parameters.push_back({ID, LLT});
+    Parameters.push_back({ID, LLT, IsImplicitStructPtr});
 }
 
 unsigned MachineFunction::GetNextAvailableVirtualRegister()
 {
     // If this function was called the first time then here the highest virtual
     // register ID is searched and NextVReg is set to that.
-    for (auto &[ParamID, ParamLLT] : Parameters)
+    for (auto &[ParamID, ParamLLT, IsStructPtr] : Parameters)
     {
         if (ParamID == NextVirtualReg)
             NextVirtualReg++;

@@ -9,7 +9,7 @@
 class MachineFunction
 {
     using BasicBlockList = std::vector<MachineBasicBlock>;
-    using ParamList      = std::vector<std::pair<unsigned, LowLevelType>>;
+    using ParamList      = std::vector<std::tuple<unsigned, LowLevelType, bool>>;
     using PhysRegList    = std::vector<unsigned>;
 
   public:
@@ -29,7 +29,7 @@ class MachineFunction
     bool IsCaller() const { return HasCall; }
 
     void InsertStackSlot(unsigned ID, unsigned Size);
-    void InsertParameter(unsigned ID, LowLevelType LLT);
+    void InsertParameter(unsigned ID, LowLevelType LLT, bool ImplicitStructPtr = false);
 
     ParamList GetParameters() { return Parameters; }
     StackFrame &GetStackFrame() { return SF; }

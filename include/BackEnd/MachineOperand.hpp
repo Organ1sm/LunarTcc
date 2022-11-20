@@ -72,10 +72,10 @@ class MachineOperand
 
     bool IsLabel() const { return Type == Label; }
     bool IsMemory() const { return Type == MemoryAddress; }
-    bool IsRegister() const { return Type == Register; }
+    bool IsRegister() const { return Type == Register && !Virtual; }
+    bool IsVirtualReg() const { return Type == Register && Virtual; }
     bool IsImmediate() const { return Type == IntImmediate; }
     bool IsParameter() const { return Type == Paramter; }
-    bool IsVirtualReg() const { return IsRegister() && Virtual; }
     bool IsFunctionName() const { return Type == FunctionName; }
     bool IsStackAccess() const { return Type == StackAccess; }
     bool IsGlobalSymbol() const { return Type == GlobalSymbol; }
@@ -84,6 +84,7 @@ class MachineOperand
     static MachineOperand CreateImmediate(uint64_t Val, unsigned BitWidth = 32);
     static MachineOperand CreateVirtualRegister(uint64_t Reg, unsigned BitWidth = 32);
     static MachineOperand CreateMemory(uint64_t Id, unsigned BitWidth = 32);
+    static MachineOperand CreateMemory(uint64_t Id, int Offset, unsigned BitWidth);
     static MachineOperand CreateStackAccess(uint64_t Slot, int Offset = 0);
     static MachineOperand CreateParameter(uint64_t Val);
     static MachineOperand CreateLabel(const char *Label);

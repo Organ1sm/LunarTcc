@@ -103,6 +103,7 @@ class MachineInstruction
     void AddVirtualRegister(uint64_t Reg, unsigned BitWidth = 32);
     void AddImmediate(uint64_t Num, unsigned BitWidth = 32);
     void AddMemory(uint64_t Id, unsigned BitWidth = 32);
+    void AddMemory(uint64_t Id, int Offset, unsigned BitWidth);
     void AddStackAccess(uint64_t Slot, unsigned Offset = 0);
     void AddLabel(const char *Label);
     void AddFunctionName(const char *Name);
