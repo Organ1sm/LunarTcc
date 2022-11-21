@@ -1,4 +1,5 @@
 #include "FrontEnd/AST/AST.hpp"
+#include "FrontEnd/AST/ASTVistor.hpp"
 #include "MiddleEnd/IR/BasicBlock.hpp"
 #include "MiddleEnd/IR/Function.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
@@ -27,9 +28,7 @@ StructMemberReference::StructMemberReference(ExprPtr Expr,
     this->ResultType = STEType.GetTypeList()[MemberIndex];
 }
 
-BinaryExpression::BinaryExpression(BinaryExpression::ExprPtr L,
-                                   Token Op,
-                                   BinaryExpression::ExprPtr R)
+BinaryExpression::BinaryExpression(ExprPtr L, Token Op, ExprPtr R)
     : Lhs(std::move(L)), Operation(Op), Rhs(std::move(R))
 {
     if (IsCondition())
@@ -43,8 +42,7 @@ BinaryExpression::BinaryExpression(BinaryExpression::ExprPtr L,
     }
 }
 
-UnaryExpression::UnaryExpression(Token Op, UnaryExpression::ExprPtr E)
-    : Operation(Op), Expr(std::move(E))
+UnaryExpression::UnaryExpression(Token Op, ExprPtr E) : Operation(Op), Expr(std::move(E))
 {
     switch (GetOperationKind())
     {
@@ -1436,165 +1434,6 @@ Value *TranslationUnit::IRCodegen(IRFactory *IRF)
     return nullptr;
 }
 
-//=--------------------------------------------------------------------------=//
-//=------------------------- AST ASTDump functions --------------------------=//
-//=--------------------------------------------------------------------------=//
-
-void VariableDeclaration::ASTDump(unsigned tab)
-{
-    auto TypeStr = "'" + AType.ToString() + "' ";
-    auto NameStr = "'" + Name + "'";
-
-    Print("VariableDeclaration ", tab);
-    Print(TypeStr.c_str());
-    PrintLn(NameStr.c_str());
-
-    if (Init)
-        Init->ASTDump(tab + 2);
-}
-
-void MemberDeclaration::ASTDump(unsigned tab)
-{
-    auto TypeStr = "'" + AType.ToString() + "' ";
-    auto NameStr = "'" + Name + "'";
-
-    Print("MemberDeclaration ", tab);
-    Print(TypeStr.c_str());
-    PrintLn(NameStr.c_str());
-}
-
-void StructDeclaration::ASTDump(unsigned tab)
-{
-    Print("StructDeclaration '", tab);
-    Print(Name.c_str());
-    PrintLn("' ");
-
-    for (auto &M : Members)
-        M->ASTDump(tab + 2);
-}
-
-void EnumDeclaration::ASTDump(unsigned tab)
-{
-    auto HeaderStr      = fmt::format("EnumDeclaration `{}`", BaseType.ToString());
-    std::string BodyStr = "Enumerators ";
-
-    std::size_t LoopCounter = 0;
-    for (auto &[Enum, Val] : Enumerators)
-    {
-        BodyStr += fmt::format("`{}` = {}", Enum, Val);
-
-        if (++LoopCounter < Enumerators.size())
-            BodyStr += ", ";
-    }
-
-    PrintLn(HeaderStr.c_str(), tab);
-    PrintLn(BodyStr.c_str(), tab + 2);
-}
-
-void CompoundStatement::ASTDump(unsigned int tab)
-{
-    PrintLn("CompoundStatement ", tab);
-
-    for (auto &s : Statements)
-        s->ASTDump(tab + 2);
-}
-
-void ExpressionStatement::ASTDump(unsigned int tab)
-{
-    PrintLn("ExpressionStatement ", tab);
-
-    Expr->ASTDump(tab + 2);
-}
-
-void IfStatement::ASTDump(unsigned int tab)
-{
-    PrintLn("IfStatement ", tab);
-
-    Condition->ASTDump(tab + 2);
-    IfBody->ASTDump(tab + 2);
-
-    if (ElseBody)
-        ElseBody->ASTDump(tab + 2);
-}
-
-void SwitchStatement::ASTDump(unsigned int tab)
-{
-    PrintLn("SwitchStatement", tab);
-
-    Condition->ASTDump(tab + 2);
-
-    for (auto &[CaseConst, CaseBody] : Cases)
-    {
-        auto Str = fmt::format("Case `{}`", CaseConst);
-        PrintLn(Str.c_str(), tab + 2);
-
-        for (auto &CaseStmt : CaseBody)
-            CaseStmt->ASTDump(tab + 4);
-    }
-
-    if (!DefaultBody.empty())
-        PrintLn("DefaultCase", tab + 2);
-
-    for (auto &DefaultStmt : DefaultBody)
-        DefaultStmt->ASTDump(tab + 4);
-}
-
-void WhileStatement::ASTDump(unsigned int tab)
-{
-    PrintLn("WhileStatement ", tab);
-
-    Condition->ASTDump(tab + 2);
-    Body->ASTDump(tab + 2);
-}
-
-void ForStatement::ASTDump(unsigned int tab)
-{
-    PrintLn("ForStatement", tab);
-
-    if (Init)
-        Init->ASTDump(tab + 2);
-    else
-        VarDecl->ASTDump(tab + 2);
-
-    Condition->ASTDump(tab + 2);
-    Increment->ASTDump(tab + 2);
-    Body->ASTDump(tab + 2);
-}
-
-void ReturnStatement::ASTDump(unsigned int tab)
-{
-    PrintLn("ReturnStatement ", tab);
-
-    if (ReturnValue)
-        ReturnValue.value()->ASTDump(tab + 2);
-}
-
-void FunctionParameterDeclaration::ASTDump(unsigned int tab)
-{
-    auto TypeStr = "'" + Ty.ToString() + "' ";
-    auto NameStr = "'" + Name + "'";
-
-    Print("FunctionParameterDeclaration ", tab);
-    Print(TypeStr.c_str());
-    PrintLn(NameStr.c_str());
-}
-
-void FunctionDeclaration::ASTDump(unsigned int tab)
-{
-    auto TypeStr = "'" + FuncType.ToString() + "' ";
-    auto NameStr = "'" + Name + "'";
-
-    Print("FunctionDeclaration ", tab);
-    Print(TypeStr.c_str());
-    PrintLn(NameStr.c_str());
-
-    for (auto &Argument : Arguments)
-        Argument->ASTDump(tab + 2);
-
-    if (Body)
-        Body->ASTDump(tab + 2);
-}
-
 Type FunctionDeclaration::CreateType(const Type &t,
                                      const FunctionDeclaration::ParamVec &params)
 {
@@ -1650,42 +1489,6 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
     }
 }
 
-void BinaryExpression::ASTDump(unsigned int tab)
-{
-    auto Str = "'" + ResultType.ToString() + "' ";
-    Str += "'" + Operation.GetString() + "'";
-
-    Print("BinaryExpression ", tab);
-    PrintLn(Str.c_str());
-
-    Lhs->ASTDump(tab + 2);
-    Rhs->ASTDump(tab + 2);
-}
-
-void StructMemberReference::ASTDump(unsigned tab)
-{
-    auto Str = "'" + ResultType.ToString() + "' ";
-    // Todo: if it's struct pointer, should output `-> member`
-    Str += "'." + MemberIdentifier + "'";
-
-    Print("StructMemberReference ", tab);
-    PrintLn(Str.c_str());
-
-    StructTypedExpression->ASTDump(tab + 2);
-}
-
-void StructInitExpression::ASTDump(unsigned tab)
-{
-    auto Str = "'" + ResultType.ToString() + "' ";
-
-    Print("StructInitExpression ", tab);
-    PrintLn(Str.c_str());
-
-    for (auto &InitValue : InitValues)
-        InitValue->ASTDump(tab + 2);
-}
-
-
 UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
 {
     switch (Operation.GetKind())
@@ -1701,115 +1504,140 @@ UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
     }
 }
 
-void UnaryExpression::ASTDump(unsigned int tab)
+//=--------------------------------------------------------------------------=//
+//=------------------------- AST Accept functions --------------------------=//
+//=--------------------------------------------------------------------------=//
+
+void VariableDeclaration::Accept(ASTVisitor *Visitor) const
 {
-    auto Str = "'" + ResultType.ToString() + "' ";
-    Str += "'" + Operation.GetString() + "'";
-
-    Print("UnaryExpression ", tab);
-    PrintLn(Str.c_str());
-
-    Expr->ASTDump(tab + 2);
+    Visitor->VisitVariableDeclaration(this);
 }
 
-void CallExpression::ASTDump(unsigned int tab)
+void MemberDeclaration::Accept(ASTVisitor *Visitor) const
 {
-    auto Str = "'" + ResultType.ToString() + "' ";
-    Str += "'" + Name + "'";
-
-    Print("CallExpression ", tab);
-    PrintLn(Str.c_str());
-
-    for (auto &Argument : Arguments)
-        Argument->ASTDump(tab + 2);
+    Visitor->VisitMemberDeclaration(this);
 }
 
-void ReferenceExpression::ASTDump(unsigned int tab)
+void EnumDeclaration::Accept(ASTVisitor *Visitor) const
 {
-    auto Str = "'" + ResultType.ToString() + "' ";
-    Str += "'" + Identifier + "' ";
-
-    Print("ReferenceExpression ", tab);
-    PrintLn(Str.c_str());
+    Visitor->VisitEnumDeclaration(this);
 }
 
-void IntegerLiteralExpression::ASTDump(unsigned int tab)
+void StructDeclaration::Accept(ASTVisitor *Visitor) const
 {
-    Print("IntegerLiteralExpression ", tab);
-
-    auto TyStr = "'" + ResultType.ToString() + "' ";
-    Print(TyStr.c_str());
-
-    auto ValStr = "'" + std::to_string((int64_t)IntValue) + "'";
-    PrintLn(ValStr.c_str());
+    Visitor->VisitStructDeclaration(this);
 }
 
-void FloatLiteralExpression::ASTDump(unsigned int tab)
+void CompoundStatement::Accept(ASTVisitor *Visitor) const
 {
-    Print("FloatLiteralExpression ", tab);
-
-    auto TyStr = "'" + ResultType.ToString() + "' ";
-    Print(TyStr.c_str());
-
-    auto ValueStr = "'" + std::to_string(FPValue) + "'";
-    PrintLn(ValueStr.c_str());
+    Visitor->VisitCompoundStatement(this);
 }
 
-void ArrayExpression::ASTDump(unsigned int tab)
+void ExpressionStatement::Accept(ASTVisitor *Visitor) const
 {
-    std::string TypeStr = ResultType.ToString();
-
-    if (BaseExpression->GetResultType().IsArray())
-    {
-        for (auto Dim : BaseExpression->GetResultType().GetDimensions())
-        {
-            TypeStr += fmt::format("[{}]", Dim);
-        }
-    }
-
-    auto Str = fmt::format("`{}`", TypeStr);
-
-    Print("ArrayExpression ", tab);
-    PrintLn(Str.c_str());
-
-    IndexExpression->ASTDump(tab + 2);
+    Visitor->VisitExpressionStatement(this);
 }
 
-void TranslationUnit::ASTDump(unsigned int tab)
-{
-    PrintLn("TranslationUnit", tab);
-    for (auto &Declaration : Declarations)
-        Declaration->ASTDump(tab + 2);
+void IfStatement::Accept(ASTVisitor *Visitor) const { Visitor->VisitIfStatement(this); }
 
-    PrintLn("");
+void SwitchStatement::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitSwitchStatement(this);
 }
 
-void ImplicitCastExpression::ASTDump(unsigned int tab)
+void WhileStatement::Accept(ASTVisitor *Visitor) const
 {
-    auto Str = "'" + ResultType.ToString() + "'";
-
-    Print("ImplicitCastExpression ", tab);
-    PrintLn(Str.c_str());
-
-    CastableExpression->ASTDump(tab + 2);
+    Visitor->VisitWhileStatement(this);
 }
 
-void InitializerListExpression::ASTDump(unsigned int tab)
-{
-    PrintLn("InitializerListExpression", tab);
+void ForStatement::Accept(ASTVisitor *Visitor) const { Visitor->VisitForStatement(this); }
 
-    for (auto &E : Expressions)
-        E->ASTDump(tab + 2);
+void ReturnStatement::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitReturnStatement(this);
 }
 
-void TernaryExpression::ASTDump(unsigned tab)
+void BreakStatement::Accept(ASTVisitor *Visitor) const
 {
-    auto Str = "'" + ResultType.ToString() + "' ";
+    Visitor->VisitBreakStatement(this);
+}
 
-    Print("TernaryExpression ", tab);
-    PrintLn(Str.c_str());
+void ContinueStatement::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitContinueStatement(this);
+}
 
-    Condition->ASTDump(tab + 2);
-    ExprIfTrue->ASTDump(tab + 2);
-    ExprIfFalse->ASTDump(tab + 2);
+void FunctionParameterDeclaration::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitFunctionParameterDeclaration(this);
+}
+
+void FunctionDeclaration::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitFunctionDeclaration(this);
+}
+
+void BinaryExpression::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitBinaryExpression(this);
+}
+
+void UnaryExpression::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitUnaryExpression(this);
+}
+
+void TernaryExpression::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitTernaryExpression(this);
+}
+
+void StructMemberReference::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitStructMemberReference(this);
+}
+
+void StructInitExpression::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitStructInitExpression(this);
+}
+
+void CallExpression::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitCallExpression(this);
+}
+
+void ReferenceExpression::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitReferenceExpression(this);
+}
+
+void IntegerLiteralExpression::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitIntegerLiteralExpression(this);
+}
+
+void FloatLiteralExpression::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitFloatLiteralExpression(this);
+}
+
+void ArrayExpression::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitArrayExpression(this);
+}
+
+void ImplicitCastExpression::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitImplicitCastExpression(this);
+}
+
+void InitializerListExpression::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitInitializerListExpression(this);
+}
+
+void TranslationUnit::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitTranslationUnit(this);
 }
