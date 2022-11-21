@@ -19,10 +19,13 @@ class PPToken
         LeftParen,
         RightParen,
         DoubleQuote,
+        ForwardSlash,    // "/"
 
         // Keywords
         Define,
         Include,
+        IfNotDefine,
+        EndIf,
     };
 
     PPToken() : Kind(Invalid) {}

@@ -18,9 +18,12 @@ std::string PPToken::ToString(PPTokenKind tk)
         case LeftParen: return "(";
         case RightParen: return ")";
         case DoubleQuote: return "\"";
+        case ForwardSlash: return "/";
 
         case Define: return "define";
         case Include: return "include";
+        case IfNotDefine: return "ifndef";
+        case EndIf: return "endif";
 
         default: assert(false && "Unhandled token type."); break;
     }
