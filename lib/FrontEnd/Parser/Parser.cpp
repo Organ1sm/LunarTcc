@@ -784,7 +784,7 @@ std::unique_ptr<SwitchStatement> Parser::ParseSwitchStatement()
 
         Expect(Token::Colon);
 
-        SwitchStatement::StmtsVec Statements;
+        StmtPtrVec Statements;
         while (lexer.IsNot(Token::RightBrace) && lexer.IsNot(Token::Case) &&
                lexer.IsNot(Token::Default))
             Statements.push_back(std::move(ParseStatement()));
@@ -986,7 +986,7 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
         Expect(Token::LeftBrace);
 
         std::vector<std::string> MemberList;
-        StructInitExpression::ExprPtrList InitList;
+        ExprPtrVec InitList;
 
         while (lexer.Is(Token::Dot) || lexer.Is(Token::Identifier))
         {

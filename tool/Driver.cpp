@@ -1,7 +1,5 @@
-//
-// Created by yw.
-//
 #include "BackEnd/Support.hpp"
+#include "FrontEnd/AST/ASTPrint.hpp"
 #include "Utils/ErrorLogger.hpp"
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include "FrontEnd/AST/AST.hpp"
@@ -131,7 +129,10 @@ int main(int argc, char *argv[])
     auto AST = parser.Parse();
 
     if (DumpAst)
-        AST->ASTDump();
+    {
+        auto ASTPrinter = std::make_unique<ASTPrint>();
+        AST->Accept(ASTPrinter.get());
+    }
 
     AST->IRCodegen(&IRF);
 
