@@ -16,6 +16,8 @@ PreProcessor::PreProcessor(std::vector<std::string> &Src, std::string Path) : So
 
     if (FilePath.length() > 0 && FilePath[FilePath.length() - 1] != '/')
         FilePath.push_back('/');
+
+    DefinedMacros["__LINE__"] = {"1", 0};
 }
 
 
@@ -195,6 +197,7 @@ void PreProcessor::Run()
         }
         else if (!DefinedMacros.empty())
         {
+            DefinedMacros["__LINE__"].first = std::to_string(LineIndex + 1);
             SubstituteMacros(Line);
         }
     }
