@@ -1116,27 +1116,28 @@ static int GetBinOpPrecedence(Token::TokenKind TK)
         case Token::MulEqual:
         case Token::DivEqual: return 10;
         case Token::LogicalAnd: return 20;
-        case Token::And: return 30;
+        case Token::Xor: return 30;
+        case Token::And: return 40;
 
         // ==, != , <=, >=
         case Token::GreaterEqual:
         case Token::LessEqual:
         case Token::Equal:
-        case Token::NotEqual: return 40;
+        case Token::NotEqual: return 50;
 
         /// <, >
         case Token::Less:
-        case Token::Greater: return 50;
+        case Token::Greater: return 60;
 
         case Token::LeftShift:
-        case Token::RightShift: return 60;
+        case Token::RightShift: return 70;
 
         case Token::Plus:
-        case Token::Minus: return 70;
+        case Token::Minus: return 80;
 
         case Token::Mul:
         case Token::Div:
-        case Token::Mod: return 80;
+        case Token::Mod: return 90;
 
         default: return -1;
     }

@@ -1328,13 +1328,14 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         // and if its a commutative operation
         switch (GetOperationKind())
         {
-                // then swap the operands, since most architecture supports immediate
-                // as the last operand.
-                // Ex.:
-                //      AArch64 add x0, x1, #123 not add x0, #123, x1
+            // then swap the operands, since most architecture supports immediate
+            // as the last operand.
+            // Ex.:
+            //      AArch64 add x0, x1, #123 not add x0, #123, x1
             case Add:
             case Mul:
             case And:
+            case Xor:
             case Equal:
             case NotEqual: std::swap(L, R); break;
             default: break;
@@ -1354,6 +1355,7 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         case Div: return IRF->CreateDiv(L, R);
         case Mod: return IRF->CreateMod(L, R);
         case And: return IRF->CreateAnd(L, R);
+        case Xor: return IRF->CreateXOr(L, R);
         case DivU: return IRF->CreateDivU(L, R);
         case ModU: return IRF->CreateModU(L, R);
         case Equal: return IRF->CreateCmp(CompareInstruction::EQ, L, R);
@@ -1480,6 +1482,7 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
             return Mod;
         }
         case Token::And: return And;
+        case Token::Xor: return Xor;
         case Token::Not: return Not;
         case Token::Equal: return Equal;
         case Token::Less: return Less;

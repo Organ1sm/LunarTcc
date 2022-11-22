@@ -462,6 +462,7 @@ class BinaryExpression : public Expression
         Mod,
         ModU,
         And,
+        Xor,
         Not,
         Equal,
         Less,
