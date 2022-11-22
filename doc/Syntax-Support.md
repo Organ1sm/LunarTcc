@@ -71,6 +71,8 @@ a->b
 ```cpp
 a++
 a--
+++a
+--a
 ```
 
 ### Arithmetic Operator
