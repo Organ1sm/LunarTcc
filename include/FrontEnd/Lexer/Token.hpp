@@ -109,7 +109,7 @@ class Token
         Sizeof,
 
         // C11, Not Support
-        // todo
+        // TODO: Support it.
         Bool,            // _Bool
         Complex,         // _Complex
         Alignas,         // _Alignas

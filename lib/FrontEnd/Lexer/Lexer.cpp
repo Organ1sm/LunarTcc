@@ -3,6 +3,7 @@
 
 std::unordered_map<std::string, Token::TokenKind> Lexer::KeyWords =
     std::unordered_map<std::string, Token::TokenKind> {
+        {"short",    Token::Short   },
         {"int",      Token::Int     },
         {"long",     Token::Long    },
         {"double",   Token::Double  },

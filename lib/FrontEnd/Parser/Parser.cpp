@@ -11,6 +11,7 @@ bool Parser::IsTypeSpecifier(Token T)
     switch (T.GetKind())
     {
         case Token::Char:
+        case Token::Short:
         case Token::Int:
         case Token::Long:
         case Token::Double:
@@ -117,6 +118,7 @@ Type Parser::ParseType(Token::TokenKind tk)
     {
         case Token::Void: Result.SetTypeVariant(Type::Void); break;
         case Token::Char: Result.SetTypeVariant(Type::Char); break;
+        case Token::Short: Result.SetTypeVariant(Type::Short); break;
         case Token::Int: Result.SetTypeVariant(Type::Int); break;
         case Token::Double: Result.SetTypeVariant(Type::Double); break;
         case Token::Long: {
@@ -133,7 +135,7 @@ Type Parser::ParseType(Token::TokenKind tk)
         case Token::Unsigned: {
             auto NextTokenKind = lexer.LookAhead(2).GetKind();
             if (NextTokenKind == Token::Int || NextTokenKind == Token::Char ||
-                NextTokenKind == Token::Long)
+                NextTokenKind == Token::Short || NextTokenKind == Token::Long)
             {
                 Lex();    // eat 'unsigned'
 
@@ -156,6 +158,7 @@ Type Parser::ParseType(Token::TokenKind tk)
             switch (CurrentToken.GetKind())
             {
                 case Token::Char: Result.SetTypeVariant(Type::UnsignedChar); break;
+                case Token::Short: Result.SetTypeVariant(Type::UnsignedShort); break;
                 case Token::Int: Result.SetTypeVariant(Type::UnsignedInt); break;
                 case Token::Long: {
                     auto NextTokenKind = lexer.LookAhead(2).GetKind();

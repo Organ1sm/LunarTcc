@@ -17,6 +17,8 @@ class Type
         Void,
         Char,
         UnsignedChar,
+        Short,
+        UnsignedShort,
         Int,
         UnsignedInt,
         Long,
