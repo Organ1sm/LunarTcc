@@ -294,6 +294,7 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::And;
             }
             break;
+        case '^': TokenKind = Token::Xor; break;
         case ':': TokenKind = Token::Colon; break;
         case ';': TokenKind = Token::SemiColon; break;
         case '(': TokenKind = Token::LeftParen; break;
