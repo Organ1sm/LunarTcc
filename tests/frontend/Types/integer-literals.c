@@ -1,5 +1,8 @@
 // RUN: AArch64
 
+// FUNC-DECL: int test()
+// TEST-CASE: test() -> 13
+
 // FUNC-DECL: unsigned test_u()
 // TEST-CASE: test_u() -> 13
 
@@ -15,6 +18,8 @@
 // FUNC-DECL: unsigned long long test_ull()
 // TEST-CASE: test_ull() -> 13
 
+
+int test() { return 13; }
 
 unsigned test_u() { return 13u; }
 

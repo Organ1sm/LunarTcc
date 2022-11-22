@@ -42,7 +42,8 @@ BinaryExpression::BinaryExpression(ExprPtr L, Token Op, ExprPtr R)
     }
 }
 
-UnaryExpression::UnaryExpression(Token Op, ExprPtr E) : Operation(Op), Expr(std::move(E))
+UnaryExpression::UnaryExpression(Token Op, ExprPtr E, bool PostFix)
+    : Operation(Op), Expr(std::move(E)), IsPostFix(PostFix)
 {
     switch (GetOperationKind())
     {
@@ -56,6 +57,8 @@ UnaryExpression::UnaryExpression(Token Op, ExprPtr E) : Operation(Op), Expr(std:
             break;
         case UnaryOperation::Not: ResultType = Type(Type::Int); break;
         case UnaryOperation::Minus:
+        case UnaryOperation::PreIncrement:
+        case UnaryOperation::PreDecrement:
         case UnaryOperation::PostIncrement:
         case UnaryOperation::PostDecrement: ResultType = Expr->GetResultType(); break;
 
@@ -1158,6 +1161,26 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
             return IRF->CreateLoad(IRType::CreateBool(), Result);
         }
 
+        case UnaryOperation::PreIncrement:
+        case UnaryOperation::PreDecrement: {
+            // make the assumption that the expression E is an LValue
+            // which means its basically a pointer, so it
+            // requires a load first for addition to work
+
+            auto LoadedValType = E->GetTypeRef();
+            LoadedValType.DecrementPointerLevel();
+            auto LoadedExpr = IRF->CreateLoad(LoadedValType, E);
+
+            Instruction *AddOrSub;
+            if (GetOperationKind() == PreIncrement)
+                AddOrSub = IRF->CreateAdd(LoadedExpr, IRF->GetConstant((uint64_t)1));
+            else
+                AddOrSub = IRF->CreateSub(LoadedExpr, IRF->GetConstant((uint64_t)1));
+
+            IRF->CreateStore(AddOrSub, E);
+            return AddOrSub;
+        }
+
         case UnaryOperation::PostDecrement:
         case UnaryOperation::PostIncrement: {
             // make the assumption that the expression E is an LValue
@@ -1503,8 +1526,12 @@ UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
         case Token::Mul: return UnaryOperation::DeRef;
         case Token::Minus: return UnaryOperation::Minus;
         case Token::Not: return UnaryOperation::Not;
-        case Token::Inc: return UnaryOperation::PostIncrement;
-        case Token::Dec: return UnaryOperation::PostDecrement;
+        case Token::Inc:
+            return IsPostFix ? UnaryOperation::PostIncrement :
+                               UnaryOperation::PreIncrement;
+        case Token::Dec:
+            return IsPostFix ? UnaryOperation::PostDecrement :
+                               UnaryOperation::PreDecrement;
 
         default: assert(!"Invalid unary operator kind."); break;
     }
