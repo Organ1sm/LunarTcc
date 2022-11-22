@@ -18,6 +18,7 @@ class Lexer
     std::optional<Token> LexNumber();
     std::optional<Token> LexIdentifier();
     std::optional<Token> LexKeyWord();
+    std::optional<Token> LexCharLiteral();
     std::optional<Token> LexSymbol();
 
     Token LookAhead(unsigned n);

@@ -1,5 +1,6 @@
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include <cassert>
+#include <optional>
 
 std::unordered_map<std::string, Token::TokenKind> Lexer::KeyWords =
     std::unordered_map<std::string, Token::TokenKind> {
@@ -295,6 +296,8 @@ std::optional<Token> Lexer::LexSymbol()
             }
             break;
         case '^': TokenKind = Token::Xor; break;
+
+        case '\\': TokenKind = Token::BackSlash; break;
         case ':': TokenKind = Token::Colon; break;
         case ';': TokenKind = Token::SemiColon; break;
         case '(': TokenKind = Token::LeftParen; break;
@@ -370,6 +373,8 @@ Token Lexer::Lex(bool LookAhead)
     if (!Result)
         Result = LexNumber();
     if (!Result)
+        Result = LexCharLiteral();
+    if (!Result)
         Result = LexIdentifier();
 
     if (Result.has_value() && Result.value().GetKind() == Token::SingleComment)
@@ -383,4 +388,69 @@ Token Lexer::Lex(bool LookAhead)
         return Result.value();
 
     return {Token::Invalid};
+}
+
+std::optional<Token> Lexer::LexCharLiteral()
+{
+    unsigned StartLineIndex   = LineIndex;
+    unsigned StartColumnIndex = ColumnIndex;
+
+    // It must start with a `'` character
+    if (GetNextChar() != '\'')
+        return std::nullopt;
+
+    EatNextChar();    // eat `'` character
+
+    bool IsEscaped = false;
+    if (GetNextChar() == '\\')
+    {
+        IsEscaped = true;
+        EatNextChar();
+    }
+
+    auto CurrentChar = GetNextChar();
+    EatNextChar();
+    unsigned value = -1;
+
+    // TODO: Add support for other cases like multiple octal digits, hex etc...
+    if (IsEscaped)
+    {
+        if (isdigit(CurrentChar))
+        {
+            assert(CurrentChar < '8' && "Expecting octal digits");
+            value = CurrentChar - '0';
+        }
+        else if (CurrentChar == 'a')
+            value = 0x07;
+        else if (CurrentChar == 'b')
+            value = 0x08;
+        else if (CurrentChar == 'e')
+            value = 0x1B;
+        else if (CurrentChar == 'f')
+            value = 0x0C;
+        else if (CurrentChar == 'n')
+            value = 0x0A;
+        else if (CurrentChar == 'r')
+            value = 0x0D;
+        else if (CurrentChar == 't')
+            value = 0x0B;
+        else
+            assert("TODO: add the other ones");
+    }
+    else
+    {
+        value = CurrentChar;
+    }
+    if (GetNextChar() != '\'')
+        return Token(Token::Invalid);
+
+    EatNextChar();    // eat `'` character
+
+    std::string_view StringValue {&Source[StartLineIndex][StartColumnIndex],
+                                  ColumnIndex - StartColumnIndex};
+    return Token(Token::CharacterLiteral,
+                 StringValue,
+                 StartLineIndex,
+                 StartColumnIndex,
+                 value);
 }

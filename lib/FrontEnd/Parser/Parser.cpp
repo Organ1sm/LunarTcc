@@ -1191,7 +1191,8 @@ std::unique_ptr<Expression> Parser::ParsePrimaryExpression()
     }
     else if (lexer.Is(Token::Identifier))
         return ParseIdentifierExpression();
-    else if (lexer.Is(Token::Real) || lexer.Is(Token::Integer))
+    else if (lexer.Is(Token::Real) || lexer.Is(Token::Integer) ||
+             lexer.Is(Token::CharacterLiteral))
         return ParseConstantExpression();
     else
         return nullptr;
@@ -1344,6 +1345,7 @@ std::unique_ptr<Expression> Parser::ParseArrayExpression(std::unique_ptr<Express
 
 // <ConstantExpression> ::= '-'? [1-9][0-9]*
 //                        | '-'? [0-9]+.[0-9]+
+//                        | -?'\'' \?. '\''
 std::unique_ptr<Expression> Parser::ParseConstantExpression()
 {
     bool IsNegative = false;
@@ -1417,6 +1419,17 @@ std::unique_ptr<Expression> Parser::ParseConstantExpression()
         }
 
         return IntLitExpr;
+    }
+    else if (lexer.Is(Token::CharacterLiteral))
+    {
+        auto CharToken = Expect(Token::CharacterLiteral);
+
+        auto IntList = std::make_unique<IntegerLiteralExpression>(CharToken.GetValue());
+
+        if (IsNegative)
+            IntList->SetValue(-IntList->GetSIntValue());
+
+        return IntList;
     }
     else
     {
