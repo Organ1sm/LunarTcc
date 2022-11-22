@@ -16,6 +16,7 @@ class Token
         // Numbers
         Integer,
         Real,
+        CharacterLiteral,
 
         // Punctuators
         LeftParen,       // '('
@@ -27,6 +28,7 @@ class Token
         Colon,           // ':'
         Comma,           // ','
         SemiColon,       // ';'
+        BackSlash,       // "\\"
 
         // Opeartors
         Plus,       // '+'
@@ -130,13 +132,17 @@ class Token
         : Kind(tk), StringValue(sv), Line(line), Column(col)
     {}
 
+    Token(TokenKind tk, std::string_view sv, std::size_t line, size_t col, unsigned v)
+        : Kind(tk), StringValue(sv), Line(line), Column(col), Value(v)
+    {}
+
     std::string GetString() const { return std::string(StringValue); }
 
     TokenKind GetKind() const { return Kind; }
 
     std::size_t GetLine() const { return Line; }
-
     std::size_t GetColumn() const { return Column; }
+    unsigned GetValue() const { return this->Value; }
 
     std::string ToString() const;
 
@@ -148,6 +154,7 @@ class Token
     std::string_view StringValue;
     std::size_t Line;
     std::size_t Column;
+    unsigned Value = 0;
 
   public:
     static const std::unordered_map<TokenKind, std::string> Token2Str;
