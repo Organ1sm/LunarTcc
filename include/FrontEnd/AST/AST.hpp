@@ -501,10 +501,19 @@ class BinaryExpression : public Expression
 class UnaryExpression : public Expression
 {
   public:
-    enum UnaryOperation { Address, DeRef, Minus, Not, PostIncrement, PostDecrement };
+    enum UnaryOperation {
+        Address,
+        DeRef,
+        Minus,
+        Not,
+        PostIncrement,
+        PostDecrement,
+        PreIncrement,
+        PreDecrement
+    };
 
     UnaryExpression() = default;
-    UnaryExpression(Token Op, ExprPtr E);
+    UnaryExpression(Token Op, ExprPtr E, bool PostFix = false);
 
     UnaryOperation GetOperationKind();
 
@@ -518,6 +527,7 @@ class UnaryExpression : public Expression
     Value *IRCodegen(IRFactory *IRF) override;
 
   private:
+    bool IsPostFix {false};
     Token Operation;
     ExprPtr Expr;
 };

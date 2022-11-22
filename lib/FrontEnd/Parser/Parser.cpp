@@ -34,15 +34,15 @@ static bool IsUnaryOperator(Token::TokenKind tk)
 {
     switch (tk)
     {
+        case Token::Inc:
+        case Token::Dec:
         case Token::And:
         case Token::Minus:
         case Token::Not:
         case Token::Mul: return true;
 
-        default: break;
+        default: return false;
     }
-
-    return false;
 }
 
 bool Parser::IsReturnTypeSpecifier(Token T)
@@ -1058,7 +1058,7 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
 
             Lex();
             Expr->SetLValueness(true);
-            Expr = std::make_unique<UnaryExpression>(Operation, std::move(Expr));
+            Expr = std::make_unique<UnaryExpression>(Operation, std::move(Expr), true);
         }
         // Parse a CallExpression here
         else if (lexer.Is(Token::LeftParen))
@@ -1155,11 +1155,19 @@ std::unique_ptr<Expression> Parser::ParseUnaryExpression()
     std::unique_ptr<Expression> Expr;
 
     if (IsUnaryOperator(GetCurrentTokenKind()))
-        return std::make_unique<UnaryExpression>(UnaryOperation,
-                                                 std::move(ParseUnaryExpression()));
+    {
+        auto Expr = ParseUnaryExpression();
+        if (UnaryOperation.GetKind() == Token::Inc ||
+            UnaryOperation.GetKind() == Token::Dec)
+            Expr->SetLValueness(true);
+
+        return std::make_unique<UnaryExpression>(UnaryOperation, std::move(Expr));
+    }
 
     // TODO: Add semantic check that only pointer types are dereferenced
     Expr = ParsePostFixExpression();
+    if (UnaryOperation.GetKind() == Token::Inc || UnaryOperation.GetKind() == Token::Dec)
+        Expr->SetLValueness(true);
 
     return std::make_unique<UnaryExpression>(UnaryOperation, std::move(Expr));
 }
