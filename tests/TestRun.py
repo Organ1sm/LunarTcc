@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+import sys
 from rich.console import Console
 
 
@@ -8,11 +9,16 @@ WorkDir = os.path.dirname(__file__)
 CompilerPath = os.path.dirname(WorkDir) + "/bin/LunarTcc"
 RunCommand = "qemu-"
 console = Console()
+SaveTemps = False
+testSet = []
+failedTests = []
+testsCount = 0
+passedTestsCount = 0
 
 
 def CreateFile(fileName, context):
     textFile = open(fileName, "w")
-    n = textFile.write(context)
+    textFile.write(context)
     textFile.close()
 
 
@@ -97,32 +103,48 @@ def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases):
         return True
 
 
-failedTests = []
-testsCount = 0
-passedTestsCount = 0
+def HandleCommandLineArgs():
+    global SaveTemps
+    for i, arg in enumerate(sys.argv):
+        if i == 0:
+            continue
+        if arg == "-save-temps":
+            SaveTemps = True
+        else:
+            testSet.append(arg)
 
-for subDir, dirs, files in os.walk(WorkDir):
-    for fileName in files:
-        filePath = subDir + os.sep + fileName
-        simplifyFilePath = filePath.replace(WorkDir, "")
-        prettyFilePath = "[orange]" + simplifyFilePath + "[/orange]"
 
-        if filePath.endswith(".c") or filePath.endswith(".s"):
-            Arch, FunctionDeclarations, TestCases = CheckFile(filePath)
+HandleCommandLineArgs()
 
-            if Arch == "":
-                continue
+if len(testSet) == 0:
+    for subDir, dirs, files in os.walk(WorkDir):
+        for fileName in files:
+            filePath = subDir + os.sep + fileName
 
-            success = CompileAndExecuteTestFile(
-                filePath, Arch, FunctionDeclarations, TestCases)
+            if filePath.endswith(".c") or filePath.endswith(".s"):
+                testSet.append(filePath)
 
-            testsCount += 1
-            if success:
-                passedTestsCount += 1
-                console.print("[green u]PASS[/green u]  " + prettyFilePath)
-            else:
-                failedTests.append(simplifyFilePath)
-                console.print("[red u]FAIL[/red u]  " + prettyFilePath)
+testSet.sort()
+
+# run the tests
+for filePath in testSet:
+    simplifyFilePath = filePath.replace(WorkDir, "")
+    prettyFilePath = "[orange]" + simplifyFilePath + "[/orange]"
+    Arch, FunctionDeclarations, TestCases = CheckFile(filePath)
+
+    if Arch == "":
+        continue
+
+    success = CompileAndExecuteTestFile(
+        filePath, Arch, FunctionDeclarations, TestCases)
+
+    testsCount += 1
+    if success:
+        passedTestsCount += 1
+        console.print("[green u]PASS[/green u]  " + prettyFilePath)
+    else:
+        failedTests.append(simplifyFilePath)
+        console.print("[red u]FAIL[/red u]  " + prettyFilePath)
 
 CleanTestCacheFile()
 print("\n--------", testsCount, "Test executed --------")
