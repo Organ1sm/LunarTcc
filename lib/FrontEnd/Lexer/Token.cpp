@@ -70,6 +70,7 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {For,           "for"        },
     {While,         "while"      },
     {Return,        "return"     },
+    {Short,         "short"      },
     {Int,           "int"        },
     {Long,          "long"       },
     {Double,        "double"     },

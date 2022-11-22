@@ -91,6 +91,8 @@ std::string Type::ToString(const Type &t)
         case UnsignedLongLong: Result = "unsigned long long"; break;
         case Int: Result = "int"; break;
         case UnsignedInt: Result = "unsigned int"; break;
+        case Short: Result = "short"; break;
+        case UnsignedShort: Result = "unsigned short"; break;
         case Char: Result = "char"; break;
         case UnsignedChar: Result = "unsigned char"; break;
         case Void: Result = "void"; break;
@@ -142,6 +144,8 @@ bool Type::IsIntegerType() const
     {
         case Char:
         case UnsignedChar:
+        case Short:
+        case UnsignedShort:
         case Int:
         case UnsignedInt:
         case Long:
@@ -158,6 +162,7 @@ bool Type::IsUnsigned() const
     switch (Ty)
     {
         case UnsignedChar:
+        case UnsignedShort:
         case UnsignedInt:
         case UnsignedLong:
         case UnsignedLongLong: return true;
@@ -172,6 +177,8 @@ bool Type::IsImplicitlyCastable(const Type::VariantKind from, const Type::Varian
     {
         case Char:
         case UnsignedChar:
+        case Short:
+        case UnsignedShort:
         case Int:
         case UnsignedInt:
         case Long:
@@ -205,6 +212,8 @@ bool Type::IsSmallerThanInt(const Type::VariantKind V)
 {
     switch (V)
     {
+        case Short:
+        case UnsignedShort:
         case Char:
         case UnsignedChar: return true;
 
@@ -217,6 +226,7 @@ bool Type::OnlySignednessDifference(const Type::VariantKind V1,
 {
     if ((V1 == Int && V2 == UnsignedInt) || (V1 == UnsignedInt && V2 == Int) ||
         (V1 == Char && V2 == UnsignedChar) || (V1 == UnsignedChar && V2 == Char) ||
+        (V1 == Short && V2 == UnsignedShort) || (V2 == Short && V1 == UnsignedShort) ||
         ((V1 == Long || V1 == LongLong) && (V2 == UnsignedLong || V2 == UnsignedLongLong))
 
         || ((V2 == Long || V2 == LongLong) &&

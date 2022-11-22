@@ -104,14 +104,10 @@ def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases):
 
 
 def HandleCommandLineArgs():
-    global SaveTemps
     for i, arg in enumerate(sys.argv):
         if i == 0:
             continue
-        if arg == "-save-temps":
-            SaveTemps = True
-        else:
-            testSet.append(arg)
+        testSet.append(arg)
 
 
 HandleCommandLineArgs()
