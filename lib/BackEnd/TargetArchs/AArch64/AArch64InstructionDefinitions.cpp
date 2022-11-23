@@ -19,8 +19,8 @@ AArch64InstructionDefinitions::AArch64InstructionDefinitions()
                         "UXTB",     "UXTW",                //
                         "MOV_rc",   "MOV_rr",              //
                         "ADRP",                            //
-                        "LDR",      "LDRB",                //
-                        "STR",      "STRB",                //
+                        "LDR",      "LDRB",     "LDRH",    //
+                        "STR",      "STRB",     "STRH",    //
                         "BEQ",      "BNE",      "BGE",  "BGT",
                         "BLE",      "BLT",      "B",    "BL",    //
                         "RET"};
@@ -212,6 +212,13 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             {GPR, GPR, SIMM12},
             TargetInstruction::Load
         };
+        ret[LDRH] = {
+            LDRH,
+            32,
+            "ldrh\t$1, [$2, #$3]",
+            {GPR, GPR, SIMM12},
+            TargetInstruction::Load
+        };
         ret[STR] = {
             STR,
             32,
@@ -223,6 +230,14 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             STRB,
             32,
             "strb\t$1, [$2, #$3]",
+            {GPR, GPR, SIMM12},
+            TargetInstruction::Store
+        };
+
+        ret[STRH] = {
+            STRH,
+            32,
+            "strh\t$1, [$2, #$3]",
             {GPR, GPR, SIMM12},
             TargetInstruction::Store
         };
