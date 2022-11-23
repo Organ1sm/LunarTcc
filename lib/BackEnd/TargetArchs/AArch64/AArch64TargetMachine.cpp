@@ -28,6 +28,78 @@ void ExtendRegSize(MachineOperand *MO, uint8_t BitWidth = 32)
         MO->GetTypeRef().SetBitWidth(BitWidth);
 }
 
+/// Materialize the given constant before the MI instruction.
+MachineInstruction *
+    MaterializeConstant(MachineInstruction *MI, uint64_t Constant, unsigned &Reg)
+{
+    auto MBB = MI->GetParent();
+    Reg      = MBB->GetParent()->GetNextAvailableVirtualRegister();
+
+    std::vector<MachineInstruction> MIs;
+
+    MachineInstruction MOV;
+    MOV.SetOpcode(MOV_ri);
+    MOV.AddVirtualRegister(Reg);
+    MOV.AddImmediate(Constant & 0xffffu);
+    MIs.push_back(MOV);
+
+    if (!IsInt<16>(Constant) && IsInt<32>(Constant))
+    {
+        MachineInstruction MOVK;
+        MOVK.SetOpcode(MOVK_ri);
+        MOVK.AddVirtualRegister(Reg);
+        MOVK.AddImmediate(Constant >> 16u);    // upper 16 bit
+        MOVK.AddImmediate(16);                 // left shift amount
+
+        MIs.push_back(MOVK);
+    }
+
+    return &(*MBB->InsertBefore(std::move(MIs), MI));
+}
+
+bool SelectThreeAddressInstruction(MachineInstruction *MI,
+                                   Opcodes rrr,
+                                   Opcodes rri,
+                                   unsigned ImmSize = 12)
+{
+    if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
+    {
+        if (IsInt(ImmMO->GetImmediate(), ImmSize))
+        {
+            MI->SetOpcode(rri);
+            return true;
+        }
+
+        unsigned Reg;
+        MI = MaterializeConstant(MI, ImmMO->GetImmediate(), Reg);
+        MI->SetOpcode(rrr);
+        MI->RemoveOperand(2);
+        MI->AddVirtualRegister(Reg);
+
+        return true;
+    }
+    else if (MI->GetOperand(2)->IsRegister() || MI->GetOperand(2)->IsVirtualReg())
+    {
+        MI->SetOpcode(rrr);
+        return true;
+    }
+
+    return false;
+}
+
+bool AArch64TargetMachine::SelectAnd(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 3 && "And must have 3 operands");
+
+    ExtendRegSize(MI->GetOperand(0));
+    ExtendRegSize(MI->GetOperand(1));
+
+    if (!SelectThreeAddressInstruction(MI, AND_rrr, AND_rri))
+        assert(!"Cannot select And instruction.");
+
+    return true;
+}
+
 bool AArch64TargetMachine::SelectXOR(MachineInstruction *MI)
 {
     assert(MI->GetOperandsNumber() == 3 && "XOR must have 3 operands");
@@ -35,22 +107,10 @@ bool AArch64TargetMachine::SelectXOR(MachineInstruction *MI)
     ExtendRegSize(MI->GetOperand(0));
     ExtendRegSize(MI->GetOperand(1));
 
-    if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
-    {
-        assert(IsUInt<12>((int64_t)ImmMO->GetImmediate()) &&
-               "Immediate must 12 bit wide");
+    if (!SelectThreeAddressInstruction(MI, EOR_rrr, EOR_rri))
+        assert(!"Cannot select Xor instruction.");
 
-        MI->SetOpcode(EOR_rri);
-        return true;
-    }
-    else
-    {
-        MI->SetOpcode(EOR_rrr);
-        return true;
-    }
-
-    assert(!"Unreachable");
-    return false;
+    return true;
 }
 
 bool AArch64TargetMachine::SelectLSL(MachineInstruction *MI)
@@ -60,21 +120,10 @@ bool AArch64TargetMachine::SelectLSL(MachineInstruction *MI)
     ExtendRegSize(MI->GetOperand(0));
     ExtendRegSize(MI->GetOperand(1));
 
-    if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
-    {
-        assert(IsUInt<12>((int64_t)ImmMO->GetImmediate()) &&
-               "Immediate must 12 bit wide");
+    if (!SelectThreeAddressInstruction(MI, LSL_rrr, LSL_rri))
+        assert(!"Cannot select LSL instruction.");
 
-        MI->SetOpcode(LSL_rri);
-        return true;
-    }
-    else
-    {
-        MI->SetOpcode(LSL_rrr);
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
 bool AArch64TargetMachine::SelectLSR(MachineInstruction *MI)
@@ -84,21 +133,10 @@ bool AArch64TargetMachine::SelectLSR(MachineInstruction *MI)
     ExtendRegSize(MI->GetOperand(0));
     ExtendRegSize(MI->GetOperand(1));
 
-    if (auto ImmMO = MI->GetOperand(2); ImmMO->IsImmediate())
-    {
-        assert(IsUInt<12>((int64_t)ImmMO->GetImmediate()) &&
-               "Immediate must 12 bit wide");
+    if (!SelectThreeAddressInstruction(MI, LSR_rrr, LSR_rri))
+        assert(!"Cannot select LSR");
 
-        MI->SetOpcode(LSR_rri);
-        return true;
-    }
-    else
-    {
-        MI->SetOpcode(LSR_rrr);
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
 bool AArch64TargetMachine::SelectAdd(MachineInstruction *MI)

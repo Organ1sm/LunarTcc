@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+bool IsInt(uint64_t Number, unsigned BitWidth);
+
 template <unsigned BitWidth>
 bool IsInt(uint64_t Number)
 {

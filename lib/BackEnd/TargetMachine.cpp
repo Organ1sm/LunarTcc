@@ -7,6 +7,7 @@ bool TargetMachine::SelectInstruction(MachineInstruction *MI)
 
     switch (Opcode)
     {
+        case MachineInstruction::And: return SelectAnd(MI);
         case MachineInstruction::XOr: return SelectXOR(MI);
         case MachineInstruction::LSL: return SelectLSL(MI);
         case MachineInstruction::LSR: return SelectLSR(MI);
