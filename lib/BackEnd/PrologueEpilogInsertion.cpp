@@ -188,8 +188,7 @@ void PrologueEpilogInsertion::Run()
 {
     for (auto &Func : MIRM->GetFunctions())
     {
-        if (Func.GetStackFrameSize() == 0 && Func.GetUsedCalleeSavedRegs().empty() &&
-            Func.IsCaller())
+        if (Func.GetStackFrameSize() == 0 && Func.GetUsedCalleeSavedRegs().empty())
             continue;
 
         LocalPhysRegToStackSlotMap.clear();

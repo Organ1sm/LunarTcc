@@ -4,25 +4,25 @@
 using namespace AArch64;
 AArch64InstructionDefinitions::AArch64InstructionDefinitions()
 {
-    InstrEnumStrings = {"ADD_rrr",  "ADD_rri",             //
-                        "AND_rri",                         //
-                        "EOR_rrr",  "EOR_rri",             //
-                        "LSL_rrr",  "LSL_rri",             //
-                        "LSR_rrr",  "LSR_rri",             //
-                        "SUB_rrr",  "SUB_rri",  "SUBS",    //
-                        "MUL_rri",  "MUL_rrr",             //
-                        "SDIV_rri", "SDIV_rrr",            //
-                        "UDIV_rrr",                        //
-                        "CMP_ri",   "CMP_rr",              //
-                        "CSET",                            //
-                        "SXTB",     "SXTW",                //
-                        "UXTB",     "UXTW",                //
-                        "MOV_rc",   "MOV_rr",              //
-                        "ADRP",                            //
-                        "LDR",      "LDRB",     "LDRH",    //
-                        "STR",      "STRB",     "STRH",    //
-                        "BEQ",      "BNE",      "BGE",  "BGT",
-                        "BLE",      "BLT",      "B",    "BL",    //
+    InstrEnumStrings = {"ADD_rrr",  "ADD_rri",                //
+                        "AND_rri",                            //
+                        "EOR_rrr",  "EOR_rri",                //
+                        "LSL_rrr",  "LSL_rri",                //
+                        "LSR_rrr",  "LSR_rri",                //
+                        "SUB_rrr",  "SUB_rri",  "SUBS",       //
+                        "MUL_rri",  "MUL_rrr",                //
+                        "SDIV_rri", "SDIV_rrr",               //
+                        "UDIV_rrr",                           //
+                        "CMP_ri",   "CMP_rr",                 //
+                        "CSET",                               //
+                        "SXTB",     "SXTW",                   //
+                        "UXTB",     "UXTW",                   //
+                        "MOV_ri",   "MOV_rr",   "MOVK_ri",    //
+                        "ADRP",                               //
+                        "LDR",      "LDRB",     "LDRH",       //
+                        "STR",      "STRB",     "STRH",       //
+                        "BEQ",      "BNE",      "BGE",     "BGT",
+                        "BLE",      "BLT",      "B",       "BL",    //
                         "RET"};
 }
 
@@ -191,6 +191,12 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             32,
             "mov\t$1, $2",
             {GPR, GPR}
+        };
+        ret[MOVK_ri] = {
+            MOVK_ri,
+            32,
+            "movk\t$1, #$2, lsl #$3",
+            {GPR, GPR, UIMM4}
         };
         ret[ADRP] = {
             ADRP,
