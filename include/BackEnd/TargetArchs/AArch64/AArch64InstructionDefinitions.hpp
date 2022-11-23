@@ -34,6 +34,7 @@ namespace AArch64
         UXTW,
         MOV_ri,
         MOV_rr,
+        MOVK_ri,
         ADRP,
         LDR,
         LDRB,
@@ -54,6 +55,7 @@ namespace AArch64
 
     enum OperandTypes : unsigned {
         GPR,
+        UIMM4,
         SIMM12,
         UIMM12,
         UIMM16,

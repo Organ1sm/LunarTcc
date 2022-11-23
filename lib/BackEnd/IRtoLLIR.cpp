@@ -716,7 +716,16 @@ MachineInstruction IRtoLLIR::HandleReturnInstruction(ReturnInstruction *I)
         auto &RetRegs = TM->GetABI()->GetReturnRegisters();
         auto LoadImm  = MachineInstruction(MachineInstruction::LoadImm, CurrentBB);
 
-        LoadImm.AddRegister(RetRegs[0]->GetID(), RetRegs[0]->GetBitWidth());
+        // TODO: make it target independent by searching for the right sized register,
+        // do it like register allocator.
+        if (RetRegs[0]->GetBitWidth() == I->GetBitWidth())
+            LoadImm.AddRegister(RetRegs[0]->GetID(), RetRegs[0]->GetBitWidth());
+        else
+            LoadImm.AddRegister(RetRegs[0]->GetSubRegs()[0],
+                                TM->GetRegInfo()
+                                    ->GetRegisterByID(RetRegs[0]->GetSubRegs()[0])
+                                    ->GetBitWidth());
+
         LoadImm.AddOperand(GetMachineOperandFromValue(I->GetRetVal()));
 
         CurrentBB->InsertInstr(LoadImm);
