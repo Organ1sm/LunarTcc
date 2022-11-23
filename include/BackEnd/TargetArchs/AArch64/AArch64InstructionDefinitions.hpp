@@ -10,6 +10,7 @@ namespace AArch64
     enum Opcodes : unsigned {
         ADD_rrr,
         ADD_rri,
+        AND_rrr,
         AND_rri,
         EOR_rrr,
         EOR_rri,

@@ -5,7 +5,7 @@ using namespace AArch64;
 AArch64InstructionDefinitions::AArch64InstructionDefinitions()
 {
     InstrEnumStrings = {"ADD_rrr",  "ADD_rri",                //
-                        "AND_rri",                            //
+                        "AND_rrr",  "AND_rri",                //
                         "EOR_rrr",  "EOR_rri",                //
                         "LSL_rrr",  "LSL_rri",                //
                         "LSR_rrr",  "LSR_rri",                //
@@ -41,6 +41,12 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             32,
             "add\t$1, $2, #$3",
             {GPR, GPR, UIMM12}
+        };
+        ret[AND_rrr] = {
+            ADD_rrr,
+            32,
+            "and\t$1, $2, $3",
+            {GPR, GPR, GPR}
         };
         ret[AND_rri] = {
             ADD_rri,
