@@ -85,8 +85,19 @@ class GlobalVariable : public Value
         : Value(Value::GlobalVar, T), Name(Name), InitList(std::move(InitList))
     {}
 
+    GlobalVariable(std::string &Name, IRType T, Value *InitValue)
+        : Value(Value::GlobalVar, T), Name(Name), InitValue(InitValue)
+    {}
+
+    GlobalVariable(std::string &Name, IRType T, std::string InitStr)
+        : Value(Value::GlobalVar, T), Name(Name), InitString(InitStr)
+    {}
+
     void SetName(std::string N) { Name = N; }
     std::string &GetName() { return Name; }
+
+    std::string &GetInitString() { return InitString; }
+    Value *GetInitValue() { return InitValue; }
 
     std::vector<uint64_t> &GetInitList() { return InitList; }
 
@@ -97,6 +108,8 @@ class GlobalVariable : public Value
   private:
     std::string Name;
     std::vector<uint64_t> InitList;
+    std::string InitString;
+    Value *InitValue {nullptr};
 };
 
 #endif    // LUNARTCC_VALUE_HPP
