@@ -270,6 +270,14 @@ unsigned Parser::ParseIntegerConstant()
     auto TokenStr   = T.GetString();
     unsigned Result = 0;
 
+    // In case if a hex constant, then its value already parsed,
+    // return that.
+    if (T.GetValue() > 0 || (T.GetString().size() > 2 && (T.GetString().at(1) == 'x') ||
+                             T.GetString().at(1) == 'X'))
+    {
+        return T.GetValue();
+    }
+
     for (auto c : TokenStr)
     {
         Result *= 10;
