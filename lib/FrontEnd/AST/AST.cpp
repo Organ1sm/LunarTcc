@@ -1655,6 +1655,11 @@ void FloatLiteralExpression::Accept(ASTVisitor *Visitor) const
     Visitor->VisitFloatLiteralExpression(this);
 }
 
+void StringLiteralExpression::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitStringLiteralExpression(this);
+}
+
 void ArrayExpression::Accept(ASTVisitor *Visitor) const
 {
     Visitor->VisitArrayExpression(this);

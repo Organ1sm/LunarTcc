@@ -633,6 +633,26 @@ class FloatLiteralExpression : public Expression
     double FPValue;
 };
 
+class StringLiteralExpression : public Expression
+{
+  public:
+    StringLiteralExpression(std::string s) : StringValue(s)
+    {
+        std::vector<unsigned> d = {static_cast<unsigned>(s.length()) + 1};
+
+        /// string literal is a char array.
+        SetResultType(Type(Type::Char, std::move(d)));
+    }
+
+    std::string GetValue() const { return StringValue; }
+    void SetValue(std::string v) { StringValue = v; }
+
+    void Accept(ASTVisitor *Visitor) const override;
+
+  private:
+    std::string StringValue;
+};
+
 class ArrayExpression : public Expression
 {
   public:

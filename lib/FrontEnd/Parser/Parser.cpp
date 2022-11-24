@@ -351,9 +351,16 @@ std::unique_ptr<Node> Parser::ParseExternalDeclaration()
             continue;
         }
 
-        Type Ty            = ParseType(TK.GetKind());
-        CurrentFuncRetType = Ty;
+        Type Ty = ParseType(TK.GetKind());
         Lex();
+
+        while (lexer.Is(Token::Mul))
+        {
+            Ty.IncrementPointerLevel();
+            Lex();
+        }
+
+        CurrentFuncRetType = Ty;
 
         auto Name    = Expect(Token::Identifier);
         auto NameStr = Name.GetString();
@@ -1208,7 +1215,7 @@ std::unique_ptr<Expression> Parser::ParsePrimaryExpression()
     else if (lexer.Is(Token::Identifier))
         return ParseIdentifierExpression();
     else if (lexer.Is(Token::Real) || lexer.Is(Token::Integer) ||
-             lexer.Is(Token::CharacterLiteral))
+             lexer.Is(Token::CharacterLiteral) || lexer.Is(Token::StringLiteral))
         return ParseConstantExpression();
     else
         return nullptr;
@@ -1446,6 +1453,15 @@ std::unique_ptr<Expression> Parser::ParseConstantExpression()
             IntList->SetValue(-IntList->GetSIntValue());
 
         return IntList;
+    }
+    else if (lexer.Is(Token::StringLiteral))
+    {
+        auto StringToken = Expect(Token::StringLiteral);
+
+        assert(StringToken.GetString().length() >= 2);
+
+        return std::make_unique<StringLiteralExpression>(
+            StringToken.GetString().substr(1, StringToken.GetString().length() - 2));
     }
     else
     {
