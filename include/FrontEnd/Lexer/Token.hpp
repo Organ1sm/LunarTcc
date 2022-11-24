@@ -17,6 +17,7 @@ class Token
         Integer,
         Real,
         CharacterLiteral,
+        StringLiteral,
 
         // Punctuators
         LeftParen,       // '('

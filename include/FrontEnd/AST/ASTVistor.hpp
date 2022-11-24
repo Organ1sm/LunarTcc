@@ -28,6 +28,7 @@ class CallExpression;
 class ReferenceExpression;
 class IntegerLiteralExpression;
 class FloatLiteralExpression;
+class StringLiteralExpression;
 class ArrayExpression;
 class ImplicitCastExpression;
 class InitializerListExpression;
@@ -62,6 +63,7 @@ class ASTVisitor
     virtual void VisitReferenceExpression(const ReferenceExpression *node)           = 0;
     virtual void VisitIntegerLiteralExpression(const IntegerLiteralExpression *node) = 0;
     virtual void VisitFloatLiteralExpression(const FloatLiteralExpression *node)     = 0;
+    virtual void VisitStringLiteralExpression(const StringLiteralExpression *node)   = 0;
     virtual void VisitArrayExpression(const ArrayExpression *node)                   = 0;
     virtual void VisitImplicitCastExpression(const ImplicitCastExpression *node)     = 0;
     virtual void

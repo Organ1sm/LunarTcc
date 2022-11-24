@@ -1,8 +1,7 @@
 #include "FrontEnd/AST/AST.hpp"
 #include "FrontEnd/AST/ASTPrint.hpp"
+#include "Utils/ErrorLogger.hpp"
 #include "fmt/core.h"
-
-
 
 void ASTPrint::VisitVariableDeclaration(const VariableDeclaration *node)
 {
@@ -13,8 +12,10 @@ void ASTPrint::VisitVariableDeclaration(const VariableDeclaration *node)
     Print(TypeStr.c_str());
     PrintLn(NameStr.c_str());
 
+    tab += 2;
     if (node->GetInitExpr())
         node->GetInitExpr()->Accept(this);
+    tab -= 2;
 }
 
 void ASTPrint::VisitMemberDeclaration(const MemberDeclaration *node)
@@ -327,6 +328,16 @@ void ASTPrint::VisitFloatLiteralExpression(const FloatLiteralExpression *node)
     auto ValStr  = fmt::format("`{}`", node->GetValue());
 
     Print("FloatLiteralExpression ", tab);
+    Print(TypeStr.c_str());
+    PrintLn(ValStr.c_str());
+}
+
+void ASTPrint::VisitStringLiteralExpression(const StringLiteralExpression *node)
+{
+    auto TypeStr = fmt::format("`{}` ", node->GetResultType().ToString());
+    auto ValStr  = fmt::format("`{}`", node->GetValue());
+
+    Print("StringLiteralExpression ", tab);
     Print(TypeStr.c_str());
     PrintLn(ValStr.c_str());
 }

@@ -36,6 +36,7 @@ class ASTPrint : public ASTVisitor
     void VisitReferenceExpression(const ReferenceExpression *node) override;
     void VisitIntegerLiteralExpression(const IntegerLiteralExpression *node) override;
     void VisitFloatLiteralExpression(const FloatLiteralExpression *node) override;
+    void VisitStringLiteralExpression(const StringLiteralExpression *node) override;
     void VisitArrayExpression(const ArrayExpression *node) override;
     void VisitImplicitCastExpression(const ImplicitCastExpression *node) override;
     void VisitInitializerListExpression(const InitializerListExpression *node) override;
