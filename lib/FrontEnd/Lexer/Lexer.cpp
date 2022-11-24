@@ -1,5 +1,7 @@
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include <cassert>
+#include <cctype>
+#include <cstdint>
 #include <optional>
 
 std::unordered_map<std::string, Token::TokenKind> Lexer::KeyWords =
@@ -86,6 +88,7 @@ std::optional<Token> Lexer::LexNumber()
     auto StartColumnIndex = ColumnIndex;
     auto TokenKind        = Token::Integer;
     auto Length           = 0u;
+    unsigned TokenValue   = 0;
 
     while (isdigit(GetNextChar()))
     {
@@ -110,12 +113,43 @@ std::optional<Token> Lexer::LexNumber()
             EatNextChar();
         }
     }
+    else if (Length == 1 && (GetNextChar() == 'x' || GetNextChar() == 'X'))
+    {
+        Length++;
+
+        EatNextChar();    // Eat 'x' or 'X'
+        uint64_t value = 0;
+
+        int ch = GetNextChar();
+
+        // TODO: use is-funciton simpilify it.
+        while (isdigit(ch) || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F'))
+        {
+            Length++;
+            EatNextChar();
+
+            unsigned CurrentDigit = 0;
+
+            if (isdigit(ch))
+                CurrentDigit = ch - '0';
+            else if (islower(ch))
+                CurrentDigit = ch - 'a' + 10;
+            else
+                CurrentDigit = ch - 'A' + 10;
+
+            value = (value << 4) + CurrentDigit;
+
+            ch = GetNextChar();
+        }
+
+        TokenValue = value;
+    }
 
     if (Length == 0)
         return std::nullopt;
 
     std::string_view StringValue {&Source[StartLineIndex][StartColumnIndex], Length};
-    return Token(TokenKind, StringValue, StartLineIndex, StartColumnIndex);
+    return Token(TokenKind, StringValue, StartLineIndex, StartColumnIndex, TokenValue);
 }
 
 std::optional<Token> Lexer::LexIdentifier()
