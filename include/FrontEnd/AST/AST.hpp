@@ -648,6 +648,7 @@ class StringLiteralExpression : public Expression
     void SetValue(std::string v) { StringValue = v; }
 
     void Accept(ASTVisitor *Visitor) const override;
+    Value *IRCodegen(IRFactory *IRF) override;
 
   private:
     std::string StringValue;

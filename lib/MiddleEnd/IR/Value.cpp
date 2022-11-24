@@ -51,6 +51,14 @@ void GlobalVariable::Print() const
 
         fmt::print(InitListFormat, OutputStr);
     }
+    else if (!InitString.empty())
+    {
+        fmt::print(" = \"{}\"", InitString);
+    }
+    else if (auto GV = dynamic_cast<GlobalVariable *>(InitValue); GV != nullptr)
+    {
+        fmt::print(" = {}", GV->GetName());
+    }
 
     fmt::print("\n\n");
 }
