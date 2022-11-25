@@ -82,8 +82,6 @@ class IRFactory
     GlobalVariable *
         CreateGlobalVar(std::string &Identifier, IRType Type, std::string Value);
 
-
-
     void CreateNewFunction(std::string &Name, IRType ReturnType);
     void AddGlobalVariable(Value *GlobalValue);
     Value *GetGlobalVar(const std::string &Identifier);
@@ -101,7 +99,7 @@ class IRFactory
     void AddToSymbolTable(std::string &Identifier, Value *V);
     Value *GetSymbolValue(const std::string &Identifier);
 
-    Constant *GetConstant(uint64_t C);
+    Constant *GetConstant(uint64_t C, uint8_t BW = 32);
     Constant *GetConstant(double C);
 
     std::vector<BasicBlock *> &GetLoopIncrementBBsTable();
@@ -131,7 +129,8 @@ class IRFactory
     bool GlobalScope {false};
 
     /// To store already created integer constants.
-    std::map<uint64_t, std::unique_ptr<Constant>> IntConstantPool;
+    /// <<Size, BitWidth>,...>
+    std::map<std::pair<uint64_t, uint8_t>, std::unique_ptr<Constant>> IntConstantPool;
 
     /// To store already created floating point constants.
     std::map<uint64_t, std::unique_ptr<Constant>> FloatConstantPool;
