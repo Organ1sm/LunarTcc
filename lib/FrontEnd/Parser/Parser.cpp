@@ -34,6 +34,7 @@ static bool IsUnaryOperator(Token::TokenKind tk)
 {
     switch (tk)
     {
+        case Token::Tilde:
         case Token::Sizeof:
         case Token::Inc:
         case Token::Dec:

@@ -505,7 +505,8 @@ class UnaryExpression : public Expression
         Address,
         DeRef,
         Minus,
-        Not,
+        Not,           // '!'
+        BitWiseNot,    // '~'
         PostIncrement,
         PostDecrement,
         PreIncrement,
