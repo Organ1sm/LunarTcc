@@ -330,6 +330,17 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::And;
             }
             break;
+        case '|':
+            if (GetNextNthCharOnSameLine(1) == '|')
+            {
+                TokenKind = Token::LogicalOr;
+                Size      = 2;
+            }
+            else
+            {
+                TokenKind = Token::Or;
+            }
+            break;
         case '^': TokenKind = Token::Xor; break;
         case '~': TokenKind = Token::Tilde; break;
 
