@@ -34,6 +34,7 @@ static bool IsUnaryOperator(Token::TokenKind tk)
 {
     switch (tk)
     {
+        case Token::Sizeof:
         case Token::Inc:
         case Token::Dec:
         case Token::And:
@@ -196,6 +197,12 @@ Type Parser::ParseType(Token::TokenKind tk)
         }
 
         default: assert(!"Unknown token kind."); break;
+    }
+
+    while (lexer.LookAhead(2).GetKind() == Token::Mul)
+    {
+        Lex();
+        Result.IncrementPointerLevel();
     }
 
     return Result;
@@ -1168,10 +1175,40 @@ std::unique_ptr<Expression> Parser::ParseUnaryExpression()
     Lex();
 
     std::unique_ptr<Expression> Expr;
+    bool hasSizeof = false;
+
+    // sizeof handing
+    if (UnaryOperation.GetKind() == Token::Sizeof)
+    {
+        if (lexer.GetCurrentToken().GetKind() == Token::LeftParen)
+        {
+            Lex();
+            hasSizeof = true;
+        }
+
+        if (IsTypeSpecifier(lexer.GetCurrentToken()))
+        {
+            auto Ty = ParseType(lexer.GetCurrentToken().GetKind());
+            Lex();
+
+            if (hasSizeof)
+                Expect(Token::RightParen);
+
+            // TODO: Improve it.
+            auto UE = std::make_unique<UnaryExpression>(UnaryOperation, nullptr);
+            UE->SetResultType(Ty);
+
+            return UE;
+        }
+    }
 
     if (IsUnaryOperator(GetCurrentTokenKind()))
     {
         auto Expr = ParseUnaryExpression();
+
+        if (hasSizeof)
+            Expect(Token::RightParen);
+
         if (UnaryOperation.GetKind() == Token::Inc ||
             UnaryOperation.GetKind() == Token::Dec)
             Expr->SetLValueness(true);
@@ -1181,6 +1218,10 @@ std::unique_ptr<Expression> Parser::ParseUnaryExpression()
 
     // TODO: Add semantic check that only pointer types are dereferenced
     Expr = ParsePostFixExpression();
+
+    if (hasSizeof)
+        Expect(Token::RightParen);
+
     if (UnaryOperation.GetKind() == Token::Inc || UnaryOperation.GetKind() == Token::Dec)
         Expr->SetLValueness(true);
 
@@ -1556,7 +1597,18 @@ std::unique_ptr<Expression>
         if (LeftType != RightType && !Type::OnlySignednessDifference(LeftType, RightType))
         {
             /// if an assignment, then try to cast the RHS to type of LHS.
-            if (BinaryOperator.GetKind() == Token::Assign)
+            bool IsCompositeAssignment = false;
+            switch (BinaryOperator.GetKind())
+            {
+                case Token::PlusEqual:
+                case Token::MinusEuqal:
+                case Token::MulEqual:
+                case Token::DivEqual: IsCompositeAssignment = true; break;
+
+                default: break;
+            }
+
+            if (BinaryOperator.GetKind() == Token::Assign || IsCompositeAssignment)
             {
                 if (!Type::IsImplicitlyCastable(RightType, LeftType))
                     EmitError("FuncType mismatch", lexer, BinaryOperator);
