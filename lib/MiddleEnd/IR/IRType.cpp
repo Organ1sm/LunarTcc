@@ -2,6 +2,7 @@
 // Created by Organ1sm.
 //
 #include "MiddleEnd/IR/IRType.hpp"
+#include "BackEnd/TargetMachine.hpp"
 #include "fmt/format.h"
 #include <cassert>
 
@@ -23,7 +24,7 @@ void IRType::ReduceDimension()
         Dimensions.erase(Dimensions.begin());
 }
 
-std::size_t IRType::GetByteSize() const
+std::size_t IRType::GetByteSize(TargetMachine *TM) const
 {
     unsigned NumberOfElements = 1;
 
@@ -43,7 +44,13 @@ std::size_t IRType::GetByteSize() const
     if (PointerLevel == 0)
         return (BitWidth * NumberOfElements + 7) / 8;
 
-    return (32 * NumberOfElements + 7) / 8;
+    /// In case if it is a pointer type, then ask the target
+    /// for the pointer size or if it was not given then default is 64.
+    unsigned PtrSize = 64;
+    if (TM)
+        PtrSize = TM->GetPointerSize();
+
+    return (PtrSize * NumberOfElements + 7) / 8;
 }
 
 unsigned IRType::CalcElemSize(unsigned int dim)

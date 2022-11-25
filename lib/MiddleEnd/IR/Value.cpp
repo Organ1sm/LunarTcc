@@ -12,18 +12,39 @@ std::string Value::ValueString() const
     return "$" + std::to_string(UniqueId) + "<" + ValueType.AsString() + ">";
 }
 
-uint64_t Constant::GetIntValue()
+uint64_t Constant::GetIntValue() const
 {
     assert(ValueType.IsInt());
-    return std::get<uint64_t>(Val);
+
+    int64_t result = 0;
+    auto value     = std::get<uint64_t>(Val);
+
+    // signed extend it
+    // TODO: maybe value should be stored as int64_t
+
+    if (GetBitWidth() == 8)
+        result = static_cast<int8_t>(value);
+    else if (GetBitWidth() == 16)
+        result = static_cast<int16_t>(value);
+    else if (GetBitWidth() == 32)
+        result = static_cast<int32_t>(value);
+    else
+        result = value;
+
+    return result;
 }
 
 std::string Constant::ValueString() const
 {
+    std::string Str;
     if (IsFPConst())
-        return std::to_string(std::get<double>(Val));
+        Str += std::to_string(std::get<double>(Val));
     else
-        return std::to_string((int64_t)std::get<uint64_t>(Val));
+        Str += std::to_string((int64_t)std::get<uint64_t>(Val));
+
+    Str += fmt::format("<{}>", ValueType.AsString());
+
+    return Str;
 }
 
 

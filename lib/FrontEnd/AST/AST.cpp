@@ -931,6 +931,28 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
     }
     auto Val = CastableExpression->IRCodegen(IRF);
 
+    // in case if the expression to be cast is a constant, then no need to do
+    // truncation or sign extension, but just masking down the appropriate bits to
+    // fit into the desired Type
+    if (Val->IsConstant())
+    {
+        auto TypeByteSize =
+            GetIRTypeFromASTType(GetResultType()).GetByteSize(IRF->GetTargetMachine());
+        uint64_t DestBitSize = TypeByteSize * 8;
+
+        uint64_t mask = ~0ull;
+        // if the bit size is less than 64, then full 1s mask would be wrong, instead
+        // we need one which last @DestBitSize bit is 1 and others are 0
+        // example: DestBitSize = 16 -> mask = 0x0000_0000_0000_ffff
+        if (DestBitSize < 64)
+            mask = (1ull << DestBitSize) - 1;
+
+        auto CV = static_cast<Constant *>(Val)->GetIntValue() & mask;
+
+        return IRF->GetConstant(CV, DestBitSize);
+    }
+
+
     if (Type::OnlySignednessDifference(SourceTypeVariant, DestTypeVariant))
         return Val;
 
@@ -965,6 +987,32 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
 
             assert(!"Invalid conversion.");
         }
+        case Type::Short: {
+            if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
+                return IRF->CreateTrunc(Val, 8);
+            if (DestTypeVariant == Type::Int)
+                return IRF->CreateSExt(Val, 32);
+            if (DestTypeVariant == Type::UnsignedInt)
+                return IRF->CreateZExt(Val, 32);
+            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong)
+                return IRF->CreateSExt(Val, 64);
+            if (DestTypeVariant == Type::UnsignedLong ||
+                DestTypeVariant == Type::UnsignedLongLong)
+                return IRF->CreateZExt(Val, 64);
+            assert(!"Invalid conversion.");
+        }
+        case Type::UnsignedShort: {
+            if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
+                return IRF->CreateTrunc(Val, 8);
+            if (DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt)
+                return IRF->CreateZExt(Val, 32);
+            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong ||
+                DestTypeVariant == Type::UnsignedLong ||
+                DestTypeVariant == Type::UnsignedLongLong)
+                return IRF->CreateZExt(Val, 64);
+            assert(!"Invalid conversion.");
+        }
+
         case Type::Int: {
             if (DestTypeVariant == Type::Double)
                 return IRF->CreateIntToFloat(Val, 32);
@@ -1127,7 +1175,8 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
 {
     Value *E {nullptr};
 
-    if (GetOperationKind() != Address && GetOperationKind() != Minus)
+    if (GetOperationKind() != Address && GetOperationKind() != Minus &&
+        GetOperationKind() != Sizeof)
         E = Expr->IRCodegen(IRF);
 
     switch (GetOperationKind())
@@ -1252,6 +1301,25 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
 
             return LoadedExpr;
         }
+
+        case UnaryOperation::Sizeof: {
+            uint64_t size         = 0;
+            Type TypeToBeExamined = ResultType;
+
+            // if there was an expression used with sizeof,
+            // use thats result type instead
+            if (Expr)
+                TypeToBeExamined = Expr->GetResultType();
+
+            size = GetIRTypeFromASTType(TypeToBeExamined)
+                       .GetByteSize(IRF->GetTargetMachine());
+
+            assert(size != 0 && "sizeof should not result in 0");
+
+            return IRF->GetConstant(size);
+        }
+
+
         default: assert(!"Unimplemented");
     }
 

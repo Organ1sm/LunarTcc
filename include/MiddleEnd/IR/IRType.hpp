@@ -8,6 +8,8 @@
 #include <string>
 #include <cassert>
 
+class TargetMachine;
+
 class IRType
 {
   public:
@@ -54,7 +56,7 @@ class IRType
     bool IsArray() const { return !Dimensions.empty(); }
 
     std::size_t GetBitSize() const { return BitWidth; }
-    std::size_t GetByteSize() const;
+    std::size_t GetByteSize(TargetMachine *TM = nullptr) const;
 
     unsigned CalcElemSize(unsigned dim);
     unsigned GetElemByteOffset(const unsigned StructElemIndex) const;

@@ -46,11 +46,14 @@ class Constant : public Value
 {
   public:
     Constant() = delete;
-    Constant(uint64_t V) : Value(Value::Const, IRType::UInt), Val(V) {}
+    Constant(uint64_t V, uint8_t BW = 32)
+        : Value(Value::Const, IRType(IRType::UInt, BW)), Val(V)
+    {}
+
     Constant(double V) : Value(Value::Const, IRType(IRType::FP, 64)), Val(V) {}
 
     bool IsFPConst() const { return ValueType.IsFP(); }
-    uint64_t GetIntValue();
+    uint64_t GetIntValue() const;
 
     std::string ValueString() const override;
 

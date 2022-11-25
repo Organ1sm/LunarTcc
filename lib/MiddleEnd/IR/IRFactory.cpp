@@ -403,13 +403,15 @@ Value *IRFactory::GetSymbolValue(const std::string &Identifier)
     return SymbolTable[Identifier];
 }
 
-Constant *IRFactory::GetConstant(uint64_t C)
+Constant *IRFactory::GetConstant(uint64_t C, uint8_t BW)
 {
-    if (auto ConstVal = IntConstantPool[C].get(); ConstVal != nullptr)
+    std::pair<uint64_t, uint8_t> RequestedConstant {C, BW};
+    if (auto ConstVal = IntConstantPool[RequestedConstant].get(); ConstVal != nullptr)
         return ConstVal;
 
-    IntConstantPool[C] = std::make_unique<Constant>(C);
-    return IntConstantPool[C].get();
+    IntConstantPool[RequestedConstant] = std::make_unique<Constant>(C, BW);
+
+    return IntConstantPool[RequestedConstant].get();
 }
 
 Constant *IRFactory::GetConstant(double C)
