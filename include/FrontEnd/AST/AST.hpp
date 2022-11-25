@@ -509,13 +509,14 @@ class UnaryExpression : public Expression
         PostIncrement,
         PostDecrement,
         PreIncrement,
-        PreDecrement
+        PreDecrement,
+        Sizeof,
     };
 
     UnaryExpression() = default;
     UnaryExpression(Token Op, ExprPtr E, bool PostFix = false);
 
-    UnaryOperation GetOperationKind();
+    UnaryOperation GetOperationKind() const;
 
     Token GetOperation() const { return Operation; }
     void SetOperation(Token op) { Operation = op; }
@@ -527,9 +528,9 @@ class UnaryExpression : public Expression
     Value *IRCodegen(IRFactory *IRF) override;
 
   private:
-    bool IsPostFix {false};
     Token Operation;
-    ExprPtr Expr;
+    ExprPtr Expr {nullptr};
+    bool IsPostFix {false};
 };
 
 class TernaryExpression : public Expression

@@ -43,8 +43,11 @@ BinaryExpression::BinaryExpression(ExprPtr L, Token Op, ExprPtr R)
 }
 
 UnaryExpression::UnaryExpression(Token Op, ExprPtr E, bool PostFix)
-    : Operation(Op), Expr(std::move(E)), IsPostFix(PostFix)
+    : Operation(Op), IsPostFix(PostFix)
 {
+    if (E)
+        Expr = std::move(E);
+
     switch (GetOperationKind())
     {
         case UnaryOperation::Address:
@@ -61,6 +64,12 @@ UnaryExpression::UnaryExpression(Token Op, ExprPtr E, bool PostFix)
         case UnaryOperation::PreDecrement:
         case UnaryOperation::PostIncrement:
         case UnaryOperation::PostDecrement: ResultType = Expr->GetResultType(); break;
+
+        case UnaryOperation::Sizeof: {
+            if (Expr)
+                ResultType = Expr->GetResultType();
+            break;
+        }
 
         default: assert(!"Unimplemented!");
     }
@@ -1560,7 +1569,7 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
     }
 }
 
-UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
+UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind() const
 {
     switch (Operation.GetKind())
     {
@@ -1574,6 +1583,7 @@ UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind()
         case Token::Dec:
             return IsPostFix ? UnaryOperation::PostDecrement :
                                UnaryOperation::PreDecrement;
+        case Token::Sizeof: return UnaryOperation::Sizeof;
 
         default: assert(!"Invalid unary operator kind."); break;
     }

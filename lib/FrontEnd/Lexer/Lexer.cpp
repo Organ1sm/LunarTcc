@@ -29,6 +29,7 @@ std::unordered_map<std::string, Token::TokenKind> Lexer::KeyWords =
         {"enum",     Token::Enum    },
         {"typedef",  Token::TypeDef },
         {"continue", Token::Continue},
+        {"sizeof",   Token::Sizeof  },
 };
 
 Lexer::Lexer(std::vector<std::string> &s)
@@ -178,7 +179,7 @@ std::optional<Token> Lexer::LexIdentifier()
 std::optional<Token> Lexer::LexKeyWord()
 {
     std::size_t WordEnd =
-        Source[LineIndex].substr(ColumnIndex).find_first_of("\t\n\v\f\r;: ");
+        Source[LineIndex].substr(ColumnIndex).find_first_of("\t\n\v\f\r;:(){}[]:* ");
     auto Word = Source[LineIndex].substr(ColumnIndex, WordEnd);
 
     if (!KeyWords.count(Word))

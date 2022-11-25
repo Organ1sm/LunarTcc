@@ -84,18 +84,19 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Struct,           "struct"           },
     {Enum,             "enum"             },
     {TypeDef,          "typedef"          },
+    {Sizeof,           "sizeof"           },
 };
 
 std::string Token::ToString(Token::TokenKind tk)
 {
     auto &Token2Str = Token::Token2Str;
     auto search     = Token2Str.find(tk);
+
     if (search != Token2Str.cend())
         return search->second;
     else
     {
-        assert(false && "Unhandled token type.");
-        return {};
+        assert(!"Unhandled token type.");
     }
 }
 
