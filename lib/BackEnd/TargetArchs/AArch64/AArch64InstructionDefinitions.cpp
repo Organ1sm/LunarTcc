@@ -19,6 +19,7 @@ AArch64InstructionDefinitions::AArch64InstructionDefinitions()
                         "SXTB",     "SXTW",                   //
                         "UXTB",     "UXTW",                   //
                         "MOV_ri",   "MOV_rr",   "MOVK_ri",    //
+                        "MVN_rr",                             //
                         "ADRP",                               //
                         "LDR",      "LDRB",     "LDRH",       //
                         "STR",      "STRB",     "STRH",       //
@@ -220,6 +221,14 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             "movk\t$1, #$2, lsl #$3",
             {GPR, GPR, UIMM4}
         };
+
+        ret[MVN_rr] = {
+            MVN_rr,
+            32,
+            "mvn\t$1, $2",
+            {GPR, GPR}
+        };
+
         ret[ADRP] = {
             ADRP,
             32,

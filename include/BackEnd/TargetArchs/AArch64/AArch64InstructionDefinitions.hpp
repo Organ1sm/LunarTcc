@@ -38,6 +38,7 @@ namespace AArch64
         MOV_ri,
         MOV_rr,
         MOVK_ri,
+        MVN_rr,
         ADRP,
         LDR,
         LDRB,
