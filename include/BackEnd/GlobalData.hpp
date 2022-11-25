@@ -7,8 +7,8 @@
 class GlobalData
 {
   public:
-    enum Directives { None = -1, Zero, Byte, HalfWord, Word, DoubleWord };
-    using InfoVec = std::vector<std::pair<Directives, int64_t>>;
+    enum Directives { None = -1, Zero, Byte, HalfWord, Word, DoubleWord, String };
+    using InfoVec = std::vector<std::pair<Directives, std::string>>;
 
   public:
     GlobalData() {}
@@ -24,6 +24,7 @@ class GlobalData
     InfoVec &GetInitValues() { return InitValues; }
 
     void InsertAllocation(std::size_t ByteSize, int64_t InitVal);
+    void InsertAllocation(std::string str, Directives d = String);
 
     static std::string DirectivesToString(Directives D);
 

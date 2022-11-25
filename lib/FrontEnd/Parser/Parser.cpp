@@ -272,8 +272,8 @@ unsigned Parser::ParseIntegerConstant()
 
     // In case if a hex constant, then its value already parsed,
     // return that.
-    if (T.GetValue() > 0 || (T.GetString().size() > 2 && (T.GetString().at(1) == 'x') ||
-                             T.GetString().at(1) == 'X'))
+    if (T.GetValue() > 0 || (T.GetString().size() > 2 &&
+                             (T.GetString().at(1) == 'x' || T.GetString().at(1) == 'X')))
     {
         return T.GetValue();
     }

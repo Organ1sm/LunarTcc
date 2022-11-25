@@ -24,7 +24,14 @@ void GlobalData::InsertAllocation(std::size_t ByteSize, int64_t InitVal)
                 assert(!"Invalid size");
             }
     }
-    InitValues.push_back({D, InitVal});
+
+    InitValues.push_back({D, std::to_string(InitVal)});
+}
+
+
+void GlobalData::InsertAllocation(std::string str, Directives d)
+{
+    InitValues.push_back({d, str});
 }
 
 std::string GlobalData::DirectivesToString(Directives D)
@@ -37,6 +44,7 @@ std::string GlobalData::DirectivesToString(Directives D)
         case HalfWord: return "short";
         case Word: return "long";
         case DoubleWord: return "quad";
+        case String: return "asciz";
 
         default: assert(!"Unreachable");
     }
@@ -47,7 +55,12 @@ void GlobalData::Print() const
     auto Str = fmt::format("{}:\n", Name);
 
     for (auto &[Directive, InitVal] : InitValues)
-        Str += fmt::format("  .{}\t{}\n", DirectivesToString(Directive), InitVal);
+    {
+        Str +=
+            fmt::format("  .{}\t{}\n",
+                        DirectivesToString(Directive),
+                        Directive == String ? fmt::format("\"{}\"", InitVal) : InitVal);
+    }
 
     fmt::print("{}\n", Str);
 }

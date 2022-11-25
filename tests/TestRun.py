@@ -48,7 +48,7 @@ def CheckFile(fileName):
                 FunctionDecls.append(m.group(1))
                 continue
 
-            m = re.search(r"(?:/{2}|#) *TEST-CASE: (.*) -> (-?\d+)", line)
+            m = re.search(r'(?:/{2}|#) *TEST-CASE: (.*) -> (.*)', line)
             if m:
                 TestCases.append((m.group(1), m.group(2)))
                 continue
