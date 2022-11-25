@@ -895,7 +895,6 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
         assert(SourceTypeVariant == DestTypeVariant);
 
         auto RefExpr = dynamic_cast<ReferenceExpression *>(CastableExpression.get());
-        assert(RefExpr);
 
         auto ReferID = RefExpr->GetIdentifier();
         auto Res     = IRF->GetSymbolValue(ReferID);

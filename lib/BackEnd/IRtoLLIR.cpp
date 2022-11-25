@@ -254,6 +254,20 @@ MachineInstruction IRtoLLIR::HandleStoreInstruction(StoreInstruction *I)
             }
         }
     }
+    else if (I->GetSavedValue()->IsGlobalVar())
+    {
+        auto GlobalAddress =
+            MachineInstruction(MachineInstruction::GlobalAddress, CurrentBB);
+        auto SourceReg = ParentFunction->GetNextAvailableVirtualRegister();
+
+        GlobalAddress.AddVirtualRegister(SourceReg, TM->GetPointerSize());
+        GlobalAddress.AddGlobalSymbol(
+            static_cast<GlobalVariable *>(I->GetSavedValue())->GetName());
+
+        CurrentBB->InsertInstr(GlobalAddress);
+
+        ResultMI.AddVirtualRegister(SourceReg, TM->GetPointerSize());
+    }
     else
     {
         ResultMI.AddOperand(GetMachineOperandFromValue(I->GetSavedValue()));
@@ -983,7 +997,20 @@ void IRtoLLIR::GenerateLLIRFromIR()
         {
             // If the init list is empty, then just allocate Size amount of zeros
             if (InitList.empty())
-                GD.InsertAllocation(Size, 0);
+            {
+                auto InitStr =
+                    static_cast<GlobalVariable *>(GlobalVar.get())->GetInitString();
+                auto InitVal =
+                    static_cast<GlobalVariable *>(GlobalVar.get())->GetInitValue();
+
+                if (InitStr.empty() && InitVal == nullptr)
+                    GD.InsertAllocation(Size, 0);
+                else
+                    // string literal case
+                    GD.InsertAllocation(
+                        InitVal ? static_cast<GlobalVariable *>(InitVal)->GetName() :
+                                  InitStr);
+            }
             // if the list is not empty then allocate the appropriate type of memories
             // with initialization
             else
@@ -1011,7 +1038,29 @@ void IRtoLLIR::GenerateLLIRFromIR()
         }
         // scalar case
         else if (InitList.empty())
-            GD.InsertAllocation(Size, 0);
+        {
+            auto InitVal = static_cast<GlobalVariable *>(GlobalVar.get())->GetInitValue();
+
+            // zero initialized scalar
+            if (InitVal == nullptr)
+                GD.InsertAllocation(Size, 0);
+            else
+            {
+                // initialized by another global variable (ptr), typical use case: string
+                // literals
+                GlobalData::Directives d;
+
+                switch (TM->GetPointerSize())
+                {
+                    case 32: d = GlobalData::Word; break;
+                    case 64: d = GlobalData::DoubleWord; break;
+
+                    default: assert(!"Unhandled pointer size"); break;
+                }
+
+                GD.InsertAllocation(static_cast<GlobalVariable *>(InitVal)->GetName(), d);
+            }
+        }
         else
         {
             GD.InsertAllocation(Size, InitList[0]);
