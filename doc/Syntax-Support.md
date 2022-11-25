@@ -57,13 +57,14 @@ enum { A, B, C, D };
 - [x] `*`(Addressof) , `&`(DeRefrence)
 - [x] `[]`
 - [x] `->`
-- [ ] `.`
+- [x] `.`
 
 ```cpp
 a[b]
  *a
  &a
 a->b
+a.b
 ```
 
 ### Increment, Decrement Operator
@@ -134,5 +135,5 @@ a && b
 
 #### Other Operator
 - [x] `a > b ? a : b`
-- [ ] `sizeof`
+- [x] `sizeof`
 - [ ] `_Alignof`
