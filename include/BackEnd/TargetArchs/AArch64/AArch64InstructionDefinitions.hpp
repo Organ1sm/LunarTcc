@@ -12,6 +12,8 @@ namespace AArch64
         ADD_rri,
         AND_rrr,
         AND_rri,
+        ORR_rrr,
+        ORR_rri,
         EOR_rrr,
         EOR_rri,
         LSL_rrr,
