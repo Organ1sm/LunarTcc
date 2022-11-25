@@ -94,7 +94,7 @@ a * b
 a / b
 a % b
 
- ~a      // not support
+ ~a      
 a & b
 a | b    // not support
 a ^ b
@@ -125,7 +125,7 @@ a == b
 
 
 ### Logical Operator
-- [x] ``!``
+- [x] `!`
 - [x] `&&`, 
 - [x] `||`
 ```cpp
