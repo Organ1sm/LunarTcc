@@ -417,8 +417,8 @@ bool AArch64TargetMachine::SelectTrunc(MachineInstruction *MI)
             MI->AddImmediate(0xFFu);
         }
 
-        if (MI->GetOperand(0)->GetSize() < 32)
-            MI->GetOperand(0)->GetTypeRef().SetBitWidth(32);
+        ExtendRegSize(MI->GetOperand(0));
+
         return true;
     }
 
@@ -461,6 +461,9 @@ bool AArch64TargetMachine::SelectLoadImm(MachineInstruction *MI)
     assert(MI->GetOperand(1)->IsImmediate() && "Operand #2 must be an immediate");
 
     auto Imm = MI->GetOperand(1)->GetImmediate();
+
+    ExtendRegSize(MI->GetOperand(0));
+
     if (IsInt<16>(Imm))
         MI->SetOpcode(MOV_ri);
     else if (IsInt<32>(Imm))
@@ -501,8 +504,7 @@ bool AArch64TargetMachine::SelectLoad(MachineInstruction *MI)
     if (OprType.GetBitWidth() == 8 && !OprType.IsPointer())
     {
         MI->SetOpcode(LDRB);
-        if (MI->GetOperand(0)->GetSize() < 32)
-            MI->GetOperand(0)->GetTypeRef().SetBitWidth(32);
+        ExtendRegSize(MI->GetOperand(0));
 
         return true;
     }
@@ -516,15 +518,14 @@ bool AArch64TargetMachine::SelectLoad(MachineInstruction *MI)
         if (Size == 1)
         {
             MI->SetOpcode(LDRB);
-            if (MI->GetOperand(0)->GetSize() < 32)
-                MI->GetOperand(0)->GetTypeRef().SetBitWidth(32);
+            ExtendRegSize(MI->GetOperand(0));
+
             return true;
         }
         else if (Size == 2)
         {
             MI->SetOpcode(LDRH);
-            if (MI->GetOperand(0)->GetSize() < 32)
-                MI->GetOperand(0)->GetTypeRef().SetBitWidth(32);
+            ExtendRegSize(MI->GetOperand(0));
 
             return true;
         }
@@ -557,18 +558,19 @@ bool AArch64TargetMachine::SelectStore(MachineInstruction *MI)
          ParentMF->GetStackObjectSize(BeginOP->GetSlot()) == 1))
     {
         MI->SetOpcode(STRB);
-        return true;
     }
-
-    if (EndOp.GetType().GetBitWidth() == 16 ||
-        (MI->GetOperandsNumber() == 2 && ParentMF->IsStackSlot(BeginOP->GetSlot()) &&
-         ParentMF->GetStackObjectSize(BeginOP->GetSlot()) == 2))
+    else if (EndOp.GetType().GetBitWidth() == 16 ||
+             (MI->GetOperandsNumber() == 2 && ParentMF->IsStackSlot(BeginOP->GetSlot()) &&
+              ParentMF->GetStackObjectSize(BeginOP->GetSlot()) == 2))
     {
         MI->SetOpcode(STRH);
-        return true;
+    }
+    else
+    {
+        MI->SetOpcode(STR);
     }
 
-    MI->SetOpcode(STR);
+    ExtendRegSize(MI->GetOperand(1));
     return true;
 }
 

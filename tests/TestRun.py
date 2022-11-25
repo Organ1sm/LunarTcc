@@ -69,7 +69,7 @@ def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases):
     testMain_C_TemPlate += "  return 0; }"
 
     commandList = [CompilerPath, fileName]
-    retCode = subprocess.run(commandList, stdout=subprocess.DEVNULL).returncode
+    retCode = subprocess.run(commandList, stdout=subprocess.DEVNULL, timeout=10).returncode
 
     if retCode != 0:
         return False
@@ -91,7 +91,7 @@ def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases):
             "-o",
             "test",
             "-static",
-        ]
+        ] 
         compileRet = subprocess.run(LinkCommandList).returncode
         if compileRet != 0:
             return False
