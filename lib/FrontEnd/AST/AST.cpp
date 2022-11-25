@@ -58,6 +58,8 @@ UnaryExpression::UnaryExpression(Token Op, ExprPtr E, bool PostFix)
             ResultType = Expr->GetResultType();
             ResultType.DecrementPointerLevel();
             break;
+
+        case UnaryOperation::BitWiseNot:
         case UnaryOperation::Not: ResultType = Type(Type::Int); break;
         case UnaryOperation::Minus:
         case UnaryOperation::PreIncrement:
@@ -1261,6 +1263,10 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
             return IRF->CreateLoad(IRType::CreateBool(), Result);
         }
 
+        case BitWiseNot: {
+            return IRF->CreateXOr(E, IRF->GetConstant((uint64_t)-1ll));
+        }
+
         case UnaryOperation::PreIncrement:
         case UnaryOperation::PreDecrement: {
             // make the assumption that the expression E is an LValue
@@ -1651,7 +1657,9 @@ UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind() const
         case Token::Dec:
             return IsPostFix ? UnaryOperation::PostDecrement :
                                UnaryOperation::PreDecrement;
+
         case Token::Sizeof: return UnaryOperation::Sizeof;
+        case Token::Tilde: return UnaryOperation::BitWiseNot;
 
         default: assert(!"Invalid unary operator kind."); break;
     }

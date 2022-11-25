@@ -331,6 +331,7 @@ std::optional<Token> Lexer::LexSymbol()
             }
             break;
         case '^': TokenKind = Token::Xor; break;
+        case '~': TokenKind = Token::Tilde; break;
 
         case '\\': TokenKind = Token::BackSlash; break;
         case ':': TokenKind = Token::Colon; break;
