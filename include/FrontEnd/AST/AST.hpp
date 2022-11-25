@@ -470,7 +470,8 @@ class BinaryExpression : public Expression
         LessEqual,
         GreaterEqual,
         NotEqual,
-        LogicalAnd
+        LogicalAnd,
+        LogicalOr,
     };
 
     BinaryOperation GetOperationKind();

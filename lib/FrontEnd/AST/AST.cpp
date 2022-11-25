@@ -1336,13 +1336,14 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
 {
     // TODO: simplify this, specially in case if there are actually multiple
     // logical operations like "a > 0 && a < 10 && a != 5"
-    if (GetOperationKind() == LogicalAnd)
+    if (GetOperationKind() == LogicalAnd || GetOperationKind() == LogicalOr)
     {
         // goal IR:
         //    # L generated here
         //    sa $result
         //    cmp.eq $c1, $L, 0
-        //    br $c1, <false>
+        //    br $c1, ANDL ? <false> : <TestRhsBB>
+        //    j <true>  # only for ORL
         // <test_R>
         //    # R generated here
         //    cmp.eq $c2, $R, 0
@@ -1353,11 +1354,12 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         // <false>
         //    str [$result], 0
         // <end>
-        const auto FuncPtr = IRF->GetCurrentFunction();
-        auto TestRhsBB     = std::make_unique<BasicBlock>("test_RHS", FuncPtr);
-        auto TrueBB        = std::make_unique<BasicBlock>("true", FuncPtr);
-        auto FalseBB       = std::make_unique<BasicBlock>("false", FuncPtr);
-        auto FinalBB       = std::make_unique<BasicBlock>("final", FuncPtr);
+        const auto IsLogicalAnd = (GetOperationKind() == LogicalAnd);
+        const auto FuncPtr      = IRF->GetCurrentFunction();
+        auto TestRhsBB          = std::make_unique<BasicBlock>("test_RHS", FuncPtr);
+        auto TrueBB             = std::make_unique<BasicBlock>("true", FuncPtr);
+        auto FalseBB            = std::make_unique<BasicBlock>("false", FuncPtr);
+        auto FinalBB            = std::make_unique<BasicBlock>("final", FuncPtr);
 
         // LHS test
         auto Result = IRF->CreateSA("result", IRType::CreateBool());
@@ -1369,14 +1371,17 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         if (auto LCMP = dynamic_cast<CompareInstruction *>(L); LCMP != nullptr)
         {
             LCMP->InvertRelation();
-            IRF->CreateBranch(L, FalseBB.get());
+            IRF->CreateBranch(L, IsLogicalAnd ? FalseBB.get() : TestRhsBB.get());
         }
         else
         {
             auto LHSTest =
                 IRF->CreateCmp(CompareInstruction::EQ, L, IRF->GetConstant((uint64_t)0));
-            IRF->CreateBranch(LHSTest, FalseBB.get());
+            IRF->CreateBranch(LHSTest, IsLogicalAnd ? FalseBB.get() : TestRhsBB.get());
         }
+
+        if (!IsLogicalAnd)
+            IRF->CreateJump(TrueBB.get());
 
         // RHS test
         IRF->InsertBB(std::move(TestRhsBB));
@@ -1639,6 +1644,8 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
         case Token::GreaterEqual: return GreaterEqual;
         case Token::NotEqual: return NotEqual;
         case Token::LogicalAnd: return LogicalAnd;
+        case Token::LogicalOr: return LogicalOr;
+
         default: assert(false && "Invalid binary Operator kind."); break;
     }
 }

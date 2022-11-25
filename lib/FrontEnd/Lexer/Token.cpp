@@ -40,6 +40,7 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Less,             "<"                },
     {Greater,          ">"                },
     {And,              "&"                },
+    {Or,               "|"                },
     {Xor,              "^"                },
     {Tilde,            "~"                },
     {Not,              "!"                },
@@ -58,6 +59,8 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Equal,            "=="               },
     {NotEqual,         "!="               },
     {LogicalAnd,       "&&"               },
+    {LogicalOr,        "||"               },
+
     {GreaterEqual,     ">="               },
     {LessEqual,        "<="               },
 
