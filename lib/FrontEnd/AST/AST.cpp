@@ -1432,8 +1432,7 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         return R;
     }
 
-    if (GetOperationKind() == AddAssign || GetOperationKind() == SubAssign ||
-        GetOperationKind() == MulAssign || GetOperationKind() == DivAssign)
+    if (IsCompositeAssignmentOperator())
     {
         // Assignment right associative so generate R first
         auto R = Rhs->IRCodegen(IRF);
@@ -1456,6 +1455,13 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
                 case SubAssign: OperationResult = IRF->CreateSub(L, R); break;
                 case MulAssign: OperationResult = IRF->CreateMul(L, R); break;
                 case DivAssign: OperationResult = IRF->CreateDiv(L, R); break;
+                case ModAssign: OperationResult = IRF->CreateMod(L, R); break;
+                case AndAssign: OperationResult = IRF->CreateAnd(L, R); break;
+                case OrAssign: OperationResult = IRF->CreateOr(L, R); break;
+                case XorAssign: OperationResult = IRF->CreateXOr(L, R); break;
+                case LSLAssign: OperationResult = IRF->CreateLSL(L, R); break;
+                case LSRAssign: OperationResult = IRF->CreateLSR(L, R); break;
+
                 default: assert(!"Unreachable");
             }
 
@@ -1488,6 +1494,7 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
             case Add:
             case Mul:
             case And:
+            case Or:
             case Xor:
             case Equal:
             case NotEqual: std::swap(L, R); break;
@@ -1508,6 +1515,7 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         case Div: return IRF->CreateDiv(L, R);
         case Mod: return IRF->CreateMod(L, R);
         case And: return IRF->CreateAnd(L, R);
+        case Or: return IRF->CreateOr(L, R);
         case Xor: return IRF->CreateXOr(L, R);
         case DivU: return IRF->CreateDivU(L, R);
         case ModU: return IRF->CreateModU(L, R);
@@ -1620,7 +1628,7 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
         case Token::MulEqual: return MulAssign;
         case Token::DivEqual: return DivAssign;
         case Token::ModEqual: return ModAssign;
-        case Token::AndEqual: return AddAssign;
+        case Token::AndEqual: return AndAssign;
         case Token::OrEqual: return OrAssign;
         case Token::XorEqual: return XorAssign;
         case Token::LeftShiftEqual: return LSLAssign;
@@ -1654,6 +1662,25 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
         case Token::LogicalOr: return LogicalOr;
 
         default: assert(false && "Invalid binary Operator kind."); break;
+    }
+}
+
+bool BinaryExpression::IsCompositeAssignmentOperator()
+{
+    switch (GetOperationKind())
+    {
+        case AddAssign:
+        case SubAssign:
+        case MulAssign:
+        case DivAssign:
+        case ModAssign:
+        case AndAssign:
+        case OrAssign:
+        case XorAssign:
+        case LSLAssign:
+        case LSRAssign: return true;
+
+        default: return false;
     }
 }
 
