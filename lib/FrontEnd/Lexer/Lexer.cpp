@@ -263,7 +263,14 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::Div;
             }
             break;
-        case '%': TokenKind = Token::Mod; break;
+        case '%':
+            if (GetNextNthCharOnSameLine(1) == '=')
+            {
+                TokenKind = Token::Mod;
+                Size      = 2;
+            }
+            TokenKind = Token::Mod;
+            break;
         case '=':
             if (GetNextNthCharOnSameLine(1) == '=')
             {
@@ -283,8 +290,16 @@ std::optional<Token> Lexer::LexSymbol()
             }
             else if (GetNextNthCharOnSameLine(1) == '<')
             {
-                TokenKind = Token::LeftShift;
-                Size      = 2;
+                if (GetNextNthCharOnSameLine(2) == '=')
+                {
+                    TokenKind = Token::LeftShiftEqual;
+                    Size      = 3;
+                }
+                else
+                {
+                    TokenKind = Token::LeftShift;
+                    Size      = 2;
+                }
             }
             else
             {
@@ -299,8 +314,16 @@ std::optional<Token> Lexer::LexSymbol()
             }
             else if (GetNextNthCharOnSameLine(1) == '>')
             {
-                TokenKind = Token::RightShift;
-                Size      = 2;
+                if (GetNextNthCharOnSameLine(2) == '=')
+                {
+                    TokenKind = Token::RightShiftEqual;
+                    Size      = 3;
+                }
+                else
+                {
+                    TokenKind = Token::RightShift;
+                    Size      = 2;
+                }
             }
             else
             {
@@ -325,6 +348,11 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::LogicalAnd;
                 Size      = 2;
             }
+            else if (GetNextNthCharOnSameLine(1) == '=')
+            {
+                TokenKind = Token::AndEqual;
+                Size      = 2;
+            }
             else
             {
                 TokenKind = Token::And;
@@ -336,12 +364,25 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::LogicalOr;
                 Size      = 2;
             }
+            else if (GetNextNthCharOnSameLine(1) == '=')
+            {
+                TokenKind = Token::OrEqual;
+                Size      = 2;
+            }
             else
             {
                 TokenKind = Token::Or;
             }
             break;
-        case '^': TokenKind = Token::Xor; break;
+        case '^':
+            if (GetNextNthCharOnSameLine(1) == '=')
+            {
+                TokenKind = Token::XorEqual;
+                Size      = 2;
+            }
+            else
+                TokenKind = Token::Xor;
+            break;
         case '~': TokenKind = Token::Tilde; break;
 
         case '\\': TokenKind = Token::BackSlash; break;
@@ -353,15 +394,18 @@ std::optional<Token> Lexer::LexSymbol()
         case ']': TokenKind = Token::RightBracket; break;
         case '{': TokenKind = Token::LeftBrace; break;
         case '}': TokenKind = Token::RightBrace; break;
+
         default: return std::nullopt;
     }
 
     std::string_view StringValue {&Source[LineIndex][ColumnIndex], Size};
     auto Result = Token(TokenKind, StringValue, LineIndex, ColumnIndex);
 
-    EatNextChar();
-    if (Size == 2)
+
+    for (auto i = 0; i < Size; i++)
+    {
         EatNextChar();
+    }
 
     return Result;
 }

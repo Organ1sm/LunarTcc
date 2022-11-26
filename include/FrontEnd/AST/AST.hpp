@@ -452,6 +452,12 @@ class BinaryExpression : public Expression
         SubAssign,    // a -= b
         MulAssign,    // a *= b
         DivAssign,    // a /= b
+        ModAssign,    // a %= b
+        AndAssign,    // a &= b
+        OrAssign,     // a |= b
+        XorAssign,    // a ^= b
+        LSLAssign,    // a <<= b
+        LSRAssign,    // a >>= b
         LSL,          // a << 1
         LSR,          // a >> 2
         Add,
@@ -462,6 +468,7 @@ class BinaryExpression : public Expression
         Mod,
         ModU,
         And,
+        Or,
         Xor,
         Not,
         Equal,

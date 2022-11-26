@@ -1134,10 +1134,17 @@ static int GetBinOpPrecedence(Token::TokenKind TK)
     switch (TK)
     {
         case Token::Assign:
+        case Token::ModEqual:
+        case Token::AndEqual:
+        case Token::OrEqual:
+        case Token::XorEqual:
+        case Token::LeftShiftEqual:
+        case Token::RightShiftEqual:
         case Token::PlusEqual:
         case Token::MinusEuqal:
         case Token::MulEqual:
         case Token::DivEqual: return 10;
+
         case Token::LogicalOr: return 20;
         case Token::LogicalAnd: return 30;
         case Token::Or: return 40;
@@ -1603,6 +1610,12 @@ std::unique_ptr<Expression>
             bool IsCompositeAssignment = false;
             switch (BinaryOperator.GetKind())
             {
+                case Token::ModEqual:
+                case Token::AndEqual:
+                case Token::OrEqual:
+                case Token::XorEqual:
+                case Token::LeftShiftEqual:
+                case Token::RightShiftEqual:
                 case Token::PlusEqual:
                 case Token::MinusEuqal:
                 case Token::MulEqual:
