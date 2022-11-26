@@ -1619,6 +1619,12 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
         case Token::MinusEuqal: return SubAssign;
         case Token::MulEqual: return MulAssign;
         case Token::DivEqual: return DivAssign;
+        case Token::ModEqual: return ModAssign;
+        case Token::AndEqual: return AddAssign;
+        case Token::OrEqual: return OrAssign;
+        case Token::XorEqual: return XorAssign;
+        case Token::LeftShiftEqual: return LSLAssign;
+        case Token::RightShiftEqual: return LSRAssign;
         case Token::LeftShift: return LSL;
         case Token::RightShift: return LSR;
         case Token::Plus: return Add;
@@ -1635,6 +1641,7 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
             return Mod;
         }
         case Token::And: return And;
+        case Token::Or: return Or;
         case Token::Xor: return Xor;
         case Token::Not: return Not;
         case Token::Equal: return Equal;
