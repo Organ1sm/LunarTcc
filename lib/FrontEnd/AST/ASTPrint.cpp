@@ -377,7 +377,7 @@ void ASTPrint::VisitImplicitCastExpression(const ImplicitCastExpression *node)
 {
     auto Str = fmt::format("`{}`", node->GetResultType().ToString());
 
-    Print("ImplicitCastExpression ", tab);
+    Print(node->IsExplicit() ? "CastExpression" : "ImplicitCastExpression ", tab);
     PrintLn(Str.c_str());
 
     tab += 2;

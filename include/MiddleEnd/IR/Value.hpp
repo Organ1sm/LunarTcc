@@ -22,6 +22,7 @@ class Value
     virtual ~Value() {};
     IRType &GetTypeRef() { return ValueType; }
     IRType GetType() const { return ValueType; }
+    void SetType(IRType t) { ValueType = t; }
 
     unsigned GetID() const { return UniqueId; }
     void SetId(unsigned i) { UniqueId = i; }

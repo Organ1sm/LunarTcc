@@ -140,20 +140,13 @@ Type Parser::ParseType(Token::TokenKind tk)
                 NextTokenKind == Token::Short || NextTokenKind == Token::Long)
             {
                 Lex();    // eat 'unsigned'
-
-                // if bare the 'unsigned' is not followed by other type then its an
-                // 'unsigned int' by default
-                // TODO: Investigate what else token could follow unsigned which would
-                // certainly mean that the unsigned is alone and valid
-            }
-            else if (NextTokenKind == Token::Identifier)
-            {
-                Result.SetTypeVariant(Type::UnsignedInt);
-                return Result;
             }
             else
             {
-                assert(!"Error: Unexpected token after `unsigned`");
+                // if bare the 'unsigned' is not followed by other type then its an
+                // 'unsigned int' by default
+                Result.SetTypeVariant(Type::UnsignedInt);
+                return Result;
             }
 
             auto CurrentToken = lexer.GetCurrentToken();
@@ -194,7 +187,8 @@ Type Parser::ParseType(Token::TokenKind tk)
             // TODO: Change this function expect the Token and not the TokenKind
             assert(GetCurrentTokenKind() == Token::Identifier);
             auto Id = GetCurrentToken().GetString();
-            return TypeDefinitions[Id];
+            Result  = TypeDefinitions[Id];
+            break;
         }
 
         default: assert(!"Unknown token kind."); break;
@@ -1177,7 +1171,25 @@ static int GetBinOpPrecedence(Token::TokenKind TK)
 
 std::unique_ptr<Expression> Parser::ParseUnaryExpression()
 {
-    auto UnaryOperation = lexer.GetCurrentToken();
+    auto UnaryOperation = GetCurrentToken();
+
+    // cast expression case
+    if (GetCurrentToken().GetKind() == Token::LeftParen &&
+        IsTypeSpecifier(lexer.LookAhead(2)) &&
+        !(lexer.LookAhead(2).GetKind() == Token::Identifier &&
+          lexer.LookAhead(4).GetKind() ==
+              Token::LeftBrace))    // it is not a struct initialization like
+                                    // "(StructType){ ...}"
+    {
+        Lex();    // eat '('
+        auto Ty = ParseType(GetCurrentToken().GetKind());
+        Lex();
+
+        Expect(Token::RightParen);
+
+        auto ExprToCast = ParseExpression();
+        return std::make_unique<ImplicitCastExpression>(std::move(ExprToCast), Ty, true);
+    }
 
     if (!IsUnaryOperator(UnaryOperation.GetKind()))
         return ParsePostFixExpression();

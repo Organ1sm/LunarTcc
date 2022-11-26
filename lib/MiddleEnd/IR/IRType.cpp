@@ -3,6 +3,7 @@
 //
 #include "MiddleEnd/IR/IRType.hpp"
 #include "BackEnd/TargetMachine.hpp"
+#include "fmt/core.h"
 #include "fmt/format.h"
 #include <cassert>
 
@@ -85,7 +86,7 @@ std::string IRType::AsString() const
         case FP: Str += "f"; break;
         case UInt: Str += "u"; break;
         case SInt: Str += "i"; break;
-        case Struct: Str += StructName; break;
+        case Struct: Str += fmt::format("struct.{}", StructName); break;
         case None: return "void";
         default: assert(!"Invalid type."); break;
     }
