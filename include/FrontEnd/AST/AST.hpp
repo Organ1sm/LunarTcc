@@ -493,6 +493,7 @@ class BinaryExpression : public Expression
     void SetRightExpr(ExprPtr &e) { Rhs = std::move(e); }
 
     bool IsCondition() { return GetOperationKind() >= Not; }
+    bool IsCompositeAssignmentOperator();
 
     BinaryExpression() = default;
     BinaryExpression(ExprPtr Left, Token Op, ExprPtr Right);

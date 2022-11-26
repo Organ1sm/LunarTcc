@@ -30,7 +30,7 @@ enum { A, B, C, D };
 ```
 - [x] `struct`
 - [x] `ND-array`
-- [ ] `global-variale` `global-array`
+- [x] `global-variale` `global-array`
 
 ## Type Qualifiers
 - [x] `const`
@@ -39,6 +39,7 @@ enum { A, B, C, D };
 ## Literal
 - [x] `Integer-Literal`, `Integer-Literal-Suffix`(`u`, `ul`, `l`, `ll`, `ull`)
 - [x] `Character-Literal`
+- [x] `String-Literal`
 
 ## Statements
 - [x] `if-else`
@@ -83,7 +84,7 @@ a--
 - [x] `*`, `/` ,`%`
 - [x] `~`
 - [x] `&`, `^`
-- [ ] `|`
+- [x] `|`
 - [x] `<<`, `>>`
 ```c++
  +a      // not support
@@ -96,20 +97,27 @@ a % b
 
  ~a      
 a & b
-a | b    // not support
+a | b    
 a ^ b
 a >> b
 a << b
 ```
 
 ### Assignment Operator
-- [x] `=`,`+=`, `-=`, `*=`, `/=`
+- [x] `=`, `+=`, `-=`, `*=`
+- [x] `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`
 ```c++
 a = b
 a += b
 a -= b
 a *= b
 a /= b
+a %= b
+a &= b
+a |= b
+a ^= b
+a <<= b
+a >>= b
 ```
 
 ### Comparison Operator
@@ -131,6 +139,7 @@ a == b
 ```cpp
   !a
 a && b
+a || b
 ```
 
 #### Other Operator

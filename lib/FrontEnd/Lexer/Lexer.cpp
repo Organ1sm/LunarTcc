@@ -266,10 +266,11 @@ std::optional<Token> Lexer::LexSymbol()
         case '%':
             if (GetNextNthCharOnSameLine(1) == '=')
             {
-                TokenKind = Token::Mod;
+                TokenKind = Token::ModEqual;
                 Size      = 2;
             }
-            TokenKind = Token::Mod;
+            else
+                TokenKind = Token::Mod;
             break;
         case '=':
             if (GetNextNthCharOnSameLine(1) == '=')
