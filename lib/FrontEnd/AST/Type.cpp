@@ -35,17 +35,6 @@ Type::Type(Type t, std::vector<Type> a)
     Ty        = t.GetTypeVariant();
 }
 
-Type::Type(Type &&ct)
-{
-    PointerLevel = ct.PointerLevel;
-    Ty           = ct.Ty;
-    Kind         = ct.Kind;
-    Dimensions   = std::move(ct.Dimensions);
-    TypeList     = std::move(ct.TypeList);
-    ParamList    = std::move(ct.ParamList);
-    Name         = ct.Name;
-}
-
 Type &Type::operator=(Type &&ct)
 {
     PointerLevel = ct.PointerLevel;

@@ -691,19 +691,22 @@ class ArrayExpression : public Expression
 class ImplicitCastExpression : public Expression
 {
   public:
-    ImplicitCastExpression(ExprPtr e, Type t)
-        : CastableExpression(std::move(e)), Expression(t)
+    ImplicitCastExpression(ExprPtr e, Type t, bool c = false)
+        : CastableExpression(std::move(e)), Expression(t), IsExplicitCast(c)
     {}
 
     Type GetSourceType() { return CastableExpression->GetResultType(); }
     ExprPtr &GetCastableExpression() { return CastableExpression; }
     ExprPtr const &GetCastableExpression() const { return CastableExpression; }
 
+    bool IsExplicit() const { return IsExplicitCast; }
+
     void Accept(ASTVisitor *Visitor) const override;
     Value *IRCodegen(IRFactory *IRF) override;
 
   private:
     ExprPtr CastableExpression;
+    bool IsExplicitCast {false};
 };
 
 class InitializerListExpression : public Expression

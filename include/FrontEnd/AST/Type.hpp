@@ -38,7 +38,7 @@ class Type
     Type(Type t, std::vector<unsigned> d);
     Type(Type t, std::vector<Type> a);
 
-    Type(Type &&);
+    Type(Type &&) = default;
     Type &operator=(Type &&);
 
     Type(const Type &)            = default;
@@ -82,7 +82,7 @@ class Type
     bool IsUnsigned() const;
 
     friend bool operator==(const Type &lhs, const Type &rhs);
-    friend bool operator !=(const Type &lhs, const Type &rhs);
+    friend bool operator!=(const Type &lhs, const Type &rhs);
 
     std::string ToString() const;
     static std::string ToString(const Type &);
