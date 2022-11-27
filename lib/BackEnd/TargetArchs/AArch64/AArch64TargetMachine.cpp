@@ -356,14 +356,19 @@ bool AArch64TargetMachine::SelectZExt(MachineInstruction *MI)
         MI->SetOpcode(MOV_ri);
         return true;
     }
-    else if (MI->GetOperand(1)->GetType().GetBitWidth() == 32)
-    {
-        MI->SetOpcode(UXTW);
-        return true;
-    }
     else if (MI->GetOperand(1)->GetType().GetBitWidth() == 8)
     {
         MI->SetOpcode(UXTB);
+        return true;
+    }
+    else if (MI->GetOperand(1)->GetType().GetBitWidth() == 16)
+    {
+        MI->SetOpcode(UXTH);
+        return true;
+    }
+    else if (MI->GetOperand(1)->GetType().GetBitWidth() == 32)
+    {
+        MI->SetOpcode(UXTW);
         return true;
     }
     else if (MI->GetOperand(1)->GetType().GetBitWidth() == 64)
@@ -391,6 +396,11 @@ bool AArch64TargetMachine::SelectSExt(MachineInstruction *MI)
     else if (MI->GetOperand(1)->GetType().GetBitWidth() == 8)
     {
         MI->SetOpcode(SXTB);
+        return true;
+    }
+    else if (MI->GetOperand(1)->GetType().GetBitWidth() == 16)
+    {
+        MI->SetOpcode(SXTH);
         return true;
     }
     else if (MI->GetOperand(1)->GetType().GetBitWidth() == 32)
@@ -444,6 +454,29 @@ bool AArch64TargetMachine::SelectTrunc(MachineInstruction *MI)
 
         return true;
     }
+    else if (MI->GetOperand(0)->GetType().GetBitWidth() == 16)
+    {
+        // if the operand i san immediate
+        if (MI->GetOperand(1)->IsImmediate())
+        {
+            // then calculate the truncated immediate value and emit mov
+            int64_t ResultIMM = MI->GetOperand(1)->GetImmediate() & 0xFFFFu;
+            MI->GetOperand(1)->SetValue(ResultIMM);
+            MI->SetOpcode(MOV_ri);
+        }
+        else
+        {
+            MI->SetOpcode(AND_rri);
+            MI->AddImmediate(0xFFFFu);
+        }
+        // For now set the result's bitwidth to 32 if its less than that, otherwise
+        // no register could be selected for it.
+        // FIXME: Enforce this in the legalizer maybe (check LLVM for clues)
+        ExtendRegSize(MI->GetOperand(0));
+
+        return true;
+    }
+
 
     // in cases like
     //      TRUNC  %dst(s32), %src(s64)

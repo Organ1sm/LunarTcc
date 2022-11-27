@@ -1,4 +1,3 @@
-#include "BackEnd/Support.hpp"
 #include "FrontEnd/AST/ASTPrint.hpp"
 #include "Utils/ErrorLogger.hpp"
 #include "FrontEnd/Lexer/Lexer.hpp"
@@ -16,9 +15,10 @@
 #include "BackEnd/MachineInstructionLegalizer.hpp"
 #include "BackEnd/PrologueEpilogInsertion.hpp"
 #include "BackEnd/RegisterAllocator.hpp"
+#include "BackEnd/Support.hpp"
+#include "BackEnd/TargetArchs/AArch64/AArch64XRegToWRegFixPass.hpp"
 #include "BackEnd/TargetArchs/AArch64/AArch64TargetMachine.hpp"
 #include "BackEnd/TargetArchs/RISCV/RISCVTargetMachine.hpp"
-#include "BackEnd/TargetArchs/AArch64/AArch64MovFixPass.hpp"
 #include <memory>
 #include <fmt/core.h>
 #include "fmt/format.h"
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
     PEI.Run();
 
     if (TargetArch == "aarch64")
-        AArch64MovFixPass(&LLIRModule, TM.get()).Run();
+        AArch64XRegToWRegFixPass(&LLIRModule, TM.get()).Run();
 
     if (PrintBeforePasses)
     {

@@ -3,10 +3,12 @@
 class MachineIRModule;
 class TargetMachine;
 
-class AArch64MovFixPass
+class AArch64XRegToWRegFixPass
 {
   public:
-    AArch64MovFixPass(MachineIRModule *MIRM, TargetMachine *TM) : MIRM(MIRM), TM(TM) {}
+    AArch64XRegToWRegFixPass(MachineIRModule *MIRM, TargetMachine *TM)
+        : MIRM(MIRM), TM(TM)
+    {}
 
     void Run();
 
