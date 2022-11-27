@@ -16,8 +16,8 @@ AArch64InstructionDefinitions::AArch64InstructionDefinitions()
                         "UDIV_rrr",                           //
                         "CMP_ri",   "CMP_rr",                 //
                         "CSET",                               //
-                        "SXTB",     "SXTW",                   //
-                        "UXTB",     "UXTW",                   //
+                        "SXTB",     "SXTH",     "SXTW",       //
+                        "UXTB",     "UXTH",     "UXTW",       //
                         "MOV_ri",   "MOV_rr",   "MOVK_ri",    //
                         "MVN_rr",                             //
                         "ADRP",                               //
@@ -185,6 +185,12 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             "sxtb\t$1, $2",
             {GPR, GPR}
         };
+        ret[SXTH] = {
+            SXTH,
+            32,
+            "sxth\t$1, $2",
+            {GPR, GPR}
+        };
         ret[SXTW] = {
             SXTW,
             32,
@@ -195,6 +201,12 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
             UXTB,
             32,
             "uxtb\t$1, $2",
+            {GPR, GPR}
+        };
+        ret[UXTH] = {
+            UXTH,
+            32,
+            "uxth\t$1, $2",
             {GPR, GPR}
         };
         ret[UXTW] = {
