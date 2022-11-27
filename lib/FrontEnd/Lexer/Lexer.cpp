@@ -254,6 +254,11 @@ std::optional<Token> Lexer::LexSymbol()
                 TokenKind = Token::MulEqual;
                 Size      = 2;
             }
+            else if (GetNextNthCharOnSameLine(1) == '/')
+            {
+                TokenKind = Token::AstrixForwardSlash;
+                Size      = 2;
+            }
             else
                 TokenKind = Token::Mul;
             break;
@@ -266,6 +271,11 @@ std::optional<Token> Lexer::LexSymbol()
             else if (GetNextNthCharOnSameLine(1) == '=')
             {
                 TokenKind = Token::DivEqual;
+                Size      = 2;
+            }
+            else if (GetNextNthCharOnSameLine(1) == '*')
+            {
+                TokenKind = Token::ForwardSlashAstrix;
                 Size      = 2;
             }
             else
@@ -489,6 +499,20 @@ Token Lexer::Lex(bool LookAhead)
     {
         LineIndex++;
         ColumnIndex = 0;
+        return Lex();
+    }
+
+    if (Result.has_value() && Result.value().GetKind() == Token::ForwardSlashAstrix)
+    {
+        while (GetNextChar() != EOF &&
+               (GetNextNthCharOnSameLine(1) != '/' || GetNextChar() != '*'))
+        {
+            EatNextChar();
+        }
+
+        EatNextChar();
+        EatNextChar();
+
         return Lex();
     }
 
