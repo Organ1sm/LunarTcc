@@ -74,6 +74,8 @@ class Token
 
         // Comment
         SingleComment,
+        ForwardSlashAstrix,    // /*
+        AstrixForwardSlash,    // */
 
         // Keyword
         // FuncType qualifier
