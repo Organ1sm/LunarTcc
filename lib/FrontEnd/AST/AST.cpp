@@ -700,7 +700,8 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
         else
         {
             auto InitExpr = Init->IRCodegen(IRF);
-            if (InitExpr->GetType().IsStruct())
+            if (InitExpr->GetType().IsStruct() &&
+                InitExpr->GetType().GetPointerLevel() == SA->GetType().GetPointerLevel())
                 IRF->CreateMemCopy(SA, InitExpr, InitExpr->GetType().GetByteSize());
             else
                 IRF->CreateStore(InitExpr, SA);

@@ -1408,8 +1408,6 @@ std::unique_ptr<Expression> Parser::ParseCallExpression(Token Id)
                     CallArgs[i] =
                         std::make_unique<ImplicitCastExpression>(std::move(CallArgs[i]),
                                                                  FuncArgTypes[i]);
-                else    // otherwise its an error
-                    EmitError("argument type mismatch", lexer);
             }
         }
     }
