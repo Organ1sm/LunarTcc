@@ -70,7 +70,12 @@ void Type::DecrementPointerLevel()
 
 std::string Type::ToString(const Type &t)
 {
+    std::string ConstStr;
     std::string Result;
+
+    if (t.IsConst())
+        ConstStr = "const ";
+
     switch (t.GetTypeVariant())
     {
         case Double: Result = "double"; break;
@@ -91,9 +96,10 @@ std::string Type::ToString(const Type &t)
         default: assert(!"Unknown type."); break;
     }
 
-    return Result + std::string(t.GetPointerLevel(), '*');
+    return ConstStr + Result + std::string(t.GetPointerLevel(), '*');
 }
 
+// TODO: Simplify this.
 std::string Type::ToString() const
 {
     if (IsFunction())
@@ -109,7 +115,12 @@ std::string Type::ToString() const
             if (i + 1 < ArgSize)
                 TyStr += ", ";
             else
+            {
+                if (VarArg)
+                    TyStr += ", ...";
+
                 TyStr += ")";
+            }
         }
         return TyStr;
     }

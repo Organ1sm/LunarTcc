@@ -145,4 +145,6 @@ a || b
 #### Other Operator
 - [x] `a > b ? a : b`
 - [x] `sizeof`
+- [x] `(type) a`
+- [x] `a(...)`
 - [ ] `_Alignof`

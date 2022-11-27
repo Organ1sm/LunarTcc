@@ -1181,6 +1181,9 @@ Value *StringLiteralExpression::IRCodegen(IRFactory *IRF)
 
     auto Ty = GetIRTypeFromASTType(ResultType);
 
+    // the pointer to global variable data.
+    Ty.IncrementPointerLevel();
+
     // create global variable for the string literal with the label name.
     auto GV = IRF->CreateGlobalVar(Name, Ty, StringValue);
     IRF->AddGlobalVariable(GV);

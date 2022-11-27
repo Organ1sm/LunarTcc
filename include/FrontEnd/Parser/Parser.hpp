@@ -7,6 +7,7 @@
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include "FrontEnd/AST/Type.hpp"
 #include "FrontEnd/Parser/SymbolTable.hpp"
+#include "MiddleEnd/IR/Value.hpp"
 
 class Node;
 class Expression;
@@ -35,7 +36,8 @@ class IRFactory;
 
 class Parser
 {
-    using ExprPtr = std::unique_ptr<Expression>;
+    using ExprPtr          = std::unique_ptr<Expression>;
+    using FuncParamDeclPtr = std::unique_ptr<FunctionParameterDeclaration>;
 
   public:
     std::unique_ptr<Node> Parse();
@@ -67,8 +69,8 @@ class Parser
     std::unique_ptr<FunctionDeclaration> ParseFunctionDeclaration(const Type &ReturnType,
                                                                   const Token &Name);
     std::unique_ptr<VariableDeclaration> ParseVariableDeclaration();
-    std::unique_ptr<FunctionParameterDeclaration> ParseParameterDeclaration();
-    std::vector<std::unique_ptr<FunctionParameterDeclaration>> ParseParameterList();
+    FuncParamDeclPtr ParseParameterDeclaration();
+    std::vector<FuncParamDeclPtr> ParseParameterList(bool &HasVarArg);
     std::unique_ptr<MemberDeclaration> ParseMemberDeclaration();
     std::unique_ptr<StructDeclaration> ParseStructDeclaration(unsigned Qualifiers = 0);
     std::unique_ptr<EnumDeclaration> ParseEnumDeclaration(unsigned Qualifiers);
