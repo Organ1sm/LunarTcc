@@ -81,6 +81,9 @@ class Type
     bool IsIntegerType() const;
     bool IsUnsigned() const;
 
+    bool HasVarArg() const { return VarArg; }
+    void SetVarArg(bool p) { VarArg = p; }
+
     friend bool operator==(const Type &lhs, const Type &rhs);
     friend bool operator!=(const Type &lhs, const Type &rhs);
 
@@ -108,6 +111,9 @@ class Type
     std::vector<Type> TypeList;
     std::vector<Type> ParamList;
     std::vector<unsigned> Dimensions;
+
+    /// To indicate whether the function type has variable arguments or not
+    bool VarArg = false;
 };
 
 // Hold an integer or a float value

@@ -30,6 +30,7 @@ class Token
         Comma,           // ','
         SemiColon,       // ';'
         BackSlash,       // "\\"
+        Ellipsis,        // ...
 
         // Opeartors
         Plus,       // '+'
@@ -70,7 +71,6 @@ class Token
         XorEqual,           // ^=
         OrEqual,            // |=
         AndEqual,           // &=
-        Ellipsis,           // ...
 
         // Comment
         SingleComment,

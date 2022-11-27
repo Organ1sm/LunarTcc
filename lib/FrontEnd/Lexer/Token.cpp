@@ -30,6 +30,7 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Comma,            ","                },
     {SemiColon,        ";"                },
     {BackSlash,        "\\"               },
+    {Ellipsis,        "..."              },
 
     {Plus,             "+"                },
     {Minus,            "-"                },
