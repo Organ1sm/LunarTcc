@@ -203,6 +203,52 @@ Type Parser::ParseType(Token::TokenKind tk)
     return Result;
 }
 
+/// Parse the dimensions of an array declaration
+void Parser::ParseArrayDimensions(Type &type)
+{
+    std::vector<unsigned> Dimensions;
+    while (lexer.Is(Token::LeftBracket))
+    {
+        Lex();    // consume '['
+
+        // empty dimension like "int arr []"
+        if (lexer.Is(Token::RightBracket))
+        {
+            Lex();
+            // using  ~0 to flag an unspecified dimension
+            Dimensions.push_back(EmptyDimension);
+        }
+        else
+        {
+            // dimension defined by constant case like "int arr[5][5]"
+            Dimensions.push_back(ParseIntegerConstant());
+            Expect(Token::RightBracket);
+        }
+    }
+
+    if (!Dimensions.empty())
+        type.SetDimensions(std::move(Dimensions));
+}
+
+/// Helper function to try to figure out the unspecified dimension of the array
+/// type @type from its initializer expression @InitExpr
+/// example:
+///     int a[] = {1, 2, 3}
+///
+/// since the initializer expression has 3 element, therefore a type is int[3]
+void DetermineUnspecifiedDimension(Expression *InitExpr, Type &type)
+{
+    // If there was an initializer expression like "{1, 2, 3}",
+    if (auto InitListExpr = dynamic_cast<InitializerListExpression *>(InitExpr);
+        InitListExpr != nullptr && type.GetDimensions()[0] == Parser::EmptyDimension)
+    {
+        // TODO: only 1 dimensional init list are handled here now, altough C
+        // only allows the first dimension to be a unspecified so arr[][] would
+        // be invalid anyway
+        type.GetDimensions()[0] = InitListExpr->GetExprList().size();
+    }
+}
+
 static void UndefinedSymbolError(Token sym, Lexer &L)
 {
     static std::string Format = ">  {}:{}: error: Undefined Symbol `{}`.\n\t\t{}\n\n";
@@ -384,18 +430,8 @@ std::unique_ptr<Node> Parser::ParseExternalDeclaration()
         {
             // Variable Declaration;
             // int a = 0;
-            std::vector<unsigned> Dimensions;
-
-            // Array Declaration.
-            while (lexer.Is(Token::LeftBracket))
-            {
-                Lex();    // consume '['
-                Dimensions.push_back(ParseIntegerConstant());
-                Expect(Token::RightBracket);
-            }
-
-            if (!Dimensions.empty())
-                Ty.SetDimensions(std::move(Dimensions));
+            // int arr[x]...
+            ParseArrayDimensions(Ty);
 
             // If the variable initialized
             std::unique_ptr<Expression> InitExpr {nullptr};
@@ -410,6 +446,9 @@ std::unique_ptr<Node> Parser::ParseExternalDeclaration()
             }
 
             Expect(Token::SemiColon);
+
+            if (Ty.IsArray() && !Ty.GetDimensions().empty())
+                DetermineUnspecifiedDimension(InitExpr.get(), Ty);
 
             InsertToSymbolTable(NameStr, Ty);
 
@@ -563,19 +602,8 @@ std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration()
     }
 
     std::string Name = Expect(Token::Identifier).GetString();
-    std::vector<unsigned> Dimensions;
 
-    while (lexer.Is(Token::LeftBracket))
-    {
-        Lex();
-        Dimensions.push_back(ParseIntegerConstant());
-        Expect(Token::RightBracket);
-    }
-
-    if (!Dimensions.empty())
-        Ty = Type(Ty, Dimensions);
-
-    InsertToSymbolTable(Name, Ty);
+    ParseArrayDimensions(Ty);
 
     // If the variable initialized
     std::unique_ptr<Expression> InitExpr {nullptr};
@@ -609,7 +637,12 @@ std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration()
 
     Expect(Token::SemiColon);
 
-    auto VD = std::make_unique<VariableDeclaration>(Name, Ty, Dimensions);
+    if (Ty.IsArray() && !Ty.GetDimensions().empty())
+        DetermineUnspecifiedDimension(InitExpr.get(), Ty);
+
+    InsertToSymbolTable(Name, Ty);
+
+    auto VD = std::make_unique<VariableDeclaration>(Name, Ty);
 
     if (InitExpr)
         VD->SetInitExpr(std::move(InitExpr));
