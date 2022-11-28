@@ -38,6 +38,7 @@ class Parser
 {
   public:
     using ExprPtr          = std::unique_ptr<Expression>;
+    using StmtPtr          = std::unique_ptr<Statement>;
     using FuncParamDeclPtr = std::unique_ptr<FunctionParameterDeclaration>;
 
     static constexpr const unsigned EmptyDimension = ~0;
@@ -64,6 +65,7 @@ class Parser
     bool IsTypeSpecifier(Token T);
     bool IsReturnTypeSpecifier(Token T);
     bool IsQualifer(Token::TokenKind tk);
+    bool IsQualifedType(Token T);
 
     bool IsUserDefinedType(std::string Name);
     Type GetUserDefinedType(std::string Name);
@@ -73,7 +75,9 @@ class Parser
     std::unique_ptr<Node> ParseExternalDeclaration();
     std::unique_ptr<FunctionDeclaration> ParseFunctionDeclaration(const Type &ReturnType,
                                                                   const Token &Name);
-    std::unique_ptr<VariableDeclaration> ParseVariableDeclaration();
+    std::unique_ptr<VariableDeclaration> ParseVariableDeclaration(Type type);
+    std::vector<StmtPtr> ParseVariableDeclarationList();
+
     FuncParamDeclPtr ParseParameterDeclaration();
     std::vector<FuncParamDeclPtr> ParseParameterList(bool &HasVarArg);
     std::unique_ptr<MemberDeclaration> ParseMemberDeclaration();

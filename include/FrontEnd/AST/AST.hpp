@@ -282,8 +282,8 @@ class WhileStatement : public Statement
 class ForStatement : public Statement
 {
   public:
-    const StmtPtr &GetVarDecl() const { return VarDecl; }
-    void SetVarDecl(StmtPtr VD) { VarDecl = std::move(VD); }
+    const StmtPtrVec &GetVarDecls() const { return VarDecls; }
+    void SetVarDecls(StmtPtrVec VD) { VarDecls = std::move(VD); }
 
     const ExprPtr &GetInit() const { return Init; }
     void SetInit(ExprPtr i) { Init = std::move(i); }
@@ -301,7 +301,7 @@ class ForStatement : public Statement
     Value *IRCodegen(IRFactory *IRF) override;
 
   private:
-    StmtPtr VarDecl {nullptr};
+    StmtPtrVec VarDecls;
     ExprPtr Init {nullptr};
     ExprPtr Condition;
     ExprPtr Increment;

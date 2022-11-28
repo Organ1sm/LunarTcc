@@ -348,12 +348,16 @@ Value *ForStatement::IRCodegen(IRFactory *IRF)
 
     IRF->GetLoopIncrementBBsTable().push_back(LoopIncrement.get());
     IRF->GetBreakEndBBsTable().push_back(LoopEnd.get());
-    // Generating code for the initializing expression or the variable initialization and
+
+    // Generating code for the initializing expression or the variable declarations and
     // adding and explicit unconditional jump to the loop header basic block
     if (Init)
         Init->IRCodegen(IRF);
     else
-        VarDecl->IRCodegen(IRF);
+    {
+        for (auto &VarDecl : VarDecls)
+            VarDecl->IRCodegen(IRF);
+    }
 
     IRF->CreateJump(Header.get());
 
@@ -1210,16 +1214,19 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
             auto Res     = IRF->GetSymbolValue(ReferEE);
 
             if (!Res)
-            {
                 Res = IRF->GetGlobalVar(ReferEE);
-                Res->GetTypeRef().IncrementPointerLevel();
-            }
 
             return Res;
         }
 
         case UnaryOperation::DeRef: {
             auto ResultType = E->GetType();
+
+            // global vars technically pointer like, which means an "int a;"
+            // should be treated as a i32* and not i32 for loads an stores
+            if (E->IsGlobalVar())
+                ResultType.IncrementPointerLevel();
+
             return IRF->CreateLoad(ResultType, E);
         }
 
@@ -1614,7 +1621,10 @@ Value *TranslationUnit::IRCodegen(IRFactory *IRF)
     {
         IRF->SetGlobalScope();
         if (auto Decl = Declaration->IRCodegen(IRF); Decl != nullptr)
+        {
+            assert(dynamic_cast<GlobalVariable *>(Decl));
             IRF->AddGlobalVariable(Decl);
+        }
     }
 
     return nullptr;
