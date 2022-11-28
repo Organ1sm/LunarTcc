@@ -46,7 +46,11 @@ class MachineBasicBlock
     InstructionList::iterator ReplaceInstr(MachineInstruction MI,
                                            MachineInstruction *Replacable);
 
+    /// Return the instruction before MI
     MachineInstruction *GetPrecedingInstr(MachineInstruction *MI);
+
+    /// Return the instruction after MI
+    MachineInstruction *GetNextInstr(MachineInstruction *MI);
 
     void Erase(MachineInstruction *MI);
 

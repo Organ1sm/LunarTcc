@@ -13,6 +13,7 @@ bool AArch64InstructionLegalizer::Check(MachineInstruction *MI)
 {
     switch (MI->GetOpcode())
     {
+        case MachineInstruction::Cmp:
         case MachineInstruction::ModU:
         case MachineInstruction::Mod: return false;
 
@@ -43,6 +44,7 @@ bool AArch64InstructionLegalizer::IsExpandable(const MachineInstruction *MI)
 {
     switch (MI->GetOpcode())
     {
+        case MachineInstruction::Cmp:
         case MachineInstruction::Mod:
         case MachineInstruction::ModU:
         case MachineInstruction::Mul:
@@ -178,6 +180,49 @@ bool AArch64InstructionLegalizer::ExpandGlobalAddress(MachineInstruction *MI)
     ADD.AddGlobalSymbol(GlobalVarName);
 
     ParentBB->InsertAfter(std::move(ADD), MI);
+
+    return true;
+}
+
+/// If the CMP result is NOT used for a subsequent jump, then a CSET
+/// must be issued to materialize the compare result into an actual GPR.
+/// example IR:
+///         cmp.eq  $1<i1>, $2<u32>, 420<u32>
+///         ret     $2<i1>
+///
+/// here the comparison result should be returned, but the cmp.xx is
+/// selected to cmp, which only set an implicit register, so the above
+/// code will results in (maybe with other non w0 registers):
+///         cmp     w1, w2
+///         ret
+///
+/// the cmp set the implicit compare result register, but thats not enough,
+/// the result should be in the return register. Therefore the following
+/// sequence is desired:
+///         cmp     w1, w2
+///         cset    w0, eq
+///         ret
+bool AArch64InstructionLegalizer::ExpandCmp(MachineInstruction *MI)
+{
+    assert(MI->GetOperandsNumber() == 3 && "CMP must have exactly 3 operands");
+    auto ParentBB = MI->GetParent();
+
+    auto NextMI = ParentBB->GetNextInstr(MI);
+
+    MI->FlagAsExpanded();
+
+    /// if the next machine instruction is branch instruction, then nothing to do.
+    if (NextMI != nullptr && NextMI->GetOpcode() == MachineInstruction::Branch)
+        return true;
+
+    {}
+    // TODO: add support for other relation cases like ne, gt, lt, etc...
+    // otherwise cset instruction must be emitted
+    auto CSET = MachineInstruction(AArch64::CSET_eq, nullptr);
+    CSET.AddOperand(*MI->GetOperand(0));
+
+    // insert after MI
+    ParentBB->InsertAfter(std::move(CSET), MI);
 
     return true;
 }
