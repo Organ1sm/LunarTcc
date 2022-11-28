@@ -74,13 +74,14 @@ class IRFactory
     BranchInstruction *
         CreateBranch(Value *Condition, BasicBlock *True, BasicBlock *False = nullptr);
 
-    GlobalVariable *CreateGlobalVar(std::string &Identifier, IRType Type);
+    GlobalVariable *CreateGlobalVar(std::string &Identifier, const IRType Type);
     GlobalVariable *CreateGlobalVar(std::string &Identifier,
-                                    IRType Type,
+                                    const IRType Type,
                                     std::vector<uint64_t> InitList);
-    GlobalVariable *CreateGlobalVar(std::string &Identifier, IRType Type, Value *Val);
     GlobalVariable *
-        CreateGlobalVar(std::string &Identifier, IRType Type, std::string Value);
+        CreateGlobalVar(std::string &Identifier, const IRType Type, Value *Val);
+    GlobalVariable *
+        CreateGlobalVar(std::string &Identifier, const IRType Type, std::string Value);
 
     void CreateNewFunction(std::string &Name, IRType ReturnType);
     void AddGlobalVariable(Value *GlobalValue);

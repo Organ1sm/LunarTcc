@@ -312,7 +312,7 @@ BranchInstruction *
     return InstPtr;
 }
 
-GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier, IRType Type)
+GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier, const IRType Type)
 {
     auto GlobalVar = new GlobalVariable(Identifier, Type);
     GlobalVar->SetId(ID++);
@@ -321,7 +321,7 @@ GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier, IRType Type)
 }
 
 GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier,
-                                           IRType Type,
+                                           const IRType Type,
                                            std::vector<uint64_t> InitList)
 {
     auto GlobalVar = new GlobalVariable(Identifier, Type, std::move(InitList));
@@ -331,7 +331,7 @@ GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier,
 }
 
 GlobalVariable *
-    IRFactory::CreateGlobalVar(std::string &Identifier, IRType Type, Value *Val)
+    IRFactory::CreateGlobalVar(std::string &Identifier, const IRType Type, Value *Val)
 {
     auto GlobalVar = new GlobalVariable(Identifier, Type, Val);
     GlobalVar->SetId(ID++);
@@ -339,8 +339,9 @@ GlobalVariable *
     return GlobalVar;
 }
 
-GlobalVariable *
-    IRFactory::CreateGlobalVar(std::string &Identifier, IRType Type, std::string StrValue)
+GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier,
+                                           const IRType Type,
+                                           std::string StrValue)
 {
     auto GlobalVar = new GlobalVariable(Identifier, Type, StrValue);
     GlobalVar->SetId(ID++);

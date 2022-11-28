@@ -18,7 +18,9 @@ void LoadInstruction::ConstructorHelper()
 {
     auto PtrLevel = this->GetTypeRef().GetPointerLevel();
 
-    if (PtrLevel != 0)
+    // Globals are handled differently, it is implicitly assumed that they
+    // have 1 pointer level more, even though their IRType does not reflect this
+    if (PtrLevel != 0 && !Source->IsGlobalVar())
         PtrLevel--;
 
     this->GetTypeRef().SetPointerLevel(PtrLevel);
