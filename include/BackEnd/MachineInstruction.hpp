@@ -60,7 +60,7 @@ class MachineInstruction
 
     enum CmpRelation { Invalid, EQ, NE, LT, GT, LE, GE };
 
-    enum Flags : unsigned { IsLOAD = 1, IsSTORE = 1 << 1 };
+    enum Flags : unsigned { IsLOAD = 1, IsSTORE = 1 << 1, IsEXPANDED = 1 << 2 };
 
     MachineInstruction() {}
     MachineInstruction(unsigned Opcode, MachineBasicBlock *Parent)
@@ -113,10 +113,15 @@ class MachineInstruction
     bool IsLoad() const { return Opcode == Load || (OtherAttributes & IsLOAD); }
     bool IsStore() const { return Opcode == Store || (OtherAttributes & IsSTORE); }
     bool IsLoadOrStore() const { return IsLoad() || IsStore(); }
-    bool IsAlreadySelected() const { return Opcode < 65536; }
     bool IsInvalid() const { return Opcode == InvalidOp; }
 
-    void Print(TargetMachine *MI) const;
+    bool IsAlreadySelected() const { return Opcode < 65536; }
+    bool IsAlreadyExpanded() const { return OtherAttributes & IsEXPANDED; }
+
+    /// flag the MachineInstruction as expanded, so the legalizer can ignore it
+    void FlagAsExpanded() { OtherAttributes |= IsEXPANDED; }
+
+    void Print(TargetMachine *TM) const;
 
   private:
     unsigned Opcode {InvalidOp};
