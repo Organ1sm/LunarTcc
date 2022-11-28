@@ -36,8 +36,11 @@ class IRFactory;
 
 class Parser
 {
+  public:
     using ExprPtr          = std::unique_ptr<Expression>;
     using FuncParamDeclPtr = std::unique_ptr<FunctionParameterDeclaration>;
+
+    static constexpr const unsigned EmptyDimension = ~0;
 
   public:
     std::unique_ptr<Node> Parse();
@@ -56,6 +59,8 @@ class Parser
 
     unsigned ParseQualifiers();
     Type ParseType(Token::TokenKind tk);
+    void ParseArrayDimensions(Type &type);
+
     bool IsTypeSpecifier(Token T);
     bool IsReturnTypeSpecifier(Token T);
     bool IsQualifer(Token::TokenKind tk);
