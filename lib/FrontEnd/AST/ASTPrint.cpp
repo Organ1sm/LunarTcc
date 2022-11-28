@@ -176,7 +176,11 @@ void ASTPrint::VisitForStatement(const ForStatement *node)
     if (node->GetInit())
         node->GetInit()->Accept(this);
     else
-        node->GetVarDecl()->Accept(this);
+    {
+        auto &VarDecls = node->GetVarDecls();
+        for (auto &VarDecl : VarDecls)
+            VarDecl->Accept(this);
+    }
 
 
     node->GetCondition()->Accept(this);
