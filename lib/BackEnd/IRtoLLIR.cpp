@@ -268,6 +268,21 @@ MachineInstruction IRtoLLIR::HandleStoreInstruction(StoreInstruction *I)
 
         ResultMI.AddVirtualRegister(SourceReg, TM->GetPointerSize());
     }
+    // if the source is a stackallocation instruction, then its address which needs to be
+    // stored, therefore it has to be materialized by StackAccess instruction
+    else if (dynamic_cast<StackAllocationInstruction *>(I->GetSavedValue()))
+    {
+        assert(ParentFunction->IsStackSlot(I->GetSavedValue()->GetID()));
+
+        auto SA        = MachineInstruction(MachineInstruction::StackAddress, CurrentBB);
+        auto SourceReg = ParentFunction->GetNextAvailableVirtualRegister();
+
+        SA.AddVirtualRegister(SourceReg, TM->GetPointerSize());
+        SA.AddStackAccess(I->GetSavedValue()->GetID());
+        CurrentBB->InsertInstr(SA);
+
+        ResultMI.AddVirtualRegister(SourceReg, TM->GetPointerSize());
+    }
     else
     {
         ResultMI.AddOperand(GetMachineOperandFromValue(I->GetSavedValue()));
