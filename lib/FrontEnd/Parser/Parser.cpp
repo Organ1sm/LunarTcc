@@ -14,6 +14,7 @@ bool Parser::IsTypeSpecifier(Token T)
         case Token::Short:
         case Token::Int:
         case Token::Long:
+        case Token::Float:
         case Token::Double:
         case Token::Unsigned:
         case Token::Struct: return true;
@@ -127,6 +128,7 @@ Type Parser::ParseType(Token::TokenKind tk)
         case Token::Char: Result.SetTypeVariant(Type::Char); break;
         case Token::Short: Result.SetTypeVariant(Type::Short); break;
         case Token::Int: Result.SetTypeVariant(Type::Int); break;
+        case Token::Float: Result.SetTypeVariant(Type::Float); break;
         case Token::Double: Result.SetTypeVariant(Type::Double); break;
         case Token::Long: {
             auto NextTokenKind = lexer.LookAhead(2).GetKind();

@@ -38,10 +38,14 @@ std::string Instruction::AsString(Instruction::InstructionKind IK)
         case LSL: return "lsl";
         case LSR: return "lsr";
         case Add: return "add";
+        case AddF: return "addf";
         case Sub: return "sub";
+        case SubF: return "subf";
         case Mul: return "mul";
+        case MulF: return "mulf";
         case Div: return "div";
         case DivU: return "divu";
+        case DivF: return "divf";
         case Mod: return "mod";
         case ModU: return "modu";
         case SExt: return "sext";
@@ -59,7 +63,10 @@ std::string Instruction::AsString(Instruction::InstructionKind IK)
         case StackAlloc: return "salloc";
         case GetELemPtr: return "gep";
         case Cmp: return "cmp";
+        case CmpF: return "cmpf";
         case Mov: return "mov";
+        case MovF: return "movf";
+
         default: assert(!"Unknown instruction kind."); break;
     }
 }

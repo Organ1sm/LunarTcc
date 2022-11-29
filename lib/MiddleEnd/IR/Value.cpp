@@ -34,10 +34,20 @@ uint64_t Constant::GetIntValue() const
     return result;
 }
 
+double Constant::GetFloatValue() const
+{
+    assert(IsFPType());
+    assert(GetBitWidth() == 64 && "Only doubles supported.");
+
+    double result = std::get<double>(Val);
+
+    return result;
+}
+
 std::string Constant::ValueString() const
 {
     std::string Str;
-    if (IsFPConst())
+    if (IsFPType())
         Str += std::to_string(std::get<double>(Val));
     else
         Str += std::to_string((int64_t)std::get<uint64_t>(Val));

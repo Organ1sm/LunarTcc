@@ -101,6 +101,7 @@ static IRType GetIRTypeFromVK(Type::VariantKind VK)
         case Type::UnsignedLong: return IRType(IRType::UInt, 64);
         case Type::LongLong: return IRType(IRType::SInt, 64);
         case Type::UnsignedLongLong: return IRType(IRType::UInt, 64);
+        case Type::Float: return IRType(IRType::FP, 32);
         case Type::Double: return IRType(IRType::FP, 64);
         case Type::Composite: return IRType(IRType::Struct);
         default: assert(!"Invalid type."); break;
@@ -906,6 +907,8 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
     auto SourceTypeVariant = CastableExpression->GetResultType().GetTypeVariant();
     auto DestTypeVariant   = GetResultType().GetTypeVariant();
 
+    assert(CastableExpression->GetResultType() != GetResultType() && "Pointless cast");
+
     if (CastableExpression->GetResultType().IsArray() && GetResultType().IsPointerType())
     {
         assert(SourceTypeVariant == DestTypeVariant);
@@ -1005,6 +1008,7 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
 
             assert(!"Invalid conversion.");
         }
+
         case Type::Short: {
             if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
                 return IRF->CreateTrunc(Val, 8);
@@ -1019,6 +1023,7 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
                 return IRF->CreateZExt(Val, 64);
             assert(!"Invalid conversion.");
         }
+
         case Type::UnsignedShort: {
             if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
                 return IRF->CreateTrunc(Val, 8);
@@ -1033,7 +1038,7 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
 
         case Type::Int: {
             if (DestTypeVariant == Type::Double)
-                return IRF->CreateIntToFloat(Val, 32);
+                return IRF->CreateIntToFloat(Val, 64);
 
             if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
                 return IRF->CreateTrunc(Val, 8);
@@ -1087,6 +1092,13 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
 
             if ((DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt))
                 return IRF->CreateTrunc(Val, 32);
+
+            assert(!"Invalid conversion.");
+        }
+
+        case Type::Float: {
+            if (DestTypeVariant == Type::Int)
+                return IRF->CreateFloatToInt(Val, 32);
 
             assert(!"Invalid conversion.");
         }
@@ -1519,7 +1531,9 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
             // Ex.:
             //      AArch64 add x0, x1, #123 not add x0, #123, x1
             case Add:
+            case AddF:
             case Mul:
+            case MulF:
             case And:
             case Or:
             case Xor:
@@ -1529,8 +1543,10 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         }
     }
 
-    if (L->IsConstant())
+    if (L->IsConstant() && L->IsIntType())
         L = IRF->CreateMov(L, R->GetBitWidth());
+    else if (L->IsConstant() && L->IsFPType())
+        L = IRF->CreateMovF(L, R->GetBitWidth());
 
     switch (GetOperationKind())
     {
@@ -1546,6 +1562,11 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         case Xor: return IRF->CreateXOr(L, R);
         case DivU: return IRF->CreateDivU(L, R);
         case ModU: return IRF->CreateModU(L, R);
+        case AddF: return IRF->CreateAddF(L, R);
+        case SubF: return IRF->CreateSubF(L, R);
+        case MulF: return IRF->CreateMulF(L, R);
+        case DivF: return IRF->CreateDivF(L, R);
+
         case Equal: return IRF->CreateCmp(CompareInstruction::EQ, L, R);
         case Less: return IRF->CreateCmp(CompareInstruction::LT, L, R);
         case Greater: return IRF->CreateCmp(CompareInstruction::GT, L, R);
@@ -1665,19 +1686,39 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
         case Token::RightShiftEqual: return LSRAssign;
         case Token::LeftShift: return LSL;
         case Token::RightShift: return LSR;
-        case Token::Plus: return Add;
-        case Token::Minus: return Sub;
-        case Token::Mul: return Mul;
+        case Token::Plus: {
+            if (GetResultType().IsFloatingPoint())
+                return AddF;
+            return Add;
+        }
+
+        case Token::Minus: {
+            if (GetResultType().IsFloatingPoint())
+                return SubF;
+            return Sub;
+        }
+
+        case Token::Mul: {
+            if (GetResultType().IsFloatingPoint())
+                return MulF;
+            return Mul;
+        }
+
         case Token::Div: {
             if (GetResultType().IsUnsigned())
                 return DivU;
-            return Div;
+            else if (GetResultType().IsFloatingPoint())
+                return DivF;
+            else
+                return Div;
         }
+
         case Token::Mod: {
             if (GetResultType().IsUnsigned())
                 return ModU;
             return Mod;
         }
+
         case Token::And: return And;
         case Token::Or: return Or;
         case Token::Xor: return Xor;

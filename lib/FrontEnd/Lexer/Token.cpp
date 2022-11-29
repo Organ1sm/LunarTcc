@@ -90,6 +90,7 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Short,              "short"            },
     {Int,                "int"              },
     {Long,               "long"             },
+    {Float,              "float"            },
     {Double,             "double"           },
     {Void,               "void"             },
     {Char,               "char"             },

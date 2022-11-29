@@ -104,7 +104,7 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, bool IsDef)
     else if (Val->IsConstant())
     {
         auto C = dynamic_cast<Constant *>(Val);
-        assert(!C->IsFPConst() && "TODO");
+        assert(!C->IsFPType() && "TODO");
 
         return MachineOperand::CreateImmediate(C->GetIntValue(), C->GetBitWidth());
     }

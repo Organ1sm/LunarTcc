@@ -78,6 +78,7 @@ std::string Type::ToString(const Type &t)
 
     switch (t.GetTypeVariant())
     {
+        case Float: Result = "float"; break;
         case Double: Result = "double"; break;
         case Long: Result = "long"; break;
         case UnsignedLong: Result = "unsigned long"; break;
@@ -184,7 +185,8 @@ bool Type::IsImplicitlyCastable(const Type::VariantKind from, const Type::Varian
         case Long:
         case UnsignedLong:
         case LongLong:
-        case UnsignedLongLong: return from >= Char;
+        case UnsignedLongLong:
+        case Double: return from >= Char;
 
         default: return false;
     }

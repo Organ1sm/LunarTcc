@@ -43,9 +43,30 @@ Instruction *IRFactory::CreateAdd(Value *LHS, Value *RHS)
     return CreateBinaryInstruction(Instruction::Add, LHS, RHS);
 }
 
+Instruction *IRFactory::CreateAddF(Value *LHS, Value *RHS)
+{
+    if (LHS->IsConstant() && RHS->IsConstant())
+    {
+        auto ConstL = dynamic_cast<Constant *>(LHS);
+        auto ConstR = dynamic_cast<Constant *>(RHS);
+
+        assert(ConstL && ConstR);
+
+        const auto Val = ConstL->GetFloatValue() + ConstR->GetFloatValue();
+        return CreateMovF(GetConstant(Val));
+    }
+
+    return CreateBinaryInstruction(Instruction::AddF, LHS, RHS);
+}
+
 Instruction *IRFactory::CreateSub(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Sub, LHS, RHS);
+}
+
+Instruction *IRFactory::CreateSubF(Value *LHS, Value *RHS)
+{
+    return CreateBinaryInstruction(Instruction::SubF, LHS, RHS);
 }
 
 Instruction *IRFactory::CreateMul(Value *LHS, Value *RHS)
@@ -53,9 +74,27 @@ Instruction *IRFactory::CreateMul(Value *LHS, Value *RHS)
     return CreateBinaryInstruction(Instruction::Mul, LHS, RHS);
 }
 
+Instruction *IRFactory::CreateMulF(Value *LHS, Value *RHS)
+{
+    if (LHS->IsConstant() && RHS->IsConstant())
+    {
+        const auto Val = static_cast<Constant *>(LHS)->GetFloatValue() *
+                         static_cast<Constant *>(RHS)->GetFloatValue();
+
+        return CreateMovF(GetConstant(Val));
+    }
+
+    return CreateBinaryInstruction(Instruction::MulF, LHS, RHS);
+}
+
 Instruction *IRFactory::CreateDiv(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Div, LHS, RHS);
+}
+
+Instruction *IRFactory::CreateDivF(Value *LHS, Value *RHS)
+{
+    return CreateBinaryInstruction(Instruction::DivF, LHS, RHS);
 }
 
 Instruction *IRFactory::CreateMod(Value *LHS, Value *RHS)
@@ -113,6 +152,21 @@ UnaryInstruction *IRFactory::CreateMov(Value *Operand, uint8_t BitWidth)
     return InstPtr;
 }
 
+UnaryInstruction *IRFactory::CreateMovF(Value *Operand, uint8_t BitWidth)
+{
+    auto Inst = std::make_unique<UnaryInstruction>(Instruction::MovF,
+                                                   IRType::CreateFloat(BitWidth),
+                                                   Operand,
+                                                   GetCurrentBB());
+
+    Inst->SetId(ID++);
+    auto InstPtr = Inst.get();
+
+    Insert(std::move(Inst));
+
+    return InstPtr;
+}
+
 UnaryInstruction *IRFactory::CreateSExt(Value *Operand, uint8_t BitWidth)
 {
     auto Inst = std::make_unique<UnaryInstruction>(Instruction::SExt,
@@ -157,10 +211,10 @@ UnaryInstruction *IRFactory::CreateTrunc(Value *Operand, uint8_t BitWidth)
     return InstPtr;
 }
 
-UnaryInstruction *IRFactory::CreateFloatToInt(Value *Operand, uint8_t FloatBitWidth)
+UnaryInstruction *IRFactory::CreateFloatToInt(Value *Operand, uint8_t BitWidth)
 {
     auto Inst = std::make_unique<UnaryInstruction>(Instruction::FloatToInt,
-                                                   IRType::CreateFloat(FloatBitWidth),
+                                                   IRType::CreateInt(BitWidth),
                                                    Operand,
                                                    GetCurrentBB());
     Inst->SetId(ID++);
@@ -170,10 +224,10 @@ UnaryInstruction *IRFactory::CreateFloatToInt(Value *Operand, uint8_t FloatBitWi
     return InstPtr;
 }
 
-UnaryInstruction *IRFactory::CreateIntToFloat(Value *Operand, uint8_t IntBitWidth)
+UnaryInstruction *IRFactory::CreateIntToFloat(Value *Operand, uint8_t BitWidth)
 {
     auto Inst = std::make_unique<UnaryInstruction>(Instruction::IntToFloat,
-                                                   IRType::CreateFloat(IntBitWidth),
+                                                   IRType::CreateFloat(BitWidth),
                                                    Operand,
                                                    GetCurrentBB());
     Inst->SetId(ID++);

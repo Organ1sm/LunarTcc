@@ -25,6 +25,7 @@ class Type
         UnsignedLong,
         LongLong,
         UnsignedLongLong,
+        Float,
         Double,
     };
 
@@ -81,6 +82,7 @@ class Type
     bool IsConst() const { return Qualifiers & Const; }
     bool IsTypeDef() const { return Qualifiers & TypeDef; }
 
+    bool IsFloatingPoint() const { return Ty == Double; }
     bool IsIntegerType() const;
     bool IsUnsigned() const;
 
