@@ -49,13 +49,3 @@ class TargetRegister
     std::string AliasName;
     std::vector<unsigned> SubRegisters;
 };
-
-class RegisterClass
-{
-  public:
-    void AddRegister(unsigned ID) { Registers.insert(ID); }
-    bool Contains(unsigned ID) { return Registers.count(ID) != 0; }
-
-  private:
-    std::set<unsigned, std::greater<unsigned>> Registers;
-};
