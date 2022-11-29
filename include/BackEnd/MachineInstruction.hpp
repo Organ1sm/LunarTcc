@@ -13,7 +13,7 @@ class MachineInstruction
 
   public:
     enum OperationCode : unsigned {
-        // Arithmetic and Logical
+        // Integer Arithmetic and Logical
         And = 1 << 16,    // 65536
         Or,               // 65537
         XOr,
@@ -27,6 +27,13 @@ class MachineInstruction
         Mod,
         ModU,
         Cmp,    // 65548
+
+        // Floating point Arithmetic and Logical
+        AddF,
+        SubF,
+        MulF,
+        DivF,
+        CmpF,
 
         // Conversions
         SExt,     // Sign extension
@@ -44,6 +51,7 @@ class MachineInstruction
         // Moves and constant materializations
         LoadImm,
         Mov,
+        MovF,
 
         // Memory Access
         Load,    // 65560

@@ -8,8 +8,13 @@
 
 class MachineFunction
 {
+    /* 1. Nth parameter
+     * 2. LowLevelType
+     * 3. Whether it is an ImplicitStructPtr.
+     * 4. Whether it is a floating point value.
+     */
+    using ParamList      = std::vector<std::tuple<unsigned, LowLevelType, bool, bool>>;
     using BasicBlockList = std::vector<MachineBasicBlock>;
-    using ParamList      = std::vector<std::tuple<unsigned, LowLevelType, bool>>;
     using PhysRegList    = std::vector<unsigned>;
 
   public:
@@ -29,7 +34,10 @@ class MachineFunction
     bool IsCaller() const { return HasCall; }
 
     void InsertStackSlot(unsigned ID, unsigned Size);
-    void InsertParameter(unsigned ID, LowLevelType LLT, bool ImplicitStructPtr = false);
+    void InsertParameter(unsigned ID,
+                         LowLevelType LLT,
+                         bool ImplicitStructPtr = false,
+                         bool IsFP              = false);
 
     ParamList GetParameters() { return Parameters; }
     StackFrame &GetStackFrame() { return SF; }

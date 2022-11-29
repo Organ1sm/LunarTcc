@@ -12,6 +12,7 @@ class MachineOperand
         None,
         Register,
         IntImmediate,
+        FPImmediate,
         MemoryAddress,
         StackAccess,
         Paramter,
@@ -24,6 +25,7 @@ class MachineOperand
 
     void SetTypeToLabel() { Type = Label; }
     void SetTypeToIntImm() { Type = IntImmediate; }
+    void SetTypeToFPImm() { Type = FPImmediate; }
     void SetTypeToRegister()
     {
         Type    = Register;
@@ -44,9 +46,10 @@ class MachineOperand
     }
     void SetTypeToGlobalSymbol() { Type = GlobalSymbol; }
 
-    int64_t GetReg() const { return Value; }
-    uint64_t GetSlot() const { return Value; }
-    int64_t GetImmediate() const { return Value; }
+    int64_t GetReg() const { return IntVal; }
+    uint64_t GetSlot() const { return IntVal; }
+    int64_t GetImmediate() const { return IntVal; }
+    double GetFPImmediate() const { return FloatVal; }
 
     void SetOffset(int o) { Offset = o; }
     int GetOffset() const { return Offset; }
@@ -55,7 +58,8 @@ class MachineOperand
     unsigned GetRegClass() const { return RegisterClass; }
 
     void SetReg(uint64_t V) { SetValue(V); }
-    void SetValue(uint64_t V) { Value = V; }
+    void SetValue(uint64_t V) { IntVal = V; }
+    void SetFPValue(double V) { FloatVal = V; }
 
     void SetType(LowLevelType LLT) { this->LLT = LLT; }
     LowLevelType GetType() const { return LLT; }
@@ -77,7 +81,8 @@ class MachineOperand
     bool IsMemory() const { return Type == MemoryAddress; }
     bool IsRegister() const { return Type == Register && !Virtual; }
     bool IsVirtualReg() const { return Type == Register && Virtual; }
-    bool IsImmediate() const { return Type == IntImmediate; }
+    bool IsImmediate() const { return Type == IntImmediate || IsFPImmediate(); }
+    bool IsFPImmediate() const { return Type == FPImmediate; }
     bool IsParameter() const { return Type == Paramter; }
     bool IsFunctionName() const { return Type == FunctionName; }
     bool IsStackAccess() const { return Type == StackAccess; }
@@ -85,6 +90,7 @@ class MachineOperand
 
     static MachineOperand CreateRegister(uint64_t Reg, unsigned BitWidth = 32);
     static MachineOperand CreateImmediate(uint64_t Val, unsigned BitWidth = 32);
+    static MachineOperand CreateFPImmediate(double Val, unsigned BitWidth = 32);
     static MachineOperand CreateVirtualRegister(uint64_t Reg, unsigned BitWidth = 32);
     static MachineOperand CreateMemory(uint64_t Id, unsigned BitWidth = 32);
     static MachineOperand CreateMemory(uint64_t Id, int Offset, unsigned BitWidth);
@@ -95,15 +101,19 @@ class MachineOperand
     static MachineOperand CreateGlobalSymbol(std::string &Symbol);
 
     /// To be able to use this class in a set
-    bool operator<(const MachineOperand &RHS) const { return Value < RHS.Value; }
+    bool operator<(const MachineOperand &RHS) const { return IntVal < RHS.IntVal; }
 
     void Print(TargetMachine *TM) const;
 
   private:
     unsigned Type {None};
-    int Offset                = 0;
-    uint64_t Value            = ~0;
-    const char *BelongToLabel = nullptr;
+    int Offset = 0;
+    union
+    {
+        uint64_t IntVal;
+        double FloatVal;
+        const char *BelongToLabel;
+    };
     LowLevelType LLT;
     std::string GlobalSym;
     bool Virtual {false};
