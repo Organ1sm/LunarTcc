@@ -32,8 +32,10 @@ class Value
     bool IsConstant() const { return Kind == Const; }
     bool IsRegister() const { return Kind == Register; }
     bool IsParameter() const { return Kind == Param; }
-    bool IsIntType() const { return ValueType.IsInt(); }
     bool IsGlobalVar() const { return Kind == GlobalVar; }
+
+    bool IsIntType() const { return ValueType.IsInt(); }
+    bool IsFPType() const { return ValueType.IsFP(); }
 
     virtual std::string ValueString() const;
 
@@ -53,8 +55,8 @@ class Constant : public Value
 
     Constant(double V) : Value(Value::Const, IRType(IRType::FP, 64)), Val(V) {}
 
-    bool IsFPConst() const { return ValueType.IsFP(); }
     uint64_t GetIntValue() const;
+    double GetFloatValue() const;
 
     std::string ValueString() const override;
 

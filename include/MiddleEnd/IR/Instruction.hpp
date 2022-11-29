@@ -15,7 +15,7 @@ class Instruction : public Value
 {
   public:
     enum InstructionKind {
-        // Arithmetic and Logical
+        // Integer Arithmetic and Logical
         And,
         Or,
         XOr,
@@ -30,6 +30,13 @@ class Instruction : public Value
         ModU,
         Cmp,
 
+        // Floating point Arithmetic and Logical
+        AddF,
+        SubF,
+        MulF,
+        DivF,
+        CmpF,
+
         // Conversions
         SExt,     // Sign extension
         ZExt,     // Zero extension
@@ -43,10 +50,11 @@ class Instruction : public Value
         Branch,
         Ret,
 
-        Mov,    // 58
+        Mov = Ret + 2,
+        MovF,
 
         // Memory Operations.
-        Load = Ret + 3,
+        Load,
         Store,
         MemCopy,
         StackAlloc,
@@ -116,8 +124,11 @@ class CompareInstruction : public Instruction
     enum CompareRelation : unsigned { Invalid, EQ, NE, LT, GT, LE, GE };
 
     CompareInstruction(Value *L, Value *R, CompareRelation REL, BasicBlock *P)
-        : Instruction(InstructionKind::Cmp, P, IRType(IRType::SInt, 1)), LHS(L), RHS(R),
-          Relation(REL)
+        : Instruction(L->IsFPType() && R->IsFPType() ? InstructionKind::CmpF :
+                                                       InstructionKind::Cmp,
+                      P,
+                      IRType(IRType::SInt, 1)),
+          LHS(L), RHS(R), Relation(REL)
     {}
 
     const char *GetRelationString() const;
