@@ -37,12 +37,23 @@ class TargetMachine
     virtual bool SelectMod(MachineInstruction *MI) { return false; }
     virtual bool SelectModU(MachineInstruction *MI) { return false; }
     virtual bool SelectCmp(MachineInstruction *MI) { return false; }
+
+    virtual bool SelectCmpF(MachineInstruction *MI) { return false; }
+    virtual bool SelectAddF(MachineInstruction *MI) { return false; }
+    virtual bool SelectSubF(MachineInstruction *MI) { return false; }
+    virtual bool SelectMulF(MachineInstruction *MI) { return false; }
+    virtual bool SelectDivF(MachineInstruction *MI) { return false; }
+
+    virtual bool SelectIntToFloat(MachineInstruction *MI) { return false; }
+    virtual bool SelectFloatToInt(MachineInstruction *MI) { return false; }
+
     virtual bool SelectSExt(MachineInstruction *MI) { return false; }
     virtual bool SelectZExt(MachineInstruction *MI) { return false; }
     virtual bool SelectSExtLoad(MachineInstruction *MI) { return false; }
     virtual bool SelectZExtLoad(MachineInstruction *MI) { return false; }
     virtual bool SelectTrunc(MachineInstruction *MI) { return false; }
     virtual bool SelectMov(MachineInstruction *MI) { return false; }
+    virtual bool SelectMovF(MachineInstruction *MI) { return false; }
     virtual bool SelectLoadImm(MachineInstruction *MI) { return false; }
     virtual bool SelectLoad(MachineInstruction *MI) { return false; }
     virtual bool SelectStore(MachineInstruction *MI) { return false; }

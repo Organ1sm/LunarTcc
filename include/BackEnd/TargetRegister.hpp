@@ -16,6 +16,9 @@ class TargetRegister
     void SetBitWidth(unsigned BitWidth) { this->BitWidth = BitWidth; }
     unsigned GetBitWidth() const { return BitWidth; }
 
+    void SetFP(bool p) { FPCapable = p; }
+    bool IsFP() const { return FPCapable; }
+
     void SetName(std::string &N) { this->Name = N; }
     void SetName(const char *N) { this->Name = std::string(N); }
     std::string &GetName() { return this->Name; }
@@ -30,11 +33,13 @@ class TargetRegister
                                  unsigned BitWidth,
                                  const char *Name,
                                  const char *Alias,
-                                 std::vector<unsigned> SubRegs = {})
+                                 std::vector<unsigned> SubRegs = {},
+                                 bool FP                       = false)
     {
         TargetRegister NewReg;
         NewReg.SetID(ID);
         NewReg.SetBitWidth(BitWidth);
+        NewReg.SetFP(FP);
         NewReg.SetName(Name);
         NewReg.SetAlias(Alias);
         NewReg.SetSubRegs(SubRegs);
@@ -45,6 +50,7 @@ class TargetRegister
   private:
     unsigned ID       = 0;
     unsigned BitWidth = 0;
+    bool FPCapable;
     std::string Name;
     std::string AliasName;
     std::vector<unsigned> SubRegisters;
