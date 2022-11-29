@@ -34,9 +34,19 @@ class TargetABI
     RegList &GetReturnRegisters() { return ReturnRegisters; }
     void SetReturnRegisters(RegList ReturnRegs) { ReturnRegisters = ReturnRegs; }
 
+    std::size_t GetFirstFPArgRegIdx() const { return FirstFPArgRegIdx; }
+    std::size_t GetFirstFPRetRegIdx() const { return FirstFPRetRegIdx; }
+
   protected:
     unsigned StackAlignment = ~0;
     unsigned MaxStructSize  = ~0;
+
+    /// Targets should fill this by the general registers they use for passing
+    /// integer values.
+    /// Then fill floating point values with the floating point registers.
+    unsigned FirstFPArgRegIdx = 0;
+    unsigned FirstFPRetRegIdx = 0;
+
     RegList ArgumentRegisters;
     RegList CalleeSavedRegisters;
     RegList CallerSavedRegisters;
