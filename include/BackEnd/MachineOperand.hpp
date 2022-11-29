@@ -51,6 +51,9 @@ class MachineOperand
     void SetOffset(int o) { Offset = o; }
     int GetOffset() const { return Offset; }
 
+    void SetRegClass(unsigned rc) { RegisterClass = rc; }
+    unsigned GetRegClass() const { return RegisterClass; }
+
     void SetReg(uint64_t V) { SetValue(V); }
     void SetValue(uint64_t V) { Value = V; }
 
@@ -104,4 +107,5 @@ class MachineOperand
     LowLevelType LLT;
     std::string GlobalSym;
     bool Virtual {false};
+    unsigned RegisterClass = ~0;
 };
