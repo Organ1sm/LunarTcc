@@ -1,8 +1,9 @@
 #include "BackEnd/LowLevelType.hpp"
+#include <cassert>
 
-LowLevelType LowLevelType::CreateInt(unsigned int BW)
+LowLevelType LowLevelType::CreateScalar(unsigned int BW)
 {
-    LowLevelType LLT(LowLevelType::Integer);
+    LowLevelType LLT(LowLevelType::Scalar);
     LLT.SetBitWidth(BW);
 
     return LLT;
@@ -20,12 +21,12 @@ std::string LowLevelType::ToString() const
 {
     std::string str;
 
-    if (Type == LowLevelType::Integer)
-        str = "i";
-    else if (Type == LowLevelType::FloatingPoint)
-        str = "f";
+    if (Type == LowLevelType::Scalar)
+        str = "s";
     else if (Type == LowLevelType::Pointer)
         str = "p";
+    else
+        assert(!"Invalid type.");
 
     str += std::to_string(BitWidth);
 

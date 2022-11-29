@@ -11,7 +11,7 @@ MachineOperand MachineOperand::CreateRegister(uint64_t Reg, unsigned BitWidth)
     MachineOperand MO;
     MO.SetTypeToRegister();
     MO.SetReg(Reg);
-    MO.SetType(LowLevelType::CreateInt(BitWidth));
+    MO.SetType(LowLevelType::CreateScalar(BitWidth));
 
     return MO;
 }
@@ -21,7 +21,17 @@ MachineOperand MachineOperand::CreateImmediate(uint64_t Val, unsigned BitWidth)
     MachineOperand MO;
     MO.SetTypeToIntImm();
     MO.SetValue(Val);
-    MO.SetType(LowLevelType::CreateInt(BitWidth));
+    MO.SetType(LowLevelType::CreateScalar(BitWidth));
+
+    return MO;
+}
+
+MachineOperand MachineOperand::CreateFPImmediate(double Val, unsigned BitWidth)
+{
+    MachineOperand MO;
+    MO.SetTypeToFPImm();
+    MO.SetFPValue(Val);
+    MO.SetType(LowLevelType::CreateScalar(BitWidth));
 
     return MO;
 }
@@ -31,7 +41,7 @@ MachineOperand MachineOperand::CreateVirtualRegister(uint64_t Reg, unsigned BitW
     MachineOperand MO;
     MO.SetTypeToVirtualRegister();
     MO.SetReg(Reg);
-    MO.SetType(LowLevelType::CreateInt(BitWidth));
+    MO.SetType(LowLevelType::CreateScalar(BitWidth));
 
     return MO;
 }
@@ -107,7 +117,7 @@ void MachineOperand::Print(TargetMachine *TM) const
     {
         case MachineOperand::Register:
             if (Virtual)
-                OperandStr = fmt::format("%vr-{}", Value);
+                OperandStr = fmt::format("%vr-{}", IntVal);
             else if (TM && !Virtual)
             {
                 TargetRegister *Reg = TM->GetRegInfo()->GetRegisterByID(GetReg());
@@ -117,20 +127,23 @@ void MachineOperand::Print(TargetMachine *TM) const
                 OperandStr = RegStr;
             }
             else
-                OperandStr = fmt::format("%{}", Value);
+                OperandStr = fmt::format("%{}", IntVal);
             break;
         case MachineOperand::MemoryAddress:
-            OperandStr = fmt::format("%ptr-vr-{}", Value);
+            OperandStr = fmt::format("%ptr-vr-{}", IntVal);
             if (Offset)
                 OperandStr = fmt::format("{}+{}", OperandStr, Offset);
             break;
         case MachineOperand::IntImmediate:
-            OperandStr = fmt::format("#{}", static_cast<int64_t>(Value));
+            OperandStr = fmt::format("#{}", static_cast<int64_t>(IntVal));
+            break;
+        case MachineOperand::FPImmediate:
+            OperandStr = fmt::format("#{}", FloatVal);
             break;
         case MachineOperand::StackAccess:
-            OperandStr = fmt::format("stack{}+{}", Value, Offset);
+            OperandStr = fmt::format("stack{}+{}", IntVal, Offset);
             break;
-        case MachineOperand::Paramter: OperandStr = fmt::format("@{}", Value); break;
+        case MachineOperand::Paramter: OperandStr = fmt::format("@{}", IntVal); break;
         case MachineOperand::Label:
             OperandStr = fmt::format("<{}>", BelongToLabel);
             break;
