@@ -26,7 +26,8 @@ void PreAllocateParameters(MachineFunction &Func,
     auto ArgRegs             = TM->GetABI()->GetArgumentRegisters();
     unsigned CurrentParamReg = 0;
 
-    for (auto [ParamID, ParamLowLevelType, IsImplicitStructPtr] : Func.GetParameters())
+    for (auto [ParamID, ParamLowLevelType, IsImplicitStructPtr, IsFP] :
+         Func.GetParameters())
     {
         // FIXME: excess parameters should be on the stack
         assert(CurrentParamReg < ArgRegs.size() && "Run out of param regs");

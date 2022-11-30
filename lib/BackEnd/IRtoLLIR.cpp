@@ -83,7 +83,7 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, bool IsDef)
         if (Val->GetTypeRef().IsPointer())
             VReg.SetType(LowLevelType::CreatePtr(TM->GetPointerSize()));
         else
-            VReg.SetType(LowLevelType::CreateInt(BitWidth));
+            VReg.SetType(LowLevelType::CreateScalar(BitWidth));
 
         return VReg;
     }
@@ -97,16 +97,21 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, bool IsDef)
         if (Val->GetTypeRef().IsPointer())
             Result.SetType(LowLevelType::CreatePtr(TM->GetPointerSize()));
         else
-            Result.SetType(LowLevelType::CreateInt(BitWidth));
+            Result.SetType(LowLevelType::CreateScalar(BitWidth));
 
         return Result;
     }
     else if (Val->IsConstant())
     {
         auto C = dynamic_cast<Constant *>(Val);
-        assert(!C->IsFPType() && "TODO");
 
-        return MachineOperand::CreateImmediate(C->GetIntValue(), C->GetBitWidth());
+        MachineOperand Result =
+            C->IsFPType() ?
+                MachineOperand::CreateFPImmediate(C->GetFloatValue(), C->GetBitWidth()) :
+                MachineOperand::CreateImmediate(C->GetIntValue(), C->GetBitWidth());
+
+
+        return Result;
     }
     else
     {
@@ -438,13 +443,21 @@ MachineInstruction IRtoLLIR::HandleCallInstruction(CallInstruction *I)
         {
             Ins = MachineInstruction(MachineInstruction::Mov, CurrentBB);
 
+            unsigned ParamIdx = ParamCounter;
+
+            if (Param->IsFPType())
+            {
+                Ins.SetOpcode(MachineInstruction::MovF);
+                ParamIdx += TM->GetABI()->GetFirstFPRetRegIdx();
+            }
+
             auto Src              = GetMachineOperandFromValue(Param);
-            auto ParamPhysReg     = TargetArgRegs[ParamCounter]->GetID();
-            auto ParamPhysRegSize = TargetArgRegs[ParamCounter]->GetBitWidth();
+            auto ParamPhysReg     = TargetArgRegs[ParamIdx]->GetID();
+            auto ParamPhysRegSize = TargetArgRegs[ParamIdx]->GetBitWidth();
 
             if (Src.GetSize() < ParamPhysRegSize)
             {
-                ParamPhysReg = TargetArgRegs[ParamCounter]->GetSubRegs()[0];
+                ParamPhysReg = TargetArgRegs[ParamIdx]->GetSubRegs()[0];
                 ParamPhysRegSize =
                     TM->GetRegInfo()->GetRegisterByID(ParamPhysReg)->GetBitWidth();
             }
@@ -485,13 +498,17 @@ MachineInstruction IRtoLLIR::HandleCallInstruction(CallInstruction *I)
         // find the appropriate return register for the size
         unsigned TargetRetReg;
 
+        std::size_t ParamIdx = i;
+        if (I->GetTypeRef().IsFP())
+            ParamIdx += TM->GetABI()->GetFirstFPRetRegIdx();
+
         // if the return value can use the return register
         if (std::min(RetBitSize, MaxRegSize) >= TM->GetPointerSize())
-            TargetRetReg = RetRegs[i]->GetID();
+            TargetRetReg = RetRegs[ParamIdx]->GetID();
         // need to find an appropriate sized subregister of the actual return reg
         else
             // FIXME: Temporary solution, only work for AArch64
-            TargetRetReg = RetRegs[i]->GetSubRegs()[0];
+            TargetRetReg = RetRegs[ParamIdx]->GetSubRegs()[0];
 
         Store.AddRegister(TargetRetReg, std::min(RetBitSize, MaxRegSize));
         // TODO: ...
@@ -716,10 +733,6 @@ MachineInstruction IRtoLLIR::HandleReturnInstruction(ReturnInstruction *I)
     if (I->GetRetVal() == nullptr)
         return ResultMI;
 
-    auto Result = GetMachineOperandFromValue(I->GetRetVal());
-
-    ResultMI.AddOperand(Result);
-
     // insert load to load in the return val to the return registers
     auto &TargetRetRegs = TM->GetABI()->GetReturnRegisters();
     if (I->GetRetVal()->GetTypeRef().IsStruct())
@@ -757,7 +770,15 @@ MachineInstruction IRtoLLIR::HandleReturnInstruction(ReturnInstruction *I)
 
         LoadImm.AddOperand(GetMachineOperandFromValue(I->GetRetVal()));
 
+        // change ret operand to the destination register of the LOAD_IMM
+        ResultMI.AddOperand(*LoadImm.GetOperand(0));
+
         CurrentBB->InsertInstr(LoadImm);
+    }
+    else
+    {
+        auto Result = GetMachineOperandFromValue(I->GetRetVal(), CurrentBB);
+        ResultMI.AddOperand(Result);
     }
 
     return ResultMI;
@@ -927,7 +948,7 @@ void IRtoLLIR::HandleFunctionParams(Function &F, MachineFunction *Func)
                 auto NextVReg = Func->GetNextAvailableVirtualRegister();
                 StructToRegMap[StructName].push_back(NextVReg);
                 Func->InsertParameter(NextVReg,
-                                      LowLevelType::CreateInt(TM->GetPointerSize()));
+                                      LowLevelType::CreateScalar(TM->GetPointerSize()));
             }
 
             continue;
@@ -939,7 +960,7 @@ void IRtoLLIR::HandleFunctionParams(Function &F, MachineFunction *Func)
                                   IsStructPtr);
         else
             Func->InsertParameter(ParamID,
-                                  LowLevelType::CreateInt(ParamSize),
+                                  LowLevelType::CreateScalar(ParamSize),
                                   IsStructPtr);
     }
 }
