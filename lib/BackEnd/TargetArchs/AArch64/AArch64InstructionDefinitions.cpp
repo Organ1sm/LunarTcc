@@ -15,7 +15,9 @@ AArch64InstructionDefinitions::AArch64InstructionDefinitions()
                         "SDIV_rri", "SDIV_rrr",               //
                         "UDIV_rrr",                           //
                         "CMP_ri",   "CMP_rr",                 //
-                        "CSET_eq",                               //
+                        "CSET_eq",  "CSET_ne",                //
+                        "CSET_le",  "CSET_ge",                //
+                        "CSET_lt",  "CSET_gt",                //
                         "SXTB",     "SXTH",     "SXTW",       //
                         "UXTB",     "UXTH",     "UXTW",       //
                         "MOV_ri",   "MOV_rr",   "MOVK_ri",    //
@@ -175,6 +177,11 @@ AArch64InstructionDefinitions::IRToTargetInstrMap
         };
 
         ret[CSET_eq] = {CSET_eq, 32, "cset\t$1, eq", {GPR}};
+        ret[CSET_ne] = {CSET_ne, 32, "cset\t$1, ne", {GPR}};
+        ret[CSET_le] = {CSET_le, 32, "cset\t$1, le", {GPR}};
+        ret[CSET_ge] = {CSET_ge, 32, "cset\t$1, ge", {GPR}};
+        ret[CSET_lt] = {CSET_lt, 32, "cset\t$1, lt", {GPR}};
+        ret[CSET_gt] = {CSET_gt, 32, "cset\t$1, gt", {GPR}};
 
         ret[SXTB] = {
             SXTB,
