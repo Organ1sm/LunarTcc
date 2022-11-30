@@ -34,10 +34,17 @@ void PreAllocateParameters(MachineFunction &Func,
 
         LiveRanges[ParamID] = {0, ~0};
 
-        TargetRegister *CurrentArgReg =
-            IsImplicitStructPtr ? TM->GetRegInfo()->GetRegisterByID(
-                                      TM->GetRegInfo()->GetStructPtrRegister()) :
-                                  ArgRegs[CurrentParamReg++];
+        TargetRegister *CurrentArgReg = nullptr;
+        if (IsImplicitStructPtr)
+            CurrentArgReg = TM->GetRegInfo()->GetRegisterByID(
+                TM->GetRegInfo()->GetStructPtrRegister());
+        else if (IsFP)
+            CurrentArgReg =
+                ArgRegs[TM->GetABI()->GetFirstFPArgRegIdx() + CurrentParamReg++];
+        else
+            CurrentArgReg = ArgRegs[CurrentParamReg++];
+
+        assert(CurrentArgReg && "Cannot be null");
 
         // allocate the parameter to the CurrentParamReg -th param register
         if (ParamLowLevelType.GetBitWidth() <= 32)
@@ -77,7 +84,7 @@ void PreAllocateReturnRegister(MachineFunction &Func,
     }
 }
 
-PhysicalReg GetNextAvaiableReg(uint8_t BitSize,
+PhysicalReg GetNextAvaiableReg(MachineOperand *MOperand,
                                std::set<PhysicalReg> &Pool,
                                std::set<PhysicalReg> &BackupPool,
                                TargetMachine *TM,
@@ -94,15 +101,13 @@ PhysicalReg GetNextAvaiableReg(uint8_t BitSize,
         BackupPool.erase(BackUpReg);
     }
 
-    unsigned loopCounter = 0;
     for (auto UnAllocatedReg : Pool)
     {
-        auto UnAllocatedRegInfo = TM->GetRegInfo()->GetRegisterByID(UnAllocatedReg);
-
         // if the register bit width matches the requested size
         // then return this register and delete it from the pool
 
-        if (UnAllocatedRegInfo->GetBitWidth() == BitSize)
+        if (TM->GetRegInfo()->GetRegClassFromReg(UnAllocatedReg) ==
+            MOperand->GetRegClass())
         {
             Pool.erase(UnAllocatedReg);
             return UnAllocatedReg;
@@ -110,16 +115,15 @@ PhysicalReg GetNextAvaiableReg(uint8_t BitSize,
 
         // Otherwise check the subregisters of the register if it has, and try to
         // find a right candiate
+        auto UnAllocatedRegInfo = TM->GetRegInfo()->GetRegisterByID(UnAllocatedReg);
         for (auto SubReg : UnAllocatedRegInfo->GetSubRegs())
         {
-            auto SubRegInfo = TM->GetRegInfo()->GetRegisterByID(SubReg);
-            if (SubRegInfo->GetBitWidth() == BitSize)
+            if (TM->GetRegInfo()->GetRegClassFromReg(SubReg) == MOperand->GetRegClass())
             {
                 Pool.erase(UnAllocatedReg);
                 return SubReg;
             }
         }
-        loopCounter++;
     }
 
     assert(!"Have not found the right register");
@@ -295,12 +299,11 @@ void RegisterAllocator::RunRA()
             // if not allocated yet, then allocate it
             if (AllocatedRegisters.count(VReg) == 0)
             {
-                AllocatedRegisters[VReg] =
-                    GetNextAvaiableReg(VRegToMOMap[VReg]->GetSize(),
-                                       RegisterPool,
-                                       BackupRegisterPool,
-                                       TM,
-                                       Func);
+                AllocatedRegisters[VReg] = GetNextAvaiableReg(VRegToMOMap[VReg],
+                                                              RegisterPool,
+                                                              BackupRegisterPool,
+                                                              TM,
+                                                              Func);
 
                 FreeAbleWorkList.push_back({VReg, DefLine, KillLine});
             }

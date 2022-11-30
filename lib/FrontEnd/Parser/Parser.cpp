@@ -1536,8 +1536,14 @@ std::unique_ptr<Expression> Parser::ParseArrayExpression(std::unique_ptr<Express
     /// amount of index expressions used when referencing the array here
     /// 'arr'. In the example its 1.
     if (!type.IsPointerType())
+    {
         type.GetDimensions().erase(type.GetDimensions().begin(),
                                    type.GetDimensions().begin() + 1);
+
+        // if the result is now a scalar, then change the type to Simple (scalar)
+        if (type.GetDimensions().empty())
+            type.SetTypeKind(Type::Simple);
+    }
 
     else
         type.DecrementPointerLevel();
