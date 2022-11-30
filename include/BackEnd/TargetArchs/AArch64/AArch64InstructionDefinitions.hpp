@@ -61,6 +61,11 @@ namespace AArch64
 
     enum OperandTypes : unsigned {
         GPR,
+        GPR32,
+        GPR64,
+        FPR,
+        FPR32,
+        FPR64,
         UIMM4,
         SIMM12,
         UIMM12,
