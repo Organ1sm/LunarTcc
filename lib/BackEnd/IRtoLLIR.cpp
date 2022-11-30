@@ -511,9 +511,10 @@ MachineInstruction IRtoLLIR::HandleCallInstruction(CallInstruction *I)
             TargetRetReg = RetRegs[ParamIdx]->GetSubRegs()[0];
 
         Store.AddRegister(TargetRetReg, std::min(RetBitSize, MaxRegSize));
-        // TODO: ...
+
         if (i + 1 == RegsCount)
             return Store;
+
         CurrentBB->InsertInstr(Store);
         RetBitSize -= MaxRegSize;
     }
@@ -961,7 +962,8 @@ void IRtoLLIR::HandleFunctionParams(Function &F, MachineFunction *Func)
         else
             Func->InsertParameter(ParamID,
                                   LowLevelType::CreateScalar(ParamSize),
-                                  IsStructPtr);
+                                  IsStructPtr,
+                                  Param->GetTypeRef().IsFP());
     }
 }
 
