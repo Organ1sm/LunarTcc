@@ -9,13 +9,13 @@ AArch64TargetABI::AArch64TargetABI(RegisterInfo *RI)
     this->StackAlignment = 16;
     this->MaxStructSize  = 128;
 
-    /////// ----- Caller/Callee Registers. ----- ///////
+    /////// ----- Argument Registers. ----- ///////
     // x0 - x7 regs
     for (int i = X0; i <= X7; i++)
     {
-        ArgumentRegisters.push_back(RI->GetRegister(i));
-        CallerSavedRegisters.push_back(RI->GetRegister(i));
-        ReturnRegisters.push_back(RI->GetRegister(i));
+        ArgumentRegisters.push_back(RI->GetRegisterByID(i));
+        CallerSavedRegisters.push_back(RI->GetRegisterByID(i));
+        ReturnRegisters.push_back(RI->GetRegisterByID(i));
     }
 
     FirstFPArgRegIdx = ArgumentRegisters.size();
@@ -28,11 +28,11 @@ AArch64TargetABI::AArch64TargetABI(RegisterInfo *RI)
 
     // x19 - x28 regs
     for (int i = X19; i <= X28; i++)
-        CalleeSavedRegisters.push_back(RI->GetRegister(i));
+        CalleeSavedRegisters.push_back(RI->GetRegisterByID(i));
 
     // x9 - x15
     for (int i = X9; i <= X15; i++)
-        CallerSavedRegisters.push_back(RI->GetRegister(i));
+        CallerSavedRegisters.push_back(RI->GetRegisterByID(i));
 
     // d0 - d7
     for (unsigned i = D0; i <= D7; i++)
