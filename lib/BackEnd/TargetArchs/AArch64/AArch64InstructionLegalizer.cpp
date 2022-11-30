@@ -125,7 +125,7 @@ bool AArch64InstructionLegalizer::ExpandStore(MachineInstruction *MI)
     if (Immediate.GetImmediate() == 0)
     {
         auto Size = Immediate.GetSize();
-        auto WZR  = TM->GetRegInfo()->GetZeroRegister();
+        auto WZR  = TM->GetRegInfo()->GetZeroRegister(Size);
 
         // TODO: it might be not a good idea to set different bitwidth to this
         // physical register from its actual bitwidth, for now ExtendRegSize

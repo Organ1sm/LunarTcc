@@ -160,5 +160,16 @@ void MachineOperand::Print(TargetMachine *TM) const
     fmt::print("{}", OperandStr);
 
     if (LLT.IsValid())
-        fmt::print("({})", LLT.ToString());
+    {
+        std::string output;
+
+        if ((this->Type == Register || this->Type == MemoryAddress) && IsVirtual())
+        {
+            output = fmt::format(":{}",
+                                 (RegisterClass == ~0u) ?
+                                     "_" :
+                                     TM->GetRegInfo()->GetRegClassString(RegisterClass));
+        }
+        fmt::print("({})", LLT.ToString() + output);
+    }
 }
