@@ -25,7 +25,7 @@ namespace AArch64
         unsigned GetFrameRegister() override;
         unsigned GetLinkRegister() override;
         unsigned GetStackRegister() override;
-        unsigned GetZeroRegister() override;
+        unsigned GetZeroRegister(const unsigned BitWidth) override;
         unsigned GetStructPtrRegister() override;
 
       private:

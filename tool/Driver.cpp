@@ -7,7 +7,6 @@
 #include "MiddleEnd/IR/Function.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
 #include "MiddleEnd/IR/Module.hpp"
-#include "BackEnd/AssemblyEmitter.hpp"
 #include "BackEnd/IRtoLLIR.hpp"
 #include "BackEnd/TargetMachine.hpp"
 #include "BackEnd/InstructionSelection.hpp"
@@ -16,6 +15,8 @@
 #include "BackEnd/PrologueEpilogInsertion.hpp"
 #include "BackEnd/RegisterAllocator.hpp"
 #include "BackEnd/Support.hpp"
+#include "BackEnd/RegisterClassSelection.hpp"
+#include "BackEnd/AssemblyEmitter.hpp"
 #include "BackEnd/TargetArchs/AArch64/AArch64XRegToWRegFixPass.hpp"
 #include "BackEnd/TargetArchs/AArch64/AArch64TargetMachine.hpp"
 #include "BackEnd/TargetArchs/RISCV/RISCVTargetMachine.hpp"
@@ -152,6 +153,16 @@ int main(int argc, char *argv[])
 
     MachineInstructionLegalizer Legalizer(&LLIRModule, TM.get());
     Legalizer.Run();
+
+    if (PrintBeforePasses)
+    {
+        fmt::print(FMT_STRING("{:*^60}\n\n"), " Before Register Class Selection ");
+        LLIRModule.Print(TM.get());
+        fmt::print("\n");
+    }
+
+    RegisterClassSelection RSC(&LLIRModule, TM.get());
+    RSC.Run();
 
     if (PrintBeforePasses)
     {

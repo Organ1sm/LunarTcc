@@ -25,6 +25,7 @@ add_executable(
   ../lib/BackEnd/Support.cpp
   ../lib/BackEnd/IRtoLLIR.cpp
   ../lib/BackEnd/InstructionSelection.cpp
+  ../lib/BackEnd/RegisterClassSelection.cpp
   ../lib/BackEnd/MachineBasicBlock.cpp
   ../lib/BackEnd/MachineOperand.cpp
   ../lib/BackEnd/MachineFunction.cpp

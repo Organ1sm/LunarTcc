@@ -114,4 +114,4 @@ unsigned AArch64RegisterInfo::GetStackRegister() { return X31; }
 
 unsigned AArch64RegisterInfo::GetStructPtrRegister() { return X8; }
 
-unsigned AArch64RegisterInfo::GetZeroRegister() { return XZR; }
+unsigned AArch64RegisterInfo::GetZeroRegister(const unsigned BitWdith) { return XZR; }
