@@ -218,6 +218,18 @@ bool AArch64InstructionLegalizer::ExpandCmp(MachineInstruction *MI)
     {}
     // TODO: add support for other relation cases like ne, gt, lt, etc...
     // otherwise cset instruction must be emitted
+    unsigned Opcode;
+    switch (MI->GetRelation())
+    {
+        case MachineInstruction::EQ: Opcode = CSET_eq; break;
+        case MachineInstruction::NE: Opcode = CSET_ne; break;
+        case MachineInstruction::LE: Opcode = CSET_le; break;
+        case MachineInstruction::GE: Opcode = CSET_ge; break;
+        case MachineInstruction::LT: Opcode = CSET_lt; break;
+        case MachineInstruction::GT: Opcode = CSET_gt; break;
+
+        default: assert(!"Unhandled");
+    }
     auto CSET = MachineInstruction(AArch64::CSET_eq, nullptr);
     CSET.AddOperand(*MI->GetOperand(0));
 
