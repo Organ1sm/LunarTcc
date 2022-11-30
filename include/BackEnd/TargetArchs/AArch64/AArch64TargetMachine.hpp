@@ -1,10 +1,12 @@
 #pragma once
 
+#include "BackEnd/MachineOperand.hpp"
 #include "BackEnd/TargetMachine.hpp"
 #include <cassert>
 
 namespace AArch64
 {
+    enum Opcodes : unsigned;
     class AArch64TargetMachine : public TargetMachine
     {
       public:
@@ -26,11 +28,21 @@ namespace AArch64
         bool SelectCmp(MachineInstruction *MI) override;
         bool SelectDivU(MachineInstruction *MI) override;
         bool SelectModU(MachineInstruction *MI) override;
+
+        bool SelectCmpF(MachineInstruction *MI) override;
+        bool SelectAddF(MachineInstruction *MI) override;
+        bool SelectSubF(MachineInstruction *MI) override;
+        bool SelectMulF(MachineInstruction *MI) override;
+        bool SelectDivF(MachineInstruction *MI) override;
+        bool SelectIntToFloat(MachineInstruction *MI) override;
+        bool SelectFloatToInt(MachineInstruction *MI) override;
+
         bool SelectZExt(MachineInstruction *MI) override;
         bool SelectSExt(MachineInstruction *MI) override;
         bool SelectZExtLoad(MachineInstruction *MI) override;
         bool SelectTrunc(MachineInstruction *MI) override;
         bool SelectMov(MachineInstruction *MI) override;
+        bool SelectMovF(MachineInstruction *MI) override;
         bool SelectLoadImm(MachineInstruction *MI) override;
         bool SelectLoad(MachineInstruction *MI) override;
         bool SelectStore(MachineInstruction *MI) override;
@@ -39,6 +51,16 @@ namespace AArch64
         bool SelectBranch(MachineInstruction *MI) override;
         bool SelectJump(MachineInstruction *MI) override;
         bool SelectRet(MachineInstruction *MI) override;
+
+
+        MachineInstruction *MaterializeConstant(MachineInstruction *MI,
+                                                const uint64_t Constant,
+                                                MachineOperand &VReg);
+
+        bool SelectThreeAddressInstruction(MachineInstruction *MI,
+                                           const Opcodes rrr,
+                                           const Opcodes rri,
+                                           unsigned ImmSize = 12);
     };
 
 }    // namespace AArch64

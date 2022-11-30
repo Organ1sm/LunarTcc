@@ -46,6 +46,18 @@ namespace AArch64
         MOV_rr,
         MOVK_ri,
         MVN_rr,
+
+        FADD_rrr,
+        FSUB_rrr,
+        FMUL_rrr,
+        FDIV_rrr,
+        FMOV_rr,
+        FMOV_ri,
+        FCMP_rr,
+        FCMP_ri,
+        SCVTF_rr,
+        FCVTZS_rr,
+
         ADRP,
         LDR,
         LDRB,
