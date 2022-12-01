@@ -369,22 +369,13 @@ void ASTPrint::VisitStringLiteralExpression(const StringLiteralExpression *node)
 
 void ASTPrint::VisitArrayExpression(const ArrayExpression *node)
 {
-    std::string TypeStr = node->GetResultType().ToString();
-
-    if (node->GetBase()->GetResultType().IsArray())
-    {
-        for (auto Dim : node->GetBase()->GetResultType().GetDimensions())
-        {
-            TypeStr += fmt::format("[{}]", Dim);
-        }
-    }
-
-    auto Str = fmt::format("`{}`", TypeStr);
+    auto Str = fmt::format("`{}`", node->GetResultType().ToString());
 
     Print("ArrayExpression ", tab);
     PrintLn(Str.c_str());
 
     tab += 2;
+    node->GetBase()->Accept(this);
     node->GetIndexExpression()->Accept(this);
     tab -= 2;
 }
