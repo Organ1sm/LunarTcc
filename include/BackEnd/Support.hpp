@@ -23,7 +23,7 @@ bool IsUInt(uint64_t NUmber)
 
 
 // Only use with power of 2 alignments
-// FixMe: make it moore general and safe
+// FixMe: make it more general and safe
 uint64_t GetNextAlignedValue(unsigned Val, unsigned Alginment);
 
 struct Filer

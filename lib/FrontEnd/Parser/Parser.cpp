@@ -1,5 +1,6 @@
 #include "FrontEnd/Parser/Parser.hpp"
 #include "FrontEnd/AST/AST.hpp"
+#include "FrontEnd/Support.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
 #include "Utils/ErrorLogger.hpp"
 #include "fmt/core.h"
@@ -1703,31 +1704,21 @@ std::unique_ptr<Expression>
 
         /// In case of Assignment check if the left operand since if should be an
         /// lvalue. Which is either an identifier reference or an array expression.
-        if (BinaryOperator.GetKind() == Token::Assign &&
-            !dynamic_cast<ReferenceExpression *>(LeftExpression.get()) &&
-            !dynamic_cast<ArrayExpression *>(LeftExpression.get()) &&
-            !dynamic_cast<StructMemberReference *>(LeftExpression.get()))
-        {
-            EmitError("lvalue required as left operand of assignment",
-                      lexer,
-                      BinaryOperator);
-        }
-
-        /// If it's an Assign BinaryOperator and the left hand side is an
-        /// ArrayExpression or ReferenceExpression, then it's an LValue. This can
-        /// reduces one time load instruction generate for global Variable.
-
-        /// Fixme: Should be solved in a better ways. Seems like LLVM using
-        /// ImplicitCastExpression for this purpose as well.
+        const auto LHS = LeftExpression.get();
         if (BinaryOperator.GetKind() == Token::Assign)
         {
-            if (auto LE = dynamic_cast<ArrayExpression *>(LeftExpression.get()))
-                LE->SetLValueness(true);
-            else if (auto LE = dynamic_cast<ReferenceExpression *>(LeftExpression.get()))
-                LE->SetLValueness(true);
-            else if (auto LE =
-                         dynamic_cast<StructMemberReference *>(LeftExpression.get()))
-                LE->SetLValueness(true);
+            // clang-format off
+            if (instanceof <ArrayExpression>(LHS) || 
+                instanceof <ReferenceExpression>(LHS) ||
+                instanceof <StructMemberReference>(LHS) ||
+                (instanceof<UnaryExpression>(LHS) && dynamic_cast<UnaryExpression *>(LHS)->GetOperationKind() == UnaryExpression::DeRef))
+            // clang-format on
+            {
+                /// If it's an Assign BinaryOperator and the left hand side is an
+                /// ArrayExpression or ReferenceExpression, then it's an LValue. This can
+                /// reduces one time load instruction generate for global Variable.
+                LeftExpression->SetLValueness(true);
+            }
         }
 
         int NextTokenPrec = GetBinOpPrecedence(GetCurrentTokenKind());

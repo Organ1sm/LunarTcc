@@ -1252,6 +1252,11 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
         }
 
         case UnaryOperation::DeRef: {
+            // if it used as a destination of an assignment, then load does not require
+            // example: "*a = 1;"
+            if (GetLValueness())
+                return E;
+
             auto ResultType = E->GetType();
 
             // global vars technically pointer like, which means an "int a;"
