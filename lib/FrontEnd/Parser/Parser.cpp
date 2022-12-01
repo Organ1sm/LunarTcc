@@ -566,14 +566,23 @@ std::unique_ptr<FunctionParameterDeclaration> Parser::ParseParameterDeclaration(
         assert(OnlySupportVoidPtrInParam &&
                "void can only be pointer type for a parameter or standing alone");
 
-        FPD->SetType(Ty);
-
         if (lexer.Is(Token::Identifier))
         {
             auto IdName = Lex().GetString();
             FPD->SetName(IdName);
+
+            // support only empty dimensions for now like "int foo(int arr[]) "
+            if (lexer.Is(Token::LeftBracket))
+            {
+                Lex();
+                Ty.IncrementPointerLevel();
+                Expect(Token::RightBracket);
+            }
+
             InsertToSymbolTable(IdName, Ty);
         }
+
+        FPD->SetType(Ty);
     }
 
     return FPD;
