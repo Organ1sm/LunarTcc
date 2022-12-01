@@ -835,6 +835,7 @@ std::unique_ptr<EnumDeclaration> Parser::ParseEnumDeclaration(unsigned Qualifier
 
 // <Statement> ::= <ExpressionStatement>
 //               | <WhileStatement>
+//               | <DoWhileStatement>
 //               | <IfStatement>
 //               | <ForStatement>
 //               | <CompoundStatement>
@@ -851,6 +852,8 @@ std::unique_ptr<Statement> Parser::ParseStatement()
         return ParseContinueStatement();
     if (lexer.Is(Token::While))
         return ParseWhileStatement();
+    if (lexer.Is(Token::Do))
+        return ParseDoWhileStatement();
     if (lexer.Is(Token::For))
         return ParseForStatement();
     if (lexer.Is(Token::LeftBrace))
@@ -978,6 +981,23 @@ std::unique_ptr<WhileStatement> Parser::ParseWhileStatement()
     WS->SetBody(std::move(ParseStatement()));
 
     return WS;
+}
+
+// <DoWhileStatement> ::= do <Statement> while '(' <Expression> ')' ';'
+std::unique_ptr<DoWhileStatement> Parser::ParseDoWhileStatement()
+{
+    auto DWS = std::make_unique<DoWhileStatement>();
+
+    Expect(Token::Do);
+    DWS->SetBody(std::move(ParseStatement()));
+    Expect(Token::While);
+
+    Expect(Token::LeftParen);
+    DWS->SetCondition(std::move(ParseExpression()));
+    Expect(Token::RightParen);
+    Expect(Token::SemiColon);
+
+    return DWS;
 }
 
 // <ForStatement> ::= for '(' <Expression> ';' <Expression> ';' <Expression> ')'

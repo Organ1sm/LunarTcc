@@ -1857,6 +1857,11 @@ void WhileStatement::Accept(ASTVisitor *Visitor) const
     Visitor->VisitWhileStatement(this);
 }
 
+void DoWhileStatement::Accept(ASTVisitor *Visitor) const
+{
+    Visitor->VisitDoWhileStatement(this);
+}
+
 void ForStatement::Accept(ASTVisitor *Visitor) const { Visitor->VisitForStatement(this); }
 
 void ReturnStatement::Accept(ASTVisitor *Visitor) const

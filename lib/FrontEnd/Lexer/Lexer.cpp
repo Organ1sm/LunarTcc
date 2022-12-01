@@ -24,6 +24,7 @@ std::unordered_map<std::string, Token::TokenKind> Lexer::KeyWords =
         {"break",    Token::Break   },
         {"default",  Token::Default },
         {"for",      Token::For     },
+        {"do",       Token::Do      },
         {"while",    Token::While   },
         {"return",   Token::Return  },
         {"struct",   Token::Struct  },

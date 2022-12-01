@@ -26,6 +26,7 @@ class SwitchStatement;
 class BreakStatement;
 class ContinueStatement;
 class WhileStatement;
+class DoWhileStatement;
 class ForStatement;
 class ReturnStatement;
 class CompoundStatement;
@@ -93,6 +94,7 @@ class Parser
     std::unique_ptr<BreakStatement> ParseBreakStatement();
     std::unique_ptr<ContinueStatement> ParseContinueStatement();
     std::unique_ptr<WhileStatement> ParseWhileStatement();
+    std::unique_ptr<DoWhileStatement> ParseDoWhileStatement();
     std::unique_ptr<ForStatement> ParseForStatement();
     std::unique_ptr<ReturnStatement> ParseReturnStatement();
     std::unique_ptr<CompoundStatement> ParseCompoundStatement();

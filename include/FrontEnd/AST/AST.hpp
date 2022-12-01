@@ -279,6 +279,22 @@ class WhileStatement : public Statement
     StmtPtr Body;
 };
 
+class DoWhileStatement : public Statement
+{
+  public:
+    const ExprPtr &GetCondition() const { return Condition; }
+    void SetCondition(ExprPtr c) { Condition = std::move(c); }
+
+    const StmtPtr &GetBody() const { return Body; }
+    void SetBody(StmtPtr b) { Body = std::move(b); }
+
+    void Accept(ASTVisitor *Visitor) const override;
+
+  private:
+    ExprPtr Condition;
+    StmtPtr Body;
+};
+
 class ForStatement : public Statement
 {
   public:
