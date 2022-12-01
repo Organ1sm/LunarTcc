@@ -289,6 +289,7 @@ class DoWhileStatement : public Statement
     void SetBody(StmtPtr b) { Body = std::move(b); }
 
     void Accept(ASTVisitor *Visitor) const override;
+    Value *IRCodegen(IRFactory *IRF) override;
 
   private:
     ExprPtr Condition;

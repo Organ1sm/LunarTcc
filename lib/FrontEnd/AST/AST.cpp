@@ -345,6 +345,51 @@ Value *WhileStatement::IRCodegen(IRFactory *IRF)
     return nullptr;
 }
 
+//  <loop_body>
+//    # generate code for the Body
+//    j <loop_header>
+//  <loop_header>
+//    # generate code for the Condition
+//    br $condition, <loop_body>    # goto loop_body if condition true
+//  <loop_end>
+Value *DoWhileStatement::IRCodegen(IRFactory *IRF)
+{
+    const auto FuncPtr = IRF->GetCurrentFunction();
+    auto LoopHeader    = std::make_unique<BasicBlock>("loop_header", FuncPtr);
+    auto LoopBody      = std::make_unique<BasicBlock>("loop_body", FuncPtr);
+    auto LoopEnd       = std::make_unique<BasicBlock>("loop_end", FuncPtr);
+
+    auto LoopHeaderPtr = LoopHeader.get();
+    auto LoopBodyPtr   = LoopBody.get();
+
+    // jump into loop header
+    IRF->CreateJump(LoopBodyPtr);
+
+    // Generate Loop Body
+    IRF->GetBreakEndBBsTable().push_back(LoopEnd.get());
+
+    IRF->InsertBB(std::move(LoopBody));
+    Body->IRCodegen(IRF);
+
+    IRF->GetBreakEndBBsTable().pop_back();
+
+    IRF->CreateJump(LoopHeaderPtr);
+
+
+    // Generate LoopHeader
+    IRF->InsertBB(std::move(LoopHeader));
+    auto Cond = Condition->IRCodegen(IRF);
+
+    // Check that the condition is or not 0
+    auto CMP =
+        IRF->CreateCmp(CompareInstruction::NE, Cond, IRF->GetConstant((uint64_t)0));
+
+    IRF->CreateBranch(CMP, LoopBodyPtr);
+    IRF->InsertBB(std::move(LoopEnd));
+
+    return nullptr;
+}
+
 Value *ForStatement::IRCodegen(IRFactory *IRF)
 {
     // Similar solution to WhileStatement. The difference is that here the
