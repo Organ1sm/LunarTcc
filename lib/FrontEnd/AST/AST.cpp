@@ -89,8 +89,16 @@ Value *Node::IRCodegen(IRFactory *IRF)
 
 static IRType GetIRTypeFromVK(Type::VariantKind VK)
 {
+    // the standard says this (6.2.5.27)
+    // "A pointer to void shall have the same representation and alignment
+    // requirements as a pointer to a character type."
+    // Therefore treating void* as i8* as LLVM does this as well.
+    // Although here the pointer part is not checked, only the base type. This is
+    // okay, since non pointer void types should have been already sorted out as
+    // an error by the parser.
     switch (VK)
     {
+        case Type::Void:
         case Type::Char: return IRType(IRType::SInt, 8);
         case Type::UnsignedChar: return IRType(IRType::UInt, 8);
         case Type::Short: return IRType(IRType::SInt, 16);
@@ -110,6 +118,9 @@ static IRType GetIRTypeFromVK(Type::VariantKind VK)
 
 static IRType GetIRTypeFromASTType(Type CT)
 {
+    // TODO: This should be in the semantic check.
+    assert((CT.GetTypeVariant() != Type::Void || CT.GetPointerLevel() != 0) &&
+           "void type is only allowed to be a pointer");
     IRType Result = GetIRTypeFromVK(CT.GetTypeVariant());
 
     if (Result.IsStruct())
@@ -774,7 +785,16 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
         case Type::LongLong: ReturnIRType = IRType(IRType::SInt, 64); break;
         case Type::UnsignedLongLong: ReturnIRType = IRType(IRType::UInt, 64); break;
         case Type::Double: ReturnIRType = IRType(IRType::FP, 64); break;
-        case Type::Void: ReturnIRType = IRType(IRType::None, 0); break;
+
+        case Type::Void: {
+            if (!GetResultType().IsPointerType())
+                ReturnIRType = IRType(IRType::None, 0);
+            else
+                ReturnIRType = GetIRTypeFromASTType(GetResultType());
+
+            break;
+        }
+
         case Type::Composite: {
             ReturnIRType = GetIRTypeFromASTType(GetResultType());
 

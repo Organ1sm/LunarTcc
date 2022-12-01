@@ -46,7 +46,7 @@ class IRType
     std::vector<IRType> &GetMemberTypes() { return MembersTypeList; }
 
     bool IsFP() const { return Kind == FP; }
-    bool IsVoid() const { return Kind == None; }
+    bool IsVoid() const { return Kind == None && PointerLevel == 0; }
     bool IsSInt() const { return Kind == SInt; }
     bool IsUInt() const { return Kind == UInt; }
     bool IsInvalid() const { return Kind == Invalid; }
