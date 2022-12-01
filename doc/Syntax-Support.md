@@ -24,6 +24,8 @@ int test(int a)
 + [x] `int`, `unsigned int`
 + [x] `long` , `unsigned long`
 + [x] `long long`,  `unsigned long long` (64bit)
++ [x] `float`, `double` 
++ [x] `void *` (but only function parameter)
 + [x] `enum`
 ```c++
 enum { A, B, C, D };
