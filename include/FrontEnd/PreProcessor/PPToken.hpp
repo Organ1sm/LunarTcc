@@ -20,6 +20,8 @@ class PPToken
         RightParen,
         DoubleQuote,
         ForwardSlash,    // "/"
+        LessThan,
+        GreaterThan,
 
         // Keywords
         Define,

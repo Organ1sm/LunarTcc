@@ -103,6 +103,8 @@ std::optional<PPToken> PPLexer::LexSymbol()
         case ')': PPTokenKind = PPToken::RightParen; break;
         case '"': PPTokenKind = PPToken::DoubleQuote; break;
         case '/': PPTokenKind = PPToken::ForwardSlash; break;
+        case '<': PPTokenKind = PPToken::LessThan; break;
+        case '>': PPTokenKind = PPToken::GreaterThan; break;
 
         default: return std::nullopt; break;
     }

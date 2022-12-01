@@ -19,6 +19,8 @@ std::string PPToken::ToString(PPTokenKind tk)
         case RightParen: return ")";
         case DoubleQuote: return "\"";
         case ForwardSlash: return "/";
+        case LessThan: return "<";
+        case GreaterThan: return ">";
 
         case Define: return "define";
         case Include: return "include";
