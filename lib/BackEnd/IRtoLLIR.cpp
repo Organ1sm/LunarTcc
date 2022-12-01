@@ -567,7 +567,7 @@ MachineInstruction IRtoLLIR::HandleGetElemPtrInstruction(GetElemPointerInstructi
     else if (IsStack)
         GoalInst = MachineInstruction(MachineInstruction::StackAddress, CurrentBB);
 
-    auto Dest = GetMachineOperandFromValue((Value *)I);
+    auto Dest = GetMachineOperandFromValue((Value *)I, true);
     GoalInst.AddOperand(Dest);
 
     if (IsGlobal)
