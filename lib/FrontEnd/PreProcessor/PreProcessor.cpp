@@ -7,8 +7,7 @@
 #include <cctype>
 #include <cstddef>
 #include <string>
-
-const std::string WhiteSpaceChars("\t ");
+#include <filesystem>
 
 PreProcessor::PreProcessor(std::vector<std::string> &Src, std::string Path) : Source(Src)
 {
@@ -19,7 +18,6 @@ PreProcessor::PreProcessor(std::vector<std::string> &Src, std::string Path) : So
 
     DefinedMacros["__LINE__"] = {"1", 0};
 }
-
 
 void PreProcessor::ParseDirective(std::string &Line, std::size_t LineIdx)
 {
@@ -87,8 +85,9 @@ void PreProcessor::ParseDirective(std::string &Line, std::size_t LineIdx)
     }
     else if (Directive.GetKind() == PPToken::Include)
     {
-        assert(lexer.Is(PPToken::DoubleQuote));
-        lexer.Lex();    // eat '"'
+        assert(lexer.Is(PPToken::DoubleQuote) || lexer.Is(PPToken::LessThan));
+        bool IsSysHeaderFile = lexer.Is(PPToken::LessThan);
+        lexer.Lex();    // eat the token.
 
 
         std::string FileName;
@@ -102,7 +101,17 @@ void PreProcessor::ParseDirective(std::string &Line, std::size_t LineIdx)
             NextTokenKind = NextToken.GetKind();
         }
 
-        assert(NextTokenKind == PPToken::DoubleQuote);
+        assert((NextTokenKind == PPToken::DoubleQuote && !IsSysHeaderFile) ||
+               (NextTokenKind == PPToken::GreaterThan && IsSysHeaderFile));
+
+        if (IsSysHeaderFile)
+        {
+            auto Path = std::filesystem::current_path();
+            Path.remove_filename();
+
+            FilePath = Path;
+            FilePath += "includes/";
+        }
 
         std::vector<std::string> FileContent;
         auto Success = Filer::getFileContent(FilePath + FileName, FileContent);
