@@ -10,6 +10,7 @@ bool Parser::IsTypeSpecifier(Token T)
 {
     switch (T.GetKind())
     {
+        case Token::Void:
         case Token::Char:
         case Token::Short:
         case Token::Int:
@@ -556,6 +557,13 @@ std::unique_ptr<FunctionParameterDeclaration> Parser::ParseParameterDeclaration(
             Ty.IncrementPointerLevel();
             Lex();    // Eat the `*` character
         }
+
+        bool OnlySupportVoidPtrInParam =
+            !(Ty.GetTypeVariant() == Type::Void && Ty.GetPointerLevel() == 0 &&
+              lexer.IsNot(Token::RightParen));
+
+        assert(OnlySupportVoidPtrInParam &&
+               "void can only be pointer type for a parameter or standing alone");
 
         FPD->SetType(Ty);
 
