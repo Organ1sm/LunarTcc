@@ -1239,15 +1239,24 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
     switch (GetOperationKind())
     {
         case UnaryOperation::Address: {
-            auto RefExpr = dynamic_cast<ReferenceExpression *>(Expr.get());
-            assert(RefExpr);
+            Value *Res = nullptr;
 
-            auto ReferEE = RefExpr->GetIdentifier();
-            auto Res     = IRF->GetSymbolValue(ReferEE);
+            if (auto RefExpr = dynamic_cast<ReferenceExpression *>(Expr.get());
+                RefExpr != nullptr)
+            {
+                auto ReferEE = RefExpr->GetIdentifier();
+                Res          = IRF->GetSymbolValue(ReferEE);
 
-            if (!Res)
-                Res = IRF->GetGlobalVar(ReferEE);
+                if (!Res)
+                    Res = IRF->GetGlobalVar(ReferEE);
+            }
+            else
+            {
+                Expr->SetLValueness(true);
+                Res = Expr->IRCodegen(IRF);
+            }
 
+            assert(Res);
             return Res;
         }
 
