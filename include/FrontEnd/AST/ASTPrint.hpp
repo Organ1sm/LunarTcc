@@ -8,7 +8,7 @@ class ASTPrint : public ASTVisitor
     int tab = 0;
 
   public:
-    ASTPrint() {};
+    ASTPrint() = default;
     void VisitVariableDeclaration(const VariableDeclaration *node) override;
     void VisitMemberDeclaration(const MemberDeclaration *node) override;
     void VisitStructDeclaration(const StructDeclaration *node) override;
@@ -22,6 +22,7 @@ class ASTPrint : public ASTVisitor
     void VisitIfStatement(const IfStatement *node) override;
     void VisitSwitchStatement(const SwitchStatement *node) override;
     void VisitWhileStatement(const WhileStatement *node) override;
+    void VisitDoWhileStatement(const DoWhileStatement *node) override;
     void VisitForStatement(const ForStatement *node) override;
     void VisitReturnStatement(const ReturnStatement *node) override;
     void VisitBreakStatement(const BreakStatement *node) override;
