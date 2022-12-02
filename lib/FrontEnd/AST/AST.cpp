@@ -1405,7 +1405,10 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
             // requires a load first for addition to work
 
             auto LoadedValType = E->GetTypeRef();
-            LoadedValType.DecrementPointerLevel();
+
+            if (!E->IsGlobalVar())
+                LoadedValType.DecrementPointerLevel();
+
             auto LoadedExpr = IRF->CreateLoad(LoadedValType, E);
 
             Instruction *AddOrSub;
