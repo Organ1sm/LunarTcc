@@ -1400,9 +1400,8 @@ std::unique_ptr<Expression> Parser::ParseUnaryExpression()
             if (hasSizeof)
                 Expect(Token::RightParen);
 
-            // TODO: Improve it.
             auto UE = std::make_unique<UnaryExpression>(UnaryOperation, nullptr);
-            UE->SetResultType(Ty);
+            UE->SetSizeOfType(Ty);
 
             return UE;
         }

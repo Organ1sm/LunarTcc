@@ -556,6 +556,14 @@ class UnaryExpression : public Expression
     const ExprPtr &GetExpr() const { return Expr; }
     void SetExpr(ExprPtr &e) { Expr = std::move(e); }
 
+    Type GetSizeOfType() const
+    {
+        assert(SizeOfType.has_value());
+        return SizeOfType.value();
+    }
+
+    void SetSizeOfType(const Type &t) { SizeOfType = t; }
+
     void Accept(ASTVisitor *Visitor) const override;
     Value *IRCodegen(IRFactory *IRF) override;
 
@@ -563,6 +571,7 @@ class UnaryExpression : public Expression
     Token Operation;
     ExprPtr Expr {nullptr};
     bool IsPostFix {false};
+    std::optional<Type> SizeOfType {std::nullopt};
 };
 
 class TernaryExpression : public Expression
