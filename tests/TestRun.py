@@ -91,6 +91,7 @@ def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases):
             "-o",
             "test",
             "-static",
+            "-lm"
         ] 
         compileRet = subprocess.run(LinkCommandList).returncode
         if compileRet != 0:

@@ -294,16 +294,14 @@ void ASTPrint::VisitStructInitExpression(const StructInitExpression *node)
 
 void ASTPrint::VisitUnaryExpression(const UnaryExpression *node)
 {
-    std::string Selected;
-    if (node->GetOperationKind() == UnaryExpression::Sizeof)
-        Selected = fmt::format("`{}` ", Type(Type::UnsignedInt).ToString());
-    else
-        Selected = fmt::format("`{}` ", node->GetResultType().ToString());
-
-    auto Str = fmt::format("{} {}", Selected, node->GetOperation().GetString());
+    auto Str = fmt::format("`{}` `{}`",
+                           node->GetResultType().ToString(),
+                           node->GetOperation().GetString());
 
     if (!node->GetExpr())
         Str += fmt::format(" `{}`", node->GetResultType().ToString());
+    else if (node->GetOperationKind() == UnaryExpression::Sizeof)
+        Str += fmt::format(" `{}`", node->GetSizeOfType().ToString());
 
     Print("UnaryExpression ", tab);
     PrintLn(Str.c_str());

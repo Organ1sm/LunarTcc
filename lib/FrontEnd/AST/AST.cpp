@@ -65,8 +65,11 @@ UnaryExpression::UnaryExpression(Token Op, ExprPtr E, bool PostFix)
         case UnaryOperation::PostDecrement: ResultType = Expr->GetResultType(); break;
 
         case UnaryOperation::Sizeof: {
+            ResultType = Type(Type::UnsignedInt);
+
             if (Expr)
-                ResultType = Expr->GetResultType();
+                SizeOfType = Expr->GetResultType();
+
             break;
         }
 
