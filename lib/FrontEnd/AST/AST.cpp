@@ -913,7 +913,8 @@ Value *ReferenceExpression::IRCodegen(IRFactory *IRF)
     assert(GV && "Cannot be null.");
 
     // If Lvalue, then return as a ptr to the global value.
-    if (GetLValueness() || this->GetResultType().IsStruct())
+    if (GetLValueness() ||
+        (this->GetResultType().IsStruct() && !GetResultType().IsPointerType()))
         return GV;
 
     return IRF->CreateLoad(GV->GetType(), GV);
