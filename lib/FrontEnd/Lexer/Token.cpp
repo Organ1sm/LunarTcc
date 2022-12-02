@@ -127,3 +127,22 @@ bool Token::IsArithmetic(Token::TokenKind TK)
         default: return false;
     }
 }
+
+bool Token::IsCompositeAssignment(TokenKind TK)
+{
+    switch (TK)
+    {
+        case Token::ModEqual:
+        case Token::AndEqual:
+        case Token::OrEqual:
+        case Token::XorEqual:
+        case Token::LeftShiftEqual:
+        case Token::RightShiftEqual:
+        case Token::PlusEqual:
+        case Token::MinusEuqal:
+        case Token::MulEqual:
+        case Token::DivEqual: return true;
+
+        default: return false;
+    }
+}

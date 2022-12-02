@@ -34,8 +34,12 @@ void ASTPrint::VisitStructDeclaration(const StructDeclaration *node)
     Print(node->GetName().c_str());
     PrintLn("` ");
 
+    tab += 2;
+
     for (auto &M : node->GetMembers())
         M->Accept(this);
+
+    tab -= 2;
 }
 
 void ASTPrint::VisitEnumDeclaration(const EnumDeclaration *node)

@@ -151,6 +151,7 @@ class Token
 
     static std::string ToString(TokenKind tk);
     static bool IsArithmetic(TokenKind TK);
+    static bool IsCompositeAssignment(TokenKind TK);
 
   private:
     TokenKind Kind;
