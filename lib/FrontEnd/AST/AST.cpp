@@ -35,10 +35,7 @@ BinaryExpression::BinaryExpression(ExprPtr L, Token Op, ExprPtr R)
         ResultType = Type(Type::Int);
     else
     {
-        auto Strongest = Type::GetStrongestType(Lhs->GetResultType().GetTypeVariant(),
-                                                Rhs->GetResultType().GetTypeVariant());
-
-        ResultType = Type(Type::GetStrongestType(Strongest.GetTypeVariant(), Type::Int));
+        ResultType = Lhs->GetResultType();
     }
 }
 
@@ -1037,6 +1034,22 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
         Val->SetType(t);
 
         return Val;
+    }
+
+    // if a pointer type is cast to an integer type
+    else if (GetResultType().IsIntegerType() &&
+             CastableExpression->GetResultType().IsPointerType())
+    {
+        const auto TargetPtrSize = IRF->GetTargetMachine()->GetPointerSize();
+        const auto IntTypeSize =
+            GetIRTypeFromVK(GetResultType().GetTypeVariant()).GetBitSize();
+
+        if (TargetPtrSize == IntTypeSize)
+            return Val;
+        else if (TargetPtrSize < IntTypeSize)
+            return IRF->CreateSExt(Val, IntTypeSize);
+        else if (TargetPtrSize > IntTypeSize)
+            return IRF->CreateTrunc(Val, IntTypeSize);
     }
 
     if (Type::OnlySignednessDifference(SourceTypeVariant, DestTypeVariant))
