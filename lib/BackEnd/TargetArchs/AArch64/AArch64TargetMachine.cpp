@@ -811,7 +811,7 @@ bool AArch64TargetMachine::SelectBranch(MachineInstruction *MI)
             case MachineInstruction::LT: MI->SetOpcode(BLT); break;
             case MachineInstruction::GE: MI->SetOpcode(BGE); break;
             case MachineInstruction::GT: MI->SetOpcode(BGT); break;
-            default: assert(!"Unimplemented");
+            default: MI->SetOpcode(BEQ);
         }
         MI->RemoveOperand(0);
         return true;
