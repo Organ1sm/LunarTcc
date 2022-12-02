@@ -198,6 +198,10 @@ bool Type::IsImplicitlyCastable(const Type from, const Type to)
     const auto IsFromArray = from.IsArray();
     const auto IsToPtr     = to.IsPointerType();
 
+    // from integer type to pointer
+    if (IsToPtr && from.IsIntegerType())
+        return true;
+
     // array to pointer decay case
     if (IsFromArray && !IsFromPtr && IsToPtr)
     {
