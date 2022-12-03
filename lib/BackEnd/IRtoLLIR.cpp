@@ -24,6 +24,7 @@ void IRtoLLIR::Reset()
     StructToRegMap.clear();
     StructByIDToRegMap.clear();
     IRVregToLLIRVreg.clear();
+    SpilledReturnValuesStackIDs.clear();
 }
 
 MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, bool IsDef)
@@ -169,13 +170,52 @@ MachineInstruction IRtoLLIR::HandleUnaryInstruction(UnaryInstruction *I)
     auto Operation = I->GetInstructionKind();
     auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
 
-    auto Result = GetMachineOperandFromValue((Value *)I, true); 
-    auto Op     = GetMachineOperandFromValue(I->GetOperand());
+    auto Result = GetMachineOperandFromValue((Value *)I, true);
 
-
+    MachineOperand OP;
+    // if a ptr to ptr cast end both pointer at the same ptr level
+    // ex:
+    //   i32* to i8*, then issue a STACK_ADDRESS instruction
+    auto LHS = I->GetTypeRef();
+    auto RHS = I->GetOperand()->GetTypeRef();
+    if (Operation == Instruction::BitCast)
+    {
+        if (LHS.IsPointer() && RHS.IsPointer() &&
+            LHS.GetPointerLevel() == RHS.GetPointerLevel() &&
+            ParentFunction->IsStackSlot(I->GetOperand()->GetID()))
+        {
+            if (SpilledReturnValuesStackIDs.count(I->GetOperand()->GetID()) == 0)
+            {
+                ResultMI.SetOpcode(MachineInstruction::StackAddress);
+                OP = MachineOperand::CreateStackAccess(I->GetOperand()->GetID());
+            }
+            // If the stack slot is actually a spilled return value, then the cast
+            // actually if for the spilled value, therefore a load must be issued.
+            // Also for casting pointer to pointers at this level no more
+            // instruction is required, therefore the single load is enough here.
+            else
+            {
+                ResultMI.SetOpcode(MachineInstruction::Load);
+                OP = MachineOperand::CreateStackAccess(GetIDFromValue(I->GetOperand()));
+            }
+        }
+        else
+        {
+            // otherwise use a move
+            ResultMI.SetOpcode(MachineInstruction::Mov);
+            OP = GetMachineOperandFromValue(
+                I->GetOperand(),
+                static_cast<unsigned>(Operation) ==
+                    static_cast<unsigned>(MachineInstruction::BitCast));
+        }
+    }
+    else
+    {
+        OP = GetMachineOperandFromValue(I->GetOperand());
+    }
 
     ResultMI.AddOperand(Result);
-    ResultMI.AddOperand(Op);
+    ResultMI.AddOperand(OP);
 
     return ResultMI;
 }
@@ -509,6 +549,7 @@ MachineInstruction IRtoLLIR::HandleCallInstruction(CallInstruction *I)
         // FIXME: actual its not a vreg, but this make sure it will be a unique ID
         auto StackSlot = ParentFunction->GetNextAvailableVirtualRegister();
         ParentFunction->InsertStackSlot(StackSlot, std::min(RetBitSize, MaxRegSize) / 8);
+        SpilledReturnValuesStackIDs.insert(StackSlot);
         IRVregToLLIRVreg[I->GetID()] = StackSlot;
 
         auto Store = MachineInstruction(MachineInstruction::Store, CurrentBB);
@@ -1038,6 +1079,13 @@ void IRtoLLIR::GenerateLLIRFromIR()
                 CurrentBB      = &MFuncMBBs[BBCounter];
                 ParentFunction = CurrentBB->GetParent();
                 CurrentBB->InsertInstr(ConvertToMachineInstr(InstrPtr, MFuncMBBs));
+
+                // everything after a return is dead code so skip those
+                // TODO: add unconditional branch aswell, but it would be better to
+                // just not handle this here but in some optimization pass for
+                // example in dead code elimination
+                if (CurrentBB->GetInstructions().back().IsReturn())
+                    break;
             }
 
             BBCounter++;

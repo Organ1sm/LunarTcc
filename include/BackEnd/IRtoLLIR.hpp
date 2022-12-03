@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <set>
 
 
 class Value;
@@ -85,4 +86,8 @@ class IRtoLLIR
     /// registers. This needed since while translating from IR to LLIR occasionally
     /// new instructions are added with possible new virtual registers.
     std::map<unsigned, unsigned> IRVregToLLIRVreg;
+
+    /// To keep track which stack slots are used for spilling the return values
+    /// of functions calls.
+    std::set<unsigned> SpilledReturnValuesStackIDs;
 };
