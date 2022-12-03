@@ -237,6 +237,20 @@ UnaryInstruction *IRFactory::CreateIntToFloat(Value *Operand, uint8_t BitWidth)
     return InstPtr;
 }
 
+UnaryInstruction *IRFactory::CreateBitCast(Value *Operand, const IRType &To)
+{
+    auto Inst = std::make_unique<UnaryInstruction>(Instruction::BitCast,
+                                                   To,
+                                                   Operand,
+                                                   GetCurrentBB());
+
+    Inst->SetId(ID++);
+    auto InstPtr = Inst.get();
+    Insert(std::move(Inst));
+
+    return InstPtr;
+}
+
 CallInstruction *IRFactory::CreateCall(std::string &FuncName,
                                        std::vector<Value *> Args,
                                        IRType Type,

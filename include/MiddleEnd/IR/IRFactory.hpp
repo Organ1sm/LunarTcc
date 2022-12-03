@@ -54,6 +54,7 @@ class IRFactory
     UnaryInstruction *CreateTrunc(Value *Operand, uint8_t BitWidth = 32);
     UnaryInstruction *CreateFloatToInt(Value *Operand, uint8_t BitWidth = 32);
     UnaryInstruction *CreateIntToFloat(Value *Operand, uint8_t BitWidth = 32);
+    UnaryInstruction *CreateBitCast(Value *Operand, const IRType &To);
 
     CallInstruction *CreateCall(std::string &FuncName,
                                 std::vector<Value *> Args,

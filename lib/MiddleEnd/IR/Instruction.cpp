@@ -53,6 +53,7 @@ std::string Instruction::AsString(Instruction::InstructionKind IK)
         case Trunc: return "trunc";
         case FloatToInt: return "ftoi";
         case IntToFloat: return "itof";
+        case BitCast: return "bitcast";
         case Call: return "call";
         case Jump: return "j";
         case Branch: return "br";
