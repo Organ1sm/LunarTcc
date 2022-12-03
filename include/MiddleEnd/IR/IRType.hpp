@@ -37,6 +37,8 @@ class IRType
 
     void ReduceDimension();
 
+    unsigned GetStructMaxAlignment(TargetMachine *TM) const;
+
     void SetDimensions(const std::vector<unsigned> &N) { Dimensions = N; }
     std::vector<unsigned> &GetDimensions() { return Dimensions; }
 
@@ -54,14 +56,19 @@ class IRType
     bool IsPointer() const { return PointerLevel > 0; }
     bool IsStruct() const { return Kind == Struct; }
     bool IsArray() const { return !Dimensions.empty(); }
+    bool IsScalar() const { return IsFP() || IsInt(); }
 
     std::size_t GetBitSize() const { return BitWidth; }
     std::size_t GetByteSize(TargetMachine *TM = nullptr) const;
 
     unsigned CalcElemSize(unsigned dim);
-    unsigned GetElemByteOffset(const unsigned StructElemIndex) const;
+    unsigned GetElemByteOffset(const unsigned StructElemIndex,
+                               TargetMachine *TM = nullptr) const;
 
     IRType GetBaseType() const { return IRType(Kind, BitWidth); }
+
+    /// Get the size of the base type.
+    std::size_t GetBaseTypeByteSize(TargetMachine *TM = nullptr) const;
 
     std::string AsString() const;
 

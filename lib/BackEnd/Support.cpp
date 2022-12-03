@@ -3,9 +3,9 @@
 #include <iostream>
 #include <fstream>
 
-uint64_t GetNextAlignedValue(unsigned int Val, unsigned int Alginment)
+uint64_t GetNextAlignedValue(unsigned int Val, unsigned int Alignment)
 {
-    return (Val + Alginment - 1) & ~(Alginment - 1);
+    return (Val + Alignment - 1) & ~(Alignment - 1);
 }
 
 bool Filer::getFileContent(const std::string &fileName,
