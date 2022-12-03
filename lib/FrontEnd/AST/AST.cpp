@@ -1,5 +1,6 @@
 #include "FrontEnd/AST/AST.hpp"
 #include "FrontEnd/AST/ASTVistor.hpp"
+#include "FrontEnd/Support.hpp"
 #include "MiddleEnd/IR/BasicBlock.hpp"
 #include "MiddleEnd/IR/Function.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
@@ -763,7 +764,9 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
             auto InitExpr = Init->IRCodegen(IRF);
             if (InitExpr->GetType().IsStruct() &&
                 InitExpr->GetType().GetPointerLevel() == SA->GetType().GetPointerLevel())
-                IRF->CreateMemCopy(SA, InitExpr, InitExpr->GetType().GetByteSize());
+                IRF->CreateMemCopy(SA,
+                                   InitExpr,
+                                   InitExpr->GetTypeRef().GetBaseTypeByteSize());
             else
                 IRF->CreateStore(InitExpr, SA);
         }
@@ -793,7 +796,7 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
         auto ArgIRTy = ArgIR->GetTypeRef();
         auto ArgTy   = Arg->GetResultType();
 
-        auto IRTySize = ArgIRTy.GetByteSize() * 8;
+        auto IRTySize = ArgIRTy.GetBaseTypeByteSize() * 8;
 
         // if the generated IR result is a struct pointer, but the actual function
         // expects a struct by value, then issue an extra load
@@ -1228,6 +1231,7 @@ Value *StructMemberReference::IRCodegen(IRFactory *IRF)
         return GEP;
 
     auto ResultIRType = GetIRTypeFromASTType(this->GetResultType());
+    ResultIRType.SetPointerLevel(GEP->GetTypeRef().GetPointerLevel());
 
     return IRF->CreateLoad(ResultIRType, GEP);
 }
@@ -1558,9 +1562,11 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         if (L == nullptr || R == nullptr)
             return nullptr;
 
-        if (R->GetTypeRef().IsStruct() &&
-            L->GetType().GetPointerLevel() == R->GetType().GetPointerLevel())
-            IRF->CreateMemCopy(L, R, R->GetTypeRef().GetByteSize());
+        if (R->GetTypeRef().IsStruct() && L->GetTypeRef().GetPointerLevel() == 1 &&
+            R->GetTypeRef().GetPointerLevel() == 1 &&
+            (instanceof <StackAllocationInstruction>(L) ||
+                            !GetResultType().IsPointerType()))
+            IRF->CreateMemCopy(L, R, R->GetTypeRef().GetBaseTypeByteSize());
         else
             IRF->CreateStore(R, L);
 

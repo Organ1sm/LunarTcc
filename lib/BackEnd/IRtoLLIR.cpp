@@ -1,5 +1,6 @@
 #include <cassert>
 #include <type_traits>
+#include "BackEnd/GlobalData.hpp"
 #include "BackEnd/MachineBasicBlock.hpp"
 #include "BackEnd/MachineFunction.hpp"
 #include "BackEnd/MachineInstruction.hpp"
@@ -112,6 +113,21 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, bool IsDef)
 
 
         return Result;
+    }
+    else if (Val->IsGlobalVar())
+    {
+        auto Instr    = MachineInstruction(MachineInstruction::GlobalAddress, CurrentBB);
+        auto NextVReg = ParentFunction->GetNextAvailableVirtualRegister();
+
+        Instr.AddVirtualRegister(NextVReg, TM->GetPointerSize());
+        Instr.AddGlobalSymbol(static_cast<GlobalVariable *>(Val)->GetName());
+
+        CurrentBB->InsertInstr(Instr);
+
+        auto MO = MachineOperand::CreateVirtualRegister(NextVReg);
+        MO.SetType(LowLevelType::CreatePtr(TM->GetPointerSize()));
+
+        return MO;
     }
     else
     {
@@ -235,10 +251,11 @@ MachineInstruction IRtoLLIR::HandleStoreInstruction(StoreInstruction *I)
         // function
         else
         {
-            unsigned StructBitSize = (I->GetSavedValue()->GetTypeRef().GetByteSize() * 8);
-            unsigned MaxRegSize    = TM->GetPointerSize();
-            unsigned RegsCount =
-                GetNextAlignedValue(StructBitSize, MaxRegSize) / MaxRegSize;
+            // clang-format off
+           const unsigned StructBitSize = (I->GetSavedValue()->GetTypeRef().GetBaseTypeByteSize() * 8);
+           const unsigned MaxRegSize    = TM->GetPointerSize();
+           const unsigned RegsCount     = GetNextAlignedValue(StructBitSize, MaxRegSize) / MaxRegSize;
+            // clang-format on
 
             auto &RetRegs = TM->GetABI()->GetReturnRegisters();
 
@@ -739,9 +756,11 @@ MachineInstruction IRtoLLIR::HandleReturnInstruction(ReturnInstruction *I)
     if (I->GetRetVal()->GetTypeRef().IsStruct())
     {
         // how many register are used to pass this struct
-        unsigned StructBitSize = (I->GetRetVal()->GetTypeRef().GetByteSize() * 8);
-        unsigned MaxRegSize    = TM->GetPointerSize();
-        unsigned RegsCount = GetNextAlignedValue(StructBitSize, MaxRegSize) / MaxRegSize;
+        // clang-format off
+        const unsigned StructBitSize = (I->GetRetVal()->GetTypeRef().GetBaseTypeByteSize() * 8);
+        const unsigned MaxRegSize    = TM->GetPointerSize();
+        const unsigned RegsCount     = GetNextAlignedValue(StructBitSize, MaxRegSize) / MaxRegSize;
+        // clang-format on
 
         auto RetID = GetIDFromValue(I->GetRetVal());
         for (size_t i = 0; i < RegsCount; i++)
