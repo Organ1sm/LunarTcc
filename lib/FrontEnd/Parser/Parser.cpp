@@ -508,6 +508,8 @@ std::unique_ptr<Node> Parser::ParseExternalDeclaration()
                     Expect(Token::SemiColon);
                     break;
                 }
+
+                CurrentType = BaseType;
             }
             while (lexer.Is(Token::Mul) || lexer.Is(Token::Identifier));
         }
