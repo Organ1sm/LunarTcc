@@ -43,6 +43,7 @@ class Instruction : public Value
         Trunc,    // Truncating
         FloatToInt,
         IntToFloat,
+        BitCast,
 
         // Control flow Operations.
         Call,

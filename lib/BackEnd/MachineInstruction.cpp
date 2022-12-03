@@ -116,6 +116,7 @@ void MachineInstruction::Print(TargetMachine *TM) const
         case OperationCode::Trunc: OpcodeStr = "Trunc"; break;
         case OperationCode::FloatToInt: OpcodeStr = "FloatToInt"; break;
         case OperationCode::IntToFloat: OpcodeStr = "IntToFloat"; break;
+        case OperationCode::BitCast: OpcodeStr = "BitCast"; break;
         case OperationCode::Store: OpcodeStr = "Store"; break;
         case OperationCode::StackAddress: OpcodeStr = "StackAddress"; break;
         case OperationCode::GlobalAddress: OpcodeStr = "GlobalAddress"; break;

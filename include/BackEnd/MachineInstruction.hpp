@@ -40,13 +40,14 @@ class MachineInstruction
         ZExt,     // Zero extension
         Trunc,    // Truncating
         FloatToInt,
-        IntToFloat,    // 65553
+        IntToFloat,
+        BitCast,
 
         // Control Flow Operations
         Call,
         Jump,
         Branch,
-        Ret,    // 65557
+        Ret,
 
         // Moves and constant materializations
         LoadImm,
@@ -54,14 +55,14 @@ class MachineInstruction
         MovF,
 
         // Memory Access
-        Load,    // 65560
+        Load,
         Store,
         StackAlloc,
         StackAddress,
         GlobalAddress,
 
         // Combined load and sign/zero extension
-        SExtLoad,    // 65565
+        SExtLoad,
         ZExtLoad,
         InvalidOp,
     };

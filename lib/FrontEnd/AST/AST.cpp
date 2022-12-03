@@ -1027,16 +1027,13 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
 
         return IRF->GetConstant(CV, DestBitSize);
     }
-    // cast one pointer type to another, for now casting is just changing the expression
-    // type
-    // TODO: maybe introduce a new cast instruction like LLVM's bitcast.
+
+    // cast one pointer type to another
     if (CastableExpression->GetResultType().IsPointerType() &&
         GetResultType().IsPointerType())
     {
         IRType t = GetIRTypeFromASTType(GetResultType());
-        Val->SetType(t);
-
-        return Val;
+        return IRF->CreateBitCast(Val, t);
     }
 
     // if a pointer type is cast to an integer type
