@@ -191,11 +191,12 @@ void BranchInstruction::Print() const
 
 void ReturnInstruction::Print() const
 {
-    std::string Format = "{Value}";
+    std::string Format = "{Value}\n";
 
     PrintInst();
     if (ReturnVal)
         fmt::print(Format, fmt::arg("Value", ReturnVal->ValueString()));
+
 }
 
 void StackAllocationInstruction::Print() const
