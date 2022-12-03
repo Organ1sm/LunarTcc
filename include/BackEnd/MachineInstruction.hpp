@@ -69,24 +69,24 @@ class MachineInstruction
 
     enum CmpRelation { Invalid, EQ, NE, LT, GT, LE, GE };
 
-    enum Flags : unsigned { IsLOAD = 1, IsSTORE = 1 << 1, IsEXPANDED = 1 << 2 };
+    enum Flags : unsigned {
+        IsLOAD     = 1,
+        IsSTORE    = 1 << 1,
+        IsEXPANDED = 1 << 2,
+        IsRETURN   = 1 << 3
+    };
 
     MachineInstruction() {}
     MachineInstruction(unsigned Opcode, MachineBasicBlock *Parent)
         : Opcode(Opcode), Parent(Parent)
     {
-        switch (Opcode)
-        {
-            case SExtLoad:
-            case ZExtLoad:
-            case Load: AddAttribute(IsLOAD); break;
-            case Store: AddAttribute(IsSTORE); break;
-            default: break;
-        }
+        UpdateAttributes();
     }
 
+    void UpdateAttributes();
+
     unsigned GetOpcode() const { return Opcode; }
-    void SetOpcode(unsigned Opcode) { this->Opcode = Opcode; }
+    void SetOpcode(unsigned Opcode);
 
     std::size_t GetOperandsNumber() const { return Operands.size(); }
 
@@ -123,6 +123,7 @@ class MachineInstruction
     bool IsStore() const { return Opcode == Store || (OtherAttributes & IsSTORE); }
     bool IsLoadOrStore() const { return IsLoad() || IsStore(); }
     bool IsInvalid() const { return Opcode == InvalidOp; }
+    bool IsReturn() const { return OtherAttributes & IsRETURN; }
 
     bool IsAlreadySelected() const { return Opcode < 65536; }
     bool IsAlreadyExpanded() const { return OtherAttributes & IsEXPANDED; }

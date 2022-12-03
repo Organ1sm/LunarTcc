@@ -40,6 +40,31 @@ void MachineInstruction::RemoveMemOperand()
     assert(!"Nothing was removed");
 }
 
+void MachineInstruction::UpdateAttributes()
+{
+    switch (Opcode)
+    {
+        case SExtLoad:
+        case ZExtLoad:
+        case Load: AddAttribute(IsLOAD); break;
+        case Store: AddAttribute(IsSTORE); break;
+        case Ret: AddAttribute(IsRETURN); break;
+
+        default: break;
+    }
+}
+
+void MachineInstruction::SetOpcode(unsigned int Opcode)
+{
+    this->Opcode = Opcode;
+
+    if (Opcode >= (1 << 16))
+    {
+        OtherAttributes = 0;
+        UpdateAttributes();
+    }
+}
+
 void MachineInstruction::AddRegister(uint64_t Reg, unsigned BitWidth)
 {
     AddOperand(MachineOperand::CreateRegister(Reg, BitWidth));
