@@ -1447,13 +1447,15 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
         }
 
         case UnaryOperation::Sizeof: {
-            uint64_t size         = 0;
-            Type TypeToBeExamined = ResultType;
+            uint64_t size = 0;
+            Type TypeToBeExamined;
 
             // if there was an expression used with sizeof,
             // use thats result type instead
             if (Expr)
                 TypeToBeExamined = Expr->GetResultType();
+            else // else use given type.
+                TypeToBeExamined = SizeOfType.value();
 
             size = GetIRTypeFromASTType(TypeToBeExamined)
                        .GetByteSize(IRF->GetTargetMachine());
@@ -1654,7 +1656,22 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
     {
         case LSL: return IRF->CreateLSL(L, R);
         case LSR: return IRF->CreateLSR(L, R);
-        case Add: return IRF->CreateAdd(L, R);
+        case Add: {
+            // pointer add: pointer + constantexprssion -> emit a gep
+            /* """
+             *   int arr[] = {1, 2, 3, 4};
+             *   int *ptr = arr;
+             *   ptr + 1 -> ptr + 1 * size(int) -> *(ptr + 1) == 2
+             *
+             * """
+             */
+
+            if (L->GetTypeRef().IsPointer() && R->IsConstant())
+                return IRF->CreateGEP(L->GetTypeRef(), L, R);
+
+            return IRF->CreateAdd(L, R);
+        }
+
         case Sub: return IRF->CreateSub(L, R);
         case Mul: return IRF->CreateMul(L, R);
         case Div: return IRF->CreateDiv(L, R);

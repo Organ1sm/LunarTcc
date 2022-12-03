@@ -169,8 +169,10 @@ MachineInstruction IRtoLLIR::HandleUnaryInstruction(UnaryInstruction *I)
     auto Operation = I->GetInstructionKind();
     auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
 
-    auto Result = GetMachineOperandFromValue((Value *)I, true);
+    auto Result = GetMachineOperandFromValue((Value *)I, true); 
     auto Op     = GetMachineOperandFromValue(I->GetOperand());
+
+
 
     ResultMI.AddOperand(Result);
     ResultMI.AddOperand(Op);
