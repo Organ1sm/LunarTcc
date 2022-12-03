@@ -215,8 +215,6 @@ bool AArch64InstructionLegalizer::ExpandCmp(MachineInstruction *MI)
     if (NextMI != nullptr && NextMI->GetOpcode() == MachineInstruction::Branch)
         return true;
 
-    {}
-    // TODO: add support for other relation cases like ne, gt, lt, etc...
     // otherwise cset instruction must be emitted
     unsigned Opcode;
     switch (MI->GetRelation())
@@ -230,7 +228,8 @@ bool AArch64InstructionLegalizer::ExpandCmp(MachineInstruction *MI)
 
         default: assert(!"Unhandled");
     }
-    auto CSET = MachineInstruction(AArch64::CSET_eq, nullptr);
+
+    auto CSET = MachineInstruction(Opcode, nullptr);
     CSET.AddOperand(*MI->GetOperand(0));
 
     // insert after MI
