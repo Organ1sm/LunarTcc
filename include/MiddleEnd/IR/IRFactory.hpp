@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 #include <memory>
 #include <map>
 #include "MiddleEnd/IR/Instruction.hpp"
@@ -110,7 +111,7 @@ class IRFactory
     Value *GetSymbolValue(const std::string &Identifier);
 
     Constant *GetConstant(uint64_t C, uint8_t BW = 32);
-    Constant *GetConstant(double C);
+    Constant *GetConstant(double C, unsigned BW = 64);
 
     std::vector<BasicBlock *> &GetLoopIncrementBBsTable();
 

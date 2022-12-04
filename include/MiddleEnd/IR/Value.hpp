@@ -2,8 +2,7 @@
 // Created by Organ1sm.
 //
 
-#ifndef LUNARTCC_VALUE_HPP
-#define LUNARTCC_VALUE_HPP
+#pragma once
 
 #include <cstdint>
 #include <variant>
@@ -53,7 +52,9 @@ class Constant : public Value
         : Value(Value::Const, IRType(IRType::UInt, BW)), Val(V)
     {}
 
-    Constant(double V) : Value(Value::Const, IRType(IRType::FP, 64)), Val(V) {}
+    Constant(double V, uint8_t BW = 32)
+        : Value(Value::Const, IRType(IRType::FP, BW)), Val(V)
+    {}
 
     uint64_t GetIntValue() const;
     double GetFloatValue() const;
@@ -117,5 +118,3 @@ class GlobalVariable : public Value
     std::string InitString;
     Value *InitValue {nullptr};
 };
-
-#endif    // LUNARTCC_VALUE_HPP

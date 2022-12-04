@@ -483,12 +483,12 @@ Constant *IRFactory::GetConstant(uint64_t C, uint8_t BW)
     return IntConstantPool[RequestedConstant].get();
 }
 
-Constant *IRFactory::GetConstant(double C)
+Constant *IRFactory::GetConstant(double C, unsigned BW)
 {
     if (auto ConstVal = FloatConstantPool[C].get(); ConstVal != nullptr)
         return ConstVal;
 
-    FloatConstantPool[C] = std::make_unique<Constant>(C);
+    FloatConstantPool[C] = std::make_unique<Constant>(C, BW);
     return FloatConstantPool[C].get();
 }
 

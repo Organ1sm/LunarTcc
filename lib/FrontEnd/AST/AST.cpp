@@ -535,6 +535,7 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
         case Type::UnsignedLong: ReturnType = IRType(IRType::UInt, 64); break;
         case Type::LongLong: ReturnType = IRType(IRType::SInt, 64); break;
         case Type::UnsignedLongLong: ReturnType = IRType(IRType::UInt, 64); break;
+        case Type::Float: ReturnType = IRType(IRType::FP, 32); break;
         case Type::Double: ReturnType = IRType(IRType::FP, 64); break;
         case Type::Void: ReturnType = IRType(IRType::None); break;
 
@@ -832,6 +833,7 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
         case Type::UnsignedLong: ReturnIRType = IRType(IRType::UInt, 64); break;
         case Type::LongLong: ReturnIRType = IRType(IRType::SInt, 64); break;
         case Type::UnsignedLongLong: ReturnIRType = IRType(IRType::UInt, 64); break;
+        case Type::Float: ReturnIRType = IRType(IRType::FP, 32); break;
         case Type::Double: ReturnIRType = IRType(IRType::FP, 64); break;
 
         case Type::Void: {
@@ -1021,18 +1023,29 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
     // fit into the desired Type
     if (Val->IsConstant())
     {
-        uint64_t DestBitSize = DestIRType.GetBitSize();
-        uint64_t mask        = ~0ull;
+        if (DestType.IsIntegerType() || DestType.IsPointerType())
+        {
+            uint64_t DestBitSize =
+                DestType.IsPointerType() ? TM->GetPointerSize() : DestIRType.GetBitSize();
 
-        // if the bit size is less than 64, then full 1s mask would be wrong, instead
-        // we need one which last @DestBitSize bit is 1 and others are 0
-        // example: DestBitSize = 16 -> mask = 0x0000_0000_0000_ffff
-        if (DestBitSize < 64)
-            mask = (1ull << DestBitSize) - 1;
+            uint64_t mask = ~0ull;
 
-        auto CV = static_cast<Constant *>(Val)->GetIntValue() & mask;
+            // if the bit size is less than 64, then full 1s mask would be wrong, instead
+            // we need one which last @DestBitSize bit is 1 and others are 0
+            // example: DestBitSize = 16 -> mask = 0x0000_0000_0000_ffff
+            if (DestBitSize < 64)
+                mask = (1ull << DestBitSize) - 1;
 
-        return IRF->GetConstant(CV, DestBitSize);
+            auto CV = static_cast<Constant *>(Val)->GetIntValue() & mask;
+
+            return IRF->GetConstant(CV, DestBitSize);
+        }
+
+        assert(DestType.IsFloatingPoint());
+
+        double ConvertedVal = static_cast<Constant *>(Val)->GetIntValue();
+
+        return IRF->GetConstant(ConvertedVal, DestIRType.GetBitSize());
     }
 
     // cast one pointer type to another

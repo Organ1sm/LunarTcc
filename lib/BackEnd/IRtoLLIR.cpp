@@ -793,6 +793,8 @@ MachineInstruction IRtoLLIR::HandleReturnInstruction(ReturnInstruction *I)
     if (I->GetRetVal() == nullptr)
         return ResultMI;
 
+    const bool IsFP = I->GetRetVal()->GetTypeRef().IsFP();
+
     // insert load to load in the return val to the return registers
     auto &TargetRetRegs = TM->GetABI()->GetReturnRegisters();
     if (I->GetRetVal()->GetTypeRef().IsStruct())
@@ -808,8 +810,13 @@ MachineInstruction IRtoLLIR::HandleReturnInstruction(ReturnInstruction *I)
         for (size_t i = 0; i < RegsCount; i++)
         {
             auto Instr = MachineInstruction(MachineInstruction::Load, CurrentBB);
+            auto Index = i;
 
-            Instr.AddRegister(TargetRetRegs[i]->GetID(), TargetRetRegs[i]->GetBitWidth());
+            if (IsFP)
+                Index += TM->GetABI()->GetFirstFPRetRegIdx();
+
+            Instr.AddRegister(TargetRetRegs[Index]->GetID(),
+                              TargetRetRegs[Index]->GetBitWidth());
             Instr.AddStackAccess(RetID, i * (TM->GetPointerSize() / 8));
 
             CurrentBB->InsertInstr(Instr);
@@ -818,16 +825,23 @@ MachineInstruction IRtoLLIR::HandleReturnInstruction(ReturnInstruction *I)
     else if (I->GetRetVal()->IsConstant())
     {
         auto &RetRegs = TM->GetABI()->GetReturnRegisters();
-        auto LoadImm  = MachineInstruction(MachineInstruction::LoadImm, CurrentBB);
+        MachineInstruction LoadImm;
+
+        if (IsFP)
+            LoadImm = MachineInstruction(MachineInstruction::MovF, CurrentBB);
+        else
+            LoadImm = MachineInstruction(MachineInstruction::LoadImm, CurrentBB);
 
         // TODO: make it target independent by searching for the right sized register,
         // do it like register allocator.
+        unsigned RetRegIdx = IsFP ? TM->GetABI()->GetFirstFPRetRegIdx() : 0;
         if (RetRegs[0]->GetBitWidth() == I->GetBitWidth())
-            LoadImm.AddRegister(RetRegs[0]->GetID(), RetRegs[0]->GetBitWidth());
+            LoadImm.AddRegister(RetRegs[RetRegIdx]->GetID(),
+                                RetRegs[RetRegIdx]->GetBitWidth());
         else
-            LoadImm.AddRegister(RetRegs[0]->GetSubRegs()[0],
+            LoadImm.AddRegister(RetRegs[RetRegIdx]->GetSubRegs()[0],
                                 TM->GetRegInfo()
-                                    ->GetRegisterByID(RetRegs[0]->GetSubRegs()[0])
+                                    ->GetRegisterByID(RetRegs[RetRegIdx]->GetSubRegs()[0])
                                     ->GetBitWidth());
 
         LoadImm.AddOperand(GetMachineOperandFromValue(I->GetRetVal()));
