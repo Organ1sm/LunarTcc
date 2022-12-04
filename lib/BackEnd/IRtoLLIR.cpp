@@ -94,8 +94,6 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, bool IsDef)
         auto Result   = MachineOperand::CreateParameter(Val->GetID());
         auto BitWidth = Val->GetBitWidth();
 
-        // FIXME: Only handling int params now, handle others too
-        // And add type to registers and others too
         if (Val->GetTypeRef().IsPointer())
             Result.SetType(LowLevelType::CreatePtr(TM->GetPointerSize()));
         else
@@ -111,7 +109,6 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, bool IsDef)
             C->IsFPType() ?
                 MachineOperand::CreateFPImmediate(C->GetFloatValue(), C->GetBitWidth()) :
                 MachineOperand::CreateImmediate(C->GetIntValue(), C->GetBitWidth());
-
 
         return Result;
     }
@@ -691,9 +688,9 @@ MachineInstruction IRtoLLIR::HandleGetElemPtrInstruction(GetElemPointerInstructi
             }
             // general case
             // MOV the multiplier into a register
-            // FIXME: this should not needed, only done because AArch64 does not
+            // TODO: this should not needed, only done because AArch64 does not
             // support immediate operands for MUL, this should be handled by the
-            // target legalizer
+            // target legalizer.
             else
             {
                 auto ImmediateVReg = ParentFunction->GetNextAvailableVirtualRegister();
@@ -1005,10 +1002,7 @@ void IRtoLLIR::HandleFunctionParams(Function &F, MachineFunction *Func)
             // max size that way, or the max possible size of parameter registers
             // but for AArch64 and RISC-V its sure the bit size of the architecture
 
-            // FIXME: The maximum allowed structure size which allowed to be passed
-            // by the target is target dependent. Remove the hardcoded value and
-            // ask the target for the right size.
-            unsigned MaxStructSize = 128;    // bit size
+            unsigned MaxStructSize = TM->GetABI()->GetMaxStructSizePassedByValue();
             for (size_t i = 0; i < MaxStructSize / TM->GetPointerSize(); i++)
             {
                 auto NextVReg = Func->GetNextAvailableVirtualRegister();

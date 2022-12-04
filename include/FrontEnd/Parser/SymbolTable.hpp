@@ -2,8 +2,7 @@
 // Created by Organ1sm.
 //
 
-#ifndef LUNARTCC_SYMBOLTABLE_HPP
-#define LUNARTCC_SYMBOLTABLE_HPP
+#pragma once
 
 #include "FrontEnd/AST/Type.hpp"
 #include <cassert>
@@ -36,7 +35,3 @@ class SymbolTableStack
   private:
     std::vector<Table> SymTabStack;
 };
-
-
-
-#endif    // LUNARTCC_SYMBOLTABLE_HPP

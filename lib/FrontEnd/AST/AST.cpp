@@ -973,12 +973,18 @@ Value *ArrayExpression::IRCodegen(IRFactory *IRF)
 
 Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
 {
-    auto SourceTypeVariant = CastableExpression->GetResultType().GetTypeVariant();
-    auto DestTypeVariant   = GetResultType().GetTypeVariant();
+    auto TM          = IRF->GetTargetMachine();
+    auto &SourceType = CastableExpression->GetResultType();
+    auto &DestType   = GetResultType();
 
-    assert(CastableExpression->GetResultType() != GetResultType() && "Pointless cast");
+    auto SourceTypeVariant = SourceType.GetTypeVariant();
+    auto DestTypeVariant   = DestType.GetTypeVariant();
+    auto SourceIRType      = GetIRTypeFromASTType(SourceType);
+    auto DestIRType        = GetIRTypeFromASTType(DestType);
 
-    if (CastableExpression->GetResultType().IsArray() && GetResultType().IsPointerType())
+    assert(SourceType != DestType && "Pointless cast");
+
+    if (SourceType.IsArray() && DestType.IsPointerType())
     {
         assert(SourceTypeVariant == DestTypeVariant);
 
@@ -995,15 +1001,15 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
             return StringLitExpr->IRCodegen(IRF);
         }
 
-        auto ReferID = RefExpr->GetIdentifier();
-        auto Res     = IRF->GetSymbolValue(ReferID);
+        auto ReferredSymbol = RefExpr->GetIdentifier();
+        auto Val            = IRF->GetSymbolValue(ReferredSymbol);
 
-        if (!Res)
-            Res = IRF->GetGlobalVar(ReferID);
-        assert(Res);
+        if (!Val)
+            Val = IRF->GetGlobalVar(ReferredSymbol);
+        assert(Val);
 
         auto GEP = IRF->CreateGEP(GetIRTypeFromASTType(GetResultType()),
-                                  Res,
+                                  Val,
                                   IRF->GetConstant((uint64_t)0));
 
         return GEP;
@@ -1015,11 +1021,9 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
     // fit into the desired Type
     if (Val->IsConstant())
     {
-        auto TypeByteSize =
-            GetIRTypeFromASTType(GetResultType()).GetByteSize(IRF->GetTargetMachine());
-        uint64_t DestBitSize = TypeByteSize * 8;
+        uint64_t DestBitSize = DestIRType.GetBitSize();
+        uint64_t mask        = ~0ull;
 
-        uint64_t mask = ~0ull;
         // if the bit size is less than 64, then full 1s mask would be wrong, instead
         // we need one which last @DestBitSize bit is 1 and others are 0
         // example: DestBitSize = 16 -> mask = 0x0000_0000_0000_ffff
@@ -1032,20 +1036,14 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
     }
 
     // cast one pointer type to another
-    if (CastableExpression->GetResultType().IsPointerType() &&
-        GetResultType().IsPointerType())
-    {
-        IRType t = GetIRTypeFromASTType(GetResultType());
-        return IRF->CreateBitCast(Val, t);
-    }
+    if (SourceType.IsPointerType() && DestType.IsPointerType())
+        return IRF->CreateBitCast(Val, DestIRType);
 
     // if a pointer type is cast to an integer type
-    else if (GetResultType().IsIntegerType() &&
-             CastableExpression->GetResultType().IsPointerType())
+    else if (DestType.IsIntegerType() && SourceType.IsPointerType())
     {
-        const auto TargetPtrSize = IRF->GetTargetMachine()->GetPointerSize();
-        const auto IntTypeSize =
-            GetIRTypeFromVK(GetResultType().GetTypeVariant()).GetBitSize();
+        const auto TargetPtrSize = TM->GetPointerSize();
+        const auto IntTypeSize   = DestIRType.GetBitSize();
 
         if (TargetPtrSize == IntTypeSize)
             return Val;
@@ -1058,144 +1056,48 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
     if (Type::OnlySignednessDifference(SourceTypeVariant, DestTypeVariant))
         return Val;
 
-    // TODO: simplify this garbage.
-    switch (SourceTypeVariant)
+    const auto SourceTypeBitSize = SourceIRType.GetBitSize();
+    const auto DestTypeBitSize   = DestIRType.GetBitSize();
+
+    const bool SourceIsInt  = SourceIRType.IsInt();
+    const bool SourceIsSInt = SourceIRType.IsSInt();
+    const bool SourceIsFP   = SourceIRType.IsFP();
+
+    const bool DestIsInt  = DestIRType.IsInt();
+    const bool DestIsSInt = DestIRType.IsSInt();
+    const bool DestIsFP   = DestIRType.IsFP();
+
+
+    /// Integer cast to Integer
+    if (SourceIsInt && DestIsInt)
     {
-        case Type::Char: {
-            if (DestTypeVariant == Type::Int)
-                return IRF->CreateSExt(Val, 32);
+        // If both have the same size, then nothing to do. This can happen
+        // for example in aarch64 case long and long long have the same size.
+        if (DestTypeBitSize == SourceTypeBitSize)
+            return Val;
 
-            if (DestTypeVariant == Type::UnsignedInt)
-                return IRF->CreateZExt(Val, 32);
-
-            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong)
-                return IRF->CreateSExt(Val, 64);
-
-            if (DestTypeVariant == Type::UnsignedLong ||
-                DestTypeVariant == Type::UnsignedLongLong)
-                return IRF->CreateZExt(Val, 64);
-
-            assert(!"Invalid conversion.");
+        // Sign/Zero extension case
+        if (DestTypeBitSize > SourceTypeBitSize)
+        {
+            if (SourceIsSInt && DestIsSInt)
+                return IRF->CreateSExt(Val, DestTypeBitSize);
+            else
+                return IRF->CreateZExt(Val, DestTypeBitSize);
         }
-
-        case Type::UnsignedChar: {
-            if (DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt)
-                return IRF->CreateZExt(Val, 32);
-
-            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong ||
-                DestTypeVariant == Type::UnsignedLong ||
-                DestTypeVariant == Type::UnsignedLongLong)
-
-                return IRF->CreateZExt(Val, 64);
-
-            assert(!"Invalid conversion.");
+        else
+        {
+            return IRF->CreateTrunc(Val, DestTypeBitSize);
         }
-
-        case Type::Short: {
-            if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
-                return IRF->CreateTrunc(Val, 8);
-            if (DestTypeVariant == Type::Int)
-                return IRF->CreateSExt(Val, 32);
-            if (DestTypeVariant == Type::UnsignedInt)
-                return IRF->CreateZExt(Val, 32);
-            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong)
-                return IRF->CreateSExt(Val, 64);
-            if (DestTypeVariant == Type::UnsignedLong ||
-                DestTypeVariant == Type::UnsignedLongLong)
-                return IRF->CreateZExt(Val, 64);
-            assert(!"Invalid conversion.");
-        }
-
-        case Type::UnsignedShort: {
-            if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
-                return IRF->CreateTrunc(Val, 8);
-            if (DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt)
-                return IRF->CreateZExt(Val, 32);
-            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong ||
-                DestTypeVariant == Type::UnsignedLong ||
-                DestTypeVariant == Type::UnsignedLongLong)
-                return IRF->CreateZExt(Val, 64);
-            assert(!"Invalid conversion.");
-        }
-
-        case Type::Int: {
-            if (DestTypeVariant == Type::Double)
-                return IRF->CreateIntToFloat(Val, 64);
-
-            if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
-                return IRF->CreateTrunc(Val, 8);
-
-            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong)
-                return IRF->CreateSExt(Val, 64);
-
-            if (DestTypeVariant == Type::UnsignedLong ||
-                DestTypeVariant == Type::UnsignedLongLong)
-
-                return IRF->CreateZExt(Val, 64);
-
-            assert(!"Invalid conversion.");
-        }
-
-        case Type::UnsignedInt: {
-            if (DestTypeVariant == Type::Double)
-                return IRF->CreateIntToFloat(Val, 32);
-
-            if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
-                return IRF->CreateTrunc(Val, 8);
-
-            if (DestTypeVariant == Type::Long || DestTypeVariant == Type::LongLong ||
-                DestTypeVariant == Type::UnsignedLong ||
-                DestTypeVariant == Type::UnsignedLongLong)
-
-                return IRF->CreateZExt(Val, 64);
-
-            assert(!"Invalid conversion.");
-        }
-
-        case Type::Long:
-        case Type::LongLong: {
-            if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
-                return IRF->CreateTrunc(Val, 8);
-
-            if ((DestTypeVariant == Type::Short ||
-                 DestTypeVariant == Type::UnsignedShort))
-                return IRF->CreateTrunc(Val, 16);
-
-            if ((DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt))
-                return IRF->CreateTrunc(Val, 32);
-
-            assert(!"Invalid conversion.");
-        }
-
-        case Type::UnsignedLong:
-        case Type::UnsignedLongLong: {
-            if ((DestTypeVariant == Type::Char || DestTypeVariant == Type::UnsignedChar))
-                return IRF->CreateTrunc(Val, 8);
-
-            if ((DestTypeVariant == Type::Int || DestTypeVariant == Type::UnsignedInt))
-                return IRF->CreateTrunc(Val, 32);
-
-            assert(!"Invalid conversion.");
-        }
-
-        case Type::Float: {
-            if (DestTypeVariant == Type::Int)
-                return IRF->CreateFloatToInt(Val, 32);
-
-            assert(!"Invalid conversion.");
-        }
-
-        case Type::Double: {
-            if (DestTypeVariant == Type::Int)
-                return IRF->CreateFloatToInt(Val, 64);
-
-            assert(!"Invalid conversion.");
-        }
-
-
-        default: assert(!"Invalid conversion.");
     }
+    else if (SourceIsFP && DestIsInt)
+        return IRF->CreateFloatToInt(Val, DestTypeBitSize);
+    else if (SourceIsInt && DestIsFP)
+        return IRF->CreateIntToFloat(Val, DestTypeBitSize);
+    else
+        assert(!"FP cast to FP is Unimplemented ");
 
+
+    assert(!"Unreachable");
     return nullptr;
 }
 
@@ -1454,7 +1356,7 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
             // use thats result type instead
             if (Expr)
                 TypeToBeExamined = Expr->GetResultType();
-            else // else use given type.
+            else    // else use given type.
                 TypeToBeExamined = SizeOfType.value();
 
             size = GetIRTypeFromASTType(TypeToBeExamined)
