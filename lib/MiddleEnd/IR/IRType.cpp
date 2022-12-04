@@ -167,6 +167,7 @@ std::size_t IRType::GetBaseTypeByteSize(TargetMachine *TM) const
 {
     auto CopyIRType = *this;
     CopyIRType.SetPointerLevel(0);
+    CopyIRType.GetDimensions().clear();
 
     return CopyIRType.GetByteSize(TM);
 }

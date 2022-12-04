@@ -67,7 +67,7 @@ class IRType
 
     IRType GetBaseType() const { return IRType(Kind, BitWidth); }
 
-    /// Get the size of the base type.
+    /// Get the size of the base type by ignoring the pointer level and dimensions.
     std::size_t GetBaseTypeByteSize(TargetMachine *TM = nullptr) const;
 
     std::string AsString() const;
