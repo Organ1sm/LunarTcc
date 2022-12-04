@@ -61,25 +61,33 @@ void PreAllocateReturnRegister(MachineFunction &Func,
     auto RetRegs      = TM->GetABI()->GetReturnRegisters();
     auto LastBBInstrs = Func.GetBasicBlocks().back().GetInstructions();
 
-    for (auto It = LastBBInstrs.rbegin(); It != LastBBInstrs.rend(); It++)
+    for (auto MBBIt = Func.GetBasicBlocks().rbegin();
+         MBBIt != Func.GetBasicBlocks().rend();
+         MBBIt++)
     {
-        // If return instruction
-        auto Opcode = It->GetOpcode();
-        if (auto TargetInstr = TM->GetInstrDefs()->GetTargetInstr(Opcode);
-            TargetInstr->IsReturn())
+        for (auto It = MBBIt->GetInstructions().rbegin();
+             It != MBBIt->GetInstructions().rend();
+             It++)
         {
-            // if the ret has no operands it means the function ret type is void and
-            // therefore does not need allocation for return registers
-            if (It->GetOperandsNumber() == 0)
-                continue;
+            // If return instruction
+            const auto Opcode = It->GetOpcode();
+            if (auto TargetInstr = TM->GetInstrDefs()->GetTargetInstr(Opcode);
+                TargetInstr->IsReturn())
+            {
+                // if the ret has no operands it means the function ret type is void and
+                // therefore does not need allocation for return registers
+                if (It->GetOperandsNumber() == 0)
+                    continue;
 
-            auto RetValSize = It->GetOperands()[0].GetSize();
+                const auto RetValSize = It->GetOperands()[0].GetSize();
 
-            if (RetValSize == RetRegs[0]->GetBitWidth())
-                AllocatedRegisters[It->GetOperand(0)->GetReg()] = RetRegs[0]->GetID();
-            else
-                AllocatedRegisters[It->GetOperand(0)->GetReg()] =
-                    RetRegs[0]->GetSubRegs()[0];
+                // find the appropriate sized target register for the return value.
+                if (RetValSize == RetRegs[0]->GetBitWidth())
+                    AllocatedRegisters[It->GetOperand(0)->GetReg()] = RetRegs[0]->GetID();
+                else
+                    AllocatedRegisters[It->GetOperand(0)->GetReg()] =
+                        RetRegs[0]->GetSubRegs()[0];
+            }
         }
     }
 }
