@@ -33,7 +33,7 @@ class MachineFunction
     void SetToCaller() { HasCall = true; }
     bool IsCaller() const { return HasCall; }
 
-    void InsertStackSlot(unsigned ID, unsigned Size);
+    void InsertStackSlot(unsigned ID, unsigned Size, unsigned Align = 4);
     void InsertParameter(unsigned ID,
                          LowLevelType LLT,
                          bool ImplicitStructPtr = false,

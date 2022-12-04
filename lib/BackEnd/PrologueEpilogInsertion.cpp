@@ -196,13 +196,17 @@ void PrologueEpilogInsertion::Run()
 
         for (auto CalleSavedReg : Func.GetUsedCalleeSavedRegs())
         {
-            Func.GetStackFrame().InsertStackSlot(NextStackSlot, TM->GetPointerSize() / 8);
+            Func.GetStackFrame().InsertStackSlot(NextStackSlot,
+                                                 TM->GetPointerSize() / 8,
+                                                 TM->GetPointerSize() / 8);
             LocalPhysRegToStackSlotMap[CalleSavedReg] = NextStackSlot++;
         }
 
         if (Func.IsCaller())
         {
-            Func.GetStackFrame().InsertStackSlot(NextStackSlot, 16);
+            Func.GetStackFrame().InsertStackSlot(NextStackSlot,
+                                                 TM->GetPointerSize() / 8,
+                                                 16);
             LocalPhysRegToStackSlotMap[TM->GetRegInfo()->GetLinkRegister()] =
                 NextStackSlot++;
         }

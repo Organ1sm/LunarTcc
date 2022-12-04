@@ -3,12 +3,12 @@
 #include "BackEnd/MachineInstruction.hpp"
 #include "fmt/core.h"
 
-void MachineFunction::InsertStackSlot(unsigned int ID, unsigned int Size)
+void MachineFunction::InsertStackSlot(unsigned int ID, unsigned int Size, unsigned Align)
 {
     if (NextVirtualReg <= ID)
         NextVirtualReg = ID + 1;
 
-    SF.InsertStackSlot(ID, Size);
+    SF.InsertStackSlot(ID, Size, Align);
 }
 
 void MachineFunction::InsertParameter(unsigned int ID,

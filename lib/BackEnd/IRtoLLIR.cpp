@@ -548,7 +548,9 @@ MachineInstruction IRtoLLIR::HandleCallInstruction(CallInstruction *I)
     {
         // FIXME: actual its not a vreg, but this make sure it will be a unique ID
         auto StackSlot = ParentFunction->GetNextAvailableVirtualRegister();
-        ParentFunction->InsertStackSlot(StackSlot, std::min(RetBitSize, MaxRegSize) / 8);
+        ParentFunction->InsertStackSlot(StackSlot,
+                                        std::min(RetBitSize, MaxRegSize) / 8,
+                                        std::min(RetBitSize, MaxRegSize) / 8);
         SpilledReturnValuesStackIDs.insert(StackSlot);
         IRVregToLLIRVreg[I->GetID()] = StackSlot;
 
@@ -979,7 +981,8 @@ void HandleStackAllocation(StackAllocationInstruction *Instr,
 
     Func->InsertStackSlot(Instr->GetID(),
                           IsPointer ? TM->GetPointerSize() / 8 :
-                                      ReferedType.GetByteSize());
+                                      ReferedType.GetByteSize(),
+                          ReferedType.GetBaseTypeByteSize());
 }
 
 void IRtoLLIR::HandleFunctionParams(Function &F, MachineFunction *Func)
