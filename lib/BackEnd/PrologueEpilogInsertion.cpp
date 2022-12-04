@@ -2,6 +2,7 @@
 #include "BackEnd/MachineFunction.hpp"
 #include "BackEnd/MachineIRModule.hpp"
 #include "BackEnd/TargetMachine.hpp"
+#include "BackEnd/TargetInstruction.hpp"
 #include "BackEnd/PrologueEpilogInsertion.hpp"
 #include "BackEnd/MachineBasicBlock.hpp"
 #include "BackEnd/Support.hpp"
@@ -80,8 +81,8 @@ void PrologueEpilogInsertion::InsertLinkRegisterReload(MachineFunction &Func)
     if (!TM->SelectInstruction(&LOAD))
         assert(!"Unable to select instruction");
 
-    auto &LastBB = Func.GetBasicBlocks().back();
-    LastBB.InsertInstr(LOAD, LastBB.GetInstructions().size() - 1);
+    auto &RetBB = Func.GetBasicBlocks()[MBBWithRetIdx];
+    RetBB.InsertInstr(LOAD, std::max(0, (int)RetBB.GetInstructions().size() - 1));
 }
 
 void PrologueEpilogInsertion::InsertStackAdjustmentUpward(MachineFunction &Func)
@@ -103,12 +104,10 @@ void PrologueEpilogInsertion::InsertStackAdjustmentDownward(MachineFunction &Fun
 
     MachineInstruction AddToSP = CreateAddInstruction(StackAdjustmentSize);
 
-    // NOTE: for now assuming that there is only one ret instruction and its
-    // the last one of the last basic block, so we want to insert above it
-    auto &LastBB = Func.GetBasicBlocks().back();
-    assert(LastBB.GetInstructions().size() > 0);
+    auto &RetBB = Func.GetBasicBlocks()[MBBWithRetIdx];
+    assert(RetBB.GetInstructions().size() > 0);
 
-    LastBB.InsertInstr(AddToSP, LastBB.GetInstructions().size() - 1);
+    RetBB.InsertInstr(AddToSP, RetBB.GetInstructions().size() - 1);
 }
 
 
@@ -174,12 +173,12 @@ void PrologueEpilogInsertion::SpillClobberedCalleeSavedRegisters(MachineFunction
 void PrologueEpilogInsertion::ReloadClobberedCalleeSavedRegisters(MachineFunction &Func)
 {
     unsigned Counter = 0;
-    auto &LastBB     = Func.GetBasicBlocks().back();
+    auto &RetBB      = Func.GetBasicBlocks()[MBBWithRetIdx];
 
     for (auto Reg : Func.GetUsedCalleeSavedRegs())
     {
         auto LOAD = CreateLoad(Func, Reg);
-        LastBB.InsertInstr(LOAD, LastBB.GetInstructions().size() - 1 - Counter);
+        RetBB.InsertInstr(LOAD, RetBB.GetInstructions().size() - 1 - Counter);
         Counter++;
     }
 }
@@ -192,6 +191,7 @@ void PrologueEpilogInsertion::Run()
             continue;
 
         LocalPhysRegToStackSlotMap.clear();
+        MBBWithRetIdx = ~0;
         NextStackSlot = 10000;
 
         for (auto CalleSavedReg : Func.GetUsedCalleeSavedRegs())
@@ -206,6 +206,23 @@ void PrologueEpilogInsertion::Run()
             LocalPhysRegToStackSlotMap[TM->GetRegInfo()->GetLinkRegister()] =
                 NextStackSlot++;
         }
+
+        for (std::size_t i = 0; i < Func.GetBasicBlocks().size(); i++)
+        {
+            for (auto &MI : Func.GetBasicBlocks()[i].GetInstructions())
+            {
+                if (TM->GetInstrDefs()->GetTargetInstr(MI.GetOpcode())->IsReturn())
+                {
+                    MBBWithRetIdx = i;
+                    break;
+                }
+            }
+
+            if (MBBWithRetIdx != ~0u)
+                break;
+        }
+
+        assert(MBBWithRetIdx != ~0u && "Have not found a return instruction");
 
         InsertStackAdjustmentUpward(Func);
         InsertLinkRegisterSave(Func);
