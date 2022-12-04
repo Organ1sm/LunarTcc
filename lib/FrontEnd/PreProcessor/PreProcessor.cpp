@@ -17,6 +17,7 @@ PreProcessor::PreProcessor(std::vector<std::string> &Src, std::string Path) : So
         FilePath.push_back('/');
 
     DefinedMacros["__LINE__"] = {"1", 0};
+    DefinedMacros["__FILE__"] = {"\"" + Path + "\"", 0};
 }
 
 void PreProcessor::ParseDirective(std::string &Line, std::size_t LineIdx)
