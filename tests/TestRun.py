@@ -65,26 +65,31 @@ def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases):
 
     testMain_C_TemPlate += "int main() {"
     testMain_C_TemPlate += "int res = $;"
-    testMain_C_TemPlate += r'  if (res != @) { printf("\nExpected: %d, Actual: %d\n", @, res); return 1; }'
-    testMain_C_TemPlate += "  return 0; }"
+    testMain_C_TemPlate += "  if (res != @) { "
+    testMain_C_TemPlate += r'   printf("\nExpected: %d, Actual: %d\n", @, res);'
+    testMain_C_TemPlate += "    return 1; "
+    testMain_C_TemPlate += "  }"
+    testMain_C_TemPlate += "  return 0;"
+    testMain_C_TemPlate += "}"
 
     commandList = [CompilerPath, fileName]
-    retCode = subprocess.run(commandList, stdout=subprocess.DEVNULL, timeout=10).returncode
+    retCode = subprocess.run(
+        commandList, stdout = subprocess.DEVNULL, timeout = 10).returncode
 
     if retCode != 0:
         return False
 
-    testAsm = subprocess.check_output(commandList).decode("utf-8")
+    testAsm=subprocess.check_output(commandList).decode("utf-8")
     CreateFile("test.s", testAsm)
 
     for case, expectedResult in TestCases:
-        currentTestMain = testMain_C_TemPlate
-        currentTestMain = currentTestMain.replace("$", case)
-        currentTestMain = currentTestMain.replace("@", expectedResult)
+        currentTestMain=testMain_C_TemPlate
+        currentTestMain=currentTestMain.replace("$", case)
+        currentTestMain=currentTestMain.replace("@", expectedResult)
 
         CreateFile("testMain.c", currentTestMain)
 
-        LinkCommandList = [
+        LinkCommandList=[
             Arch + "-linux-gnu-gcc",
             "testMain.c",
             "test.s",
@@ -92,7 +97,7 @@ def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases):
             "test",
             "-static",
             "-lm"
-        ] 
+        ]
         compileRet = subprocess.run(LinkCommandList).returncode
         if compileRet != 0:
             return False
@@ -149,9 +154,9 @@ console.print("|\t", passedTestsCount, "   [green]PASS[/green]", "\t\t|")
 console.print("|\t", len(failedTests), "   [red]FAIL[/red]", "\t\t|")
 console.print("---------------------------------\n")
 
-style = "bold yellow"
+style="bold yellow"
 if len(failedTests) > 0:
     print("Failed:")
 
 for case in failedTests:
-    console.print("   ", case, style=style)
+    console.print("   ", case, style = style)

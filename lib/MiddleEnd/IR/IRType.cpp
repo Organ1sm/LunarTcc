@@ -74,7 +74,7 @@ std::size_t IRType::GetByteSize(TargetMachine *TM) const
         for (std::size_t i = 0; i < Dimensions.size(); i++)
             NumberOfElements *= Dimensions[i];
 
-    if (IsStruct() && IsPointer())
+    if (IsStruct() && !IsPointer())
     {
         unsigned Result          = 0;
         const unsigned Alignment = GetStructMaxAlignment(TM);
