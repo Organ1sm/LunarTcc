@@ -212,7 +212,7 @@ unsigned AArch64RegisterInfo::GetRegClassFromReg(const unsigned Reg)
     else if (X0 <= Reg && Reg <= X31)
         return GPR64;
     else if (S0 <= Reg && Reg <= S31)
-        return GPR32;
+        return FPR32;
     else if (D0 <= Reg && Reg <= D31)
         return FPR64;
     else if (Reg == XZR || Reg == SP)
