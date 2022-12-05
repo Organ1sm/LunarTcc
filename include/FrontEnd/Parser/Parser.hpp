@@ -8,6 +8,7 @@
 #include "FrontEnd/AST/Type.hpp"
 #include "FrontEnd/Parser/SymbolTable.hpp"
 #include "MiddleEnd/IR/Value.hpp"
+#include "Utils/DiagnosticPrinter.hpp"
 
 class Node;
 class Expression;
@@ -48,7 +49,9 @@ class Parser
     std::unique_ptr<Node> Parse();
 
     Parser() = delete;
-    Parser(std::vector<std::string> &s, IRFactory *irf) : lexer(s), IRF(irf) {}
+    Parser(std::vector<std::string> &s, IRFactory *irf, DiagnosticPrinter &DP)
+        : lexer(s), IRF(irf), DiagPrinter(DP)
+    {}
 
     Token Lex() { return lexer.Lex(); }
     Token Expect(Token::TokenKind Token);
@@ -119,6 +122,8 @@ class Parser
                              const bool ToGlobal = false,
                              ValueType SymValue  = ValueType());
 
+    DiagnosticPrinter &GetDiagPrinter() { return DiagPrinter; }
+
   private:
     Lexer lexer;
     SymbolTableStack SymTabStack;
@@ -136,4 +141,6 @@ class Parser
 
     /// The amount of return seen in the current function.
     unsigned ReturnNumber = 0;
+
+    DiagnosticPrinter &DiagPrinter;
 };

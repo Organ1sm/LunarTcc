@@ -35,6 +35,7 @@ def CheckFile(fileName):
     Arch = ""
     FunctionDecls = []
     TestCases = []
+    NegativeTest = False
 
     with open(fileName) as file:
         for line in file:
@@ -52,7 +53,13 @@ def CheckFile(fileName):
             if m:
                 TestCases.append((m.group(1), m.group(2)))
                 continue
-    return Arch, FunctionDecls, TestCases
+
+            m = re.search(r'(?:/{2}|#) *COMPILE-FAIL', line)
+            if m:
+                NegativeTest = True
+                continue
+
+    return Arch, FunctionDecls, TestCases, NegativeTest
 
 
 def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases):
@@ -74,22 +81,22 @@ def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases):
 
     commandList = [CompilerPath, fileName]
     retCode = subprocess.run(
-        commandList, stdout = subprocess.DEVNULL, timeout = 10).returncode
+        commandList, stdout=subprocess.DEVNULL, timeout=10).returncode
 
     if retCode != 0:
         return False
 
-    testAsm=subprocess.check_output(commandList).decode("utf-8")
+    testAsm = subprocess.check_output(commandList).decode("utf-8")
     CreateFile("test.s", testAsm)
 
     for case, expectedResult in TestCases:
-        currentTestMain=testMain_C_TemPlate
-        currentTestMain=currentTestMain.replace("$", case)
-        currentTestMain=currentTestMain.replace("@", expectedResult)
+        currentTestMain = testMain_C_TemPlate
+        currentTestMain = currentTestMain.replace("$", case)
+        currentTestMain = currentTestMain.replace("@", expectedResult)
 
         CreateFile("testMain.c", currentTestMain)
 
-        LinkCommandList=[
+        LinkCommandList = [
             Arch + "-linux-gnu-gcc",
             "testMain.c",
             "test.s",
@@ -132,13 +139,16 @@ testSet.sort()
 for filePath in testSet:
     simplifyFilePath = filePath.replace(WorkDir, "")
     prettyFilePath = "[orange]" + simplifyFilePath + "[/orange]"
-    Arch, FunctionDeclarations, TestCases = CheckFile(filePath)
+    Arch, FunctionDeclarations, TestCases, NegativeTest = CheckFile(filePath)
 
     if Arch == "":
         continue
 
     success = CompileAndExecuteTestFile(
         filePath, Arch, FunctionDeclarations, TestCases)
+
+    if (NegativeTest and not success):
+        success = True
 
     testsCount += 1
     if success:
@@ -154,9 +164,9 @@ console.print("|\t", passedTestsCount, "   [green]PASS[/green]", "\t\t|")
 console.print("|\t", len(failedTests), "   [red]FAIL[/red]", "\t\t|")
 console.print("---------------------------------\n")
 
-style="bold yellow"
+style = "bold yellow"
 if len(failedTests) > 0:
     print("Failed:")
 
 for case in failedTests:
-    console.print("   ", case, style = style)
+    console.print("   ", case, style=style)

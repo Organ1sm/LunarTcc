@@ -1,5 +1,5 @@
 #include "BackEnd/Support.hpp"
-#include "Utils/ErrorLogger.hpp"
+#include "Utils/DiagnosticPrinter.hpp"
 #include <iostream>
 #include <fstream>
 

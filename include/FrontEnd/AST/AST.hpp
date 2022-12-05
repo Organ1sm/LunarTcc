@@ -12,7 +12,6 @@
 #include "FrontEnd/Lexer/Token.hpp"
 #include "FrontEnd/AST/Type.hpp"
 #include "FrontEnd/Parser/Parser.hpp"
-#include "Utils/ErrorLogger.hpp"
 
 class Value;
 class IRFactory;

@@ -1,5 +1,4 @@
-#ifndef LUNARTCC_SUPPORT_HPP
-#define LUNARTCC_SUPPORT_HPP
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -31,5 +30,3 @@ struct Filer
     static bool getFileContent(const std::string &fileName,
                                std::vector<std::string> &VecOfStrs);
 };
-
-#endif    // !LUNARTCC_SUPPORT_HPP

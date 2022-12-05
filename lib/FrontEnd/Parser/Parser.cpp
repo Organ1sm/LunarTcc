@@ -2,7 +2,7 @@
 #include "FrontEnd/AST/AST.hpp"
 #include "FrontEnd/Support.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
-#include "Utils/ErrorLogger.hpp"
+#include "Utils/DiagnosticPrinter.hpp"
 #include "fmt/core.h"
 #include <algorithm>
 #include <memory>
@@ -253,21 +253,18 @@ void DetermineUnspecifiedDimension(Expression *InitExpr, Type &type)
     }
 }
 
-static void UndefinedSymbolError(Token sym, Lexer &L)
+[[maybe_unused]] static void
+    UndefinedSymbolError(Token sym, Lexer &L, DiagnosticPrinter &DP)
 {
-    static std::string Format = ">  {}:{}: error: Undefined Symbol `{}`.\n\t\t{}\n\n";
+    auto Error = fmt::format("Undefined Symbol `{}`", sym.GetString());
 
-    PrintError(Format,
-               sym.GetLine() + 1,
-               sym.GetColumn() + 1,
-               sym.GetString(),
-               L.GetSource()[sym.GetLine()].substr(sym.GetColumn()));
+    DP.AddError(Error, sym);
 }
 
 [[maybe_unused]] static void ArrayTypeMismatchError(Token Sym, Type Actual)
 {
     static std::string Format =
-        ">  {}:{}: error: Function Type Mismatch `{}` , type is `{}`, it is not an array type.\n";
+        ":{}:{}: error: Function Type Mismatch `{}` , type is `{}`, it is not an array type.\n";
 
     PrintError(Format,
                Sym.GetLine() + 1,
@@ -276,22 +273,26 @@ static void UndefinedSymbolError(Token sym, Lexer &L)
                Actual.ToString());
 }
 
-void static EmitError(const std::string &msg, Lexer &L)
+void static EmitError(const std::string &msg, Lexer &L, DiagnosticPrinter &DP)
 {
-    static std::string Format = ">  {}: error: `{}`.\n\t\t{}\n\n";
+    static std::string Format = ">  {}: error: `{}`.\n\t\t{}\n";
 
-    PrintError(Format, L.GetLine(), msg, L.GetSource()[L.GetLine() - 1]);
+    auto Error = fmt::format(Format, L.GetLine(), msg, L.GetSource()[L.GetLine() - 1]);
+
+    DP.AddError(Error);
 }
 
-void static EmitError(const std::string &msg, Lexer &L, Token &T)
+void static EmitError(const std::string &msg, Lexer &L, Token &T, DiagnosticPrinter &DP)
 {
-    static std::string Format = ">  {}:{}: error: `{}`.\n\t\t{}\n\n";
+    static std::string Format = ">  {}:{}: error: `{}`.\n\t\t{}\n";
 
-    PrintError(Format,
-               T.GetLine() + 1,
-               T.GetColumn() + 1,
-               msg,
-               L.GetSource()[T.GetLine()]);
+    auto Error = fmt::format(Format,
+                             T.GetLine() + 1,
+                             T.GetColumn() + 1,
+                             msg,
+                             L.GetSource()[T.GetLine()]);
+
+    DP.AddError(Error);
 }
 
 Token Parser::Expect(Token::TokenKind TKind)
@@ -300,15 +301,10 @@ Token Parser::Expect(Token::TokenKind TKind)
 
     if (t.GetKind() != TKind)
     {
-        std::string Format =
-            ">  {}:{}: error: Unexpected Symbol `{}`. Expected is `{}`. \"{}\"\n\n";
+        std::string Format = "Unexpected Symbol `{}`. Expected is `{}`.";
+        auto Error         = fmt::format(Format, t.GetString(), Token::ToString(TKind));
 
-        PrintError(Format,
-                   t.GetLine() + 1,
-                   t.GetColumn() + 1,
-                   t.GetString(),
-                   Token::ToString(TKind),
-                   lexer.GetSource()[t.GetLine()]);
+        DiagPrinter.AddError(Error, t);
     }
 
     return t;
@@ -1496,7 +1492,7 @@ std::unique_ptr<Expression> Parser::ParseIdentifierExpression()
         RE->SetResultType(std::move(Ty));
     }
     else
-        UndefinedSymbolError(Id, lexer);
+        UndefinedSymbolError(Id, lexer, DiagPrinter);
 
     return RE;
 }
@@ -1545,7 +1541,7 @@ std::unique_ptr<Expression> Parser::ParseCallExpression(Token Id)
     if (auto SymEntry = SymTabStack.Contains(Id.GetString()))
         FuncType = std::get<1>(SymEntry.value());
     else
-        UndefinedSymbolError(Id, lexer);
+        UndefinedSymbolError(Id, lexer, DiagPrinter);
 
     std::vector<std::unique_ptr<Expression>> CallArgs;
 
@@ -1565,7 +1561,7 @@ std::unique_ptr<Expression> Parser::ParseCallExpression(Token Id)
     if (!(CallArgs.size() == 0 && FuncArgNum == 1 && FuncArgTypes[0] == Type::Void))
     {
         if (!FuncType.HasVarArg() && FuncArgNum != CallArgs.size())
-            EmitError("arguments number mismatch", lexer);
+            EmitError("arguments number mismatch", lexer, DiagPrinter);
 
         for (size_t i = 0; i < FuncArgNum; i++)
         {
@@ -1814,7 +1810,7 @@ std::unique_ptr<Expression>
             if (BinaryOperator.GetKind() == Token::Assign || IsCompositeAssignment)
             {
                 if (!Type::IsImplicitlyCastable(RightType, LeftType))
-                    EmitError("FuncType mismatch", lexer, BinaryOperator);
+                    EmitError("FuncType mismatch", lexer, BinaryOperator, DiagPrinter);
                 else
                     RightExpression = std::make_unique<ImplicitCastExpression>(
                         std::move(RightExpression),
@@ -1875,9 +1871,6 @@ std::unique_ptr<Expression> Parser::ParseTernaryExpression(ExprPtr Condition)
     return std::make_unique<TernaryExpression>(Condition, TrueExpr, FalseExpr);
 }
 
-// TODO: To report the location of error we would need the token holding the
-// symbol name. It would be wise anyway to save it in AST nodes rather than
-// just a string.
 void Parser::InsertToSymbolTable(const std::string &SymbolName,
                                  Type SymType,
                                  const bool ToGlobal,
@@ -1886,9 +1879,10 @@ void Parser::InsertToSymbolTable(const std::string &SymbolName,
     SymbolTableStack::Entry SymEntry(SymbolName, SymType, SymValue);
     if (SymTabStack.ContainsInCurrentScope(SymEntry))
     {
-        PrintError("Error: Symbol `{}` with type `{}` is already defined.\n\n",
-                   SymbolName,
-                   SymType.ToString());
+        std::string Format = "Symbol `{}` with type `{}` is already defined.\n";
+        auto Error         = fmt::format(Format, SymbolName, SymType.ToString());
+
+        DiagPrinter.AddError(Error);
     }
     else
     {

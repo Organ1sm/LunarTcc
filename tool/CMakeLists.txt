@@ -13,7 +13,7 @@ add_executable(
   ../lib/FrontEnd/PreProcessor/PreProcessor.cpp
   ../lib/FrontEnd/PreProcessor/PPToken.cpp
   ../lib/FrontEnd/PreProcessor/PPLexer.cpp
-  ../lib/Utils/ErrorLogger.cpp
+  ../lib/Utils/DiagnosticPrinter.cpp
   ../lib/MiddleEnd/IR/IRType.cpp
   ../lib/MiddleEnd/IR/Module.cpp
   ../lib/MiddleEnd/IR/Function.cpp
@@ -51,3 +51,6 @@ add_executable(
 )
 
 target_link_libraries(LunarTcc PRIVATE fmt::fmt)
+
+add_executable(test test.cpp)
+target_link_libraries(test PRIVATE fmt::fmt)
