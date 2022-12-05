@@ -1,5 +1,5 @@
 #include "FrontEnd/AST/ASTPrint.hpp"
-#include "Utils/ErrorLogger.hpp"
+#include "Utils/DiagnosticPrinter.hpp"
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include "FrontEnd/AST/AST.hpp"
 #include "FrontEnd/Parser/Parser.hpp"
@@ -34,8 +34,10 @@ int main(int argc, char *argv[])
     bool DumpAst              = false;
     bool DumpIR               = false;
     bool DumpPreProcessedFile = false;
-    std::string TargetArch    = "aarch64";
     bool PrintBeforePasses    = false;
+    bool Wall                 = false;
+
+    std::string TargetArch = "aarch64";
 
     for (auto i = 1; i < argc; ++i)
     {
@@ -49,6 +51,11 @@ int main(int argc, char *argv[])
             if (!option.compare("dump-tokens"))
             {
                 DumpTokens = true;
+                continue;
+            }
+            else if (!option.compare("Wall"))
+            {
+                Wall = true;
                 continue;
             }
             else if (!option.compare("dump-ast"))
@@ -125,9 +132,16 @@ int main(int argc, char *argv[])
 
     Module IRModule;
     IRFactory IRF(IRModule, TM.get());
-    Parser parser(src, &IRF);
+    DiagnosticPrinter DP(FilePath, src);
+    Parser parser(src, &IRF, DP);
 
     auto AST = parser.Parse();
+
+    if (DP.HasErrors(Wall))
+    {
+        DP.ReportErrors();
+        exit(1);
+    }
 
     if (DumpAst)
     {

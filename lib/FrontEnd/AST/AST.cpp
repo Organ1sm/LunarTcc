@@ -8,7 +8,7 @@
 #include "MiddleEnd/IR/Instruction.hpp"
 #include "MiddleEnd/IR/Value.hpp"
 #include "BackEnd/TargetMachine.hpp"
-#include "Utils/ErrorLogger.hpp"
+#include "Utils/DiagnosticPrinter.hpp"
 #include "fmt/core.h"
 #include <cassert>
 #include <cstdint>

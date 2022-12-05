@@ -1,6 +1,6 @@
 #include "FrontEnd/AST/AST.hpp"
 #include "FrontEnd/AST/ASTPrint.hpp"
-#include "Utils/ErrorLogger.hpp"
+#include "Utils/DiagnosticPrinter.hpp"
 #include "fmt/core.h"
 
 void ASTPrint::VisitVariableDeclaration(const VariableDeclaration *node)
