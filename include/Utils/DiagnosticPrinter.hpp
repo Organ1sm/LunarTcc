@@ -28,8 +28,8 @@ class DiagnosticPrinter
     };
 
   public:
-    DiagnosticPrinter(const std::string &FileName, const std::vector<std::string> &Source)
-        : FileName(FileName), Source(Source)
+    DiagnosticPrinter(std::string FileName, std::vector<std::string> Source)
+        : FileName(std::move(FileName)), Source(std::move(Source))
     {}
 
     void AddMessage(const std::string &Msg);
@@ -45,7 +45,7 @@ class DiagnosticPrinter
     void AddNote(const std::string &Msg);
     void AddNote(const std::string &Msg, const Token &T);
 
-    bool HasErrors(const bool Wall = false) const;
+    bool HasErrors(bool Wall = false) const;
 
     void ReportErrors() const;
 

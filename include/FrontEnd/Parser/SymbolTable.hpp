@@ -19,7 +19,7 @@ class SymbolTableStack
     using Table = std::vector<Entry>;
 
     // Adding the first empty table
-    SymbolTableStack() { SymTabStack.emplace_back(Table()); }
+    SymbolTableStack() { SymTabStack.emplace_back(); }
 
     void PushSymbolTable(Table t = Table());
     Table PopSymbolTable();

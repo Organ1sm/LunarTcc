@@ -1704,7 +1704,7 @@ Type FunctionDeclaration::CreateType(const Type &t,
 {
     Type funcType(t);
 
-    for (auto &Argument : params)
+    for (const auto &Argument : params)
     {
         auto type = Argument->GetType();
         funcType.GetArgTypes().push_back(type);
@@ -1712,7 +1712,7 @@ Type FunctionDeclaration::CreateType(const Type &t,
 
     // if there are no arguments then set it to void
     if (params.empty())
-        funcType.GetArgTypes().push_back(Type::Void);
+        funcType.GetArgTypes().emplace_back(Type::Void);
 
     return funcType;
 }

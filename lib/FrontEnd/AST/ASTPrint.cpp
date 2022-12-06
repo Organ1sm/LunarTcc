@@ -71,7 +71,7 @@ void ASTPrint::VisitFunctionDeclaration(const FunctionDeclaration *node)
 
     tab += 2;
 
-    for (auto &Argument : node->GetArguments())
+    for (const auto &Argument : node->GetArguments())
         Argument->Accept(this);
 
     if (node->GetBody())
@@ -96,7 +96,7 @@ void ASTPrint::VisitCompoundStatement(const CompoundStatement *node)
 
     tab += 2;
 
-    for (auto &s : node->GetStatements())
+    for (const auto &s : node->GetStatements())
         s->Accept(this);
 
     tab -= 2;
@@ -324,7 +324,7 @@ void ASTPrint::VisitCallExpression(const CallExpression *node)
 
     tab += 2;
 
-    for (auto &Argument : node->GetArguments())
+    for (const auto &Argument : node->GetArguments())
         Argument->Accept(this);
 
     tab -= 2;
@@ -400,7 +400,7 @@ void ASTPrint::VisitInitializerListExpression(const InitializerListExpression *n
 
     tab += 2;
 
-    for (auto &E : node->GetExprList())
+    for (const auto &E : node->GetExprList())
         E->Accept(this);
 
     tab -= 2;
@@ -412,7 +412,7 @@ void ASTPrint::VisitTranslationUnit(const TranslationUnit *node)
 
     tab += 2;
 
-    for (auto &Declaration : node->GetDeclarations())
+    for (const auto &Declaration : node->GetDeclarations())
         Declaration->Accept(this);
 
     tab -= 2;

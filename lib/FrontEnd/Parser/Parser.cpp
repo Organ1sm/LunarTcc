@@ -878,7 +878,7 @@ std::unique_ptr<IfStatement> Parser::ParseIfStatement()
     Expect(Token::LeftParen);
     IS->SetCondition(std::move(ParseExpression()));
     Expect(Token::RightParen);
-    IS->SetIfBody(std::move(ParseStatement()));
+    IS->SetIfBody(ParseStatement());
 
     if (lexer.Is(Token::Else))
     {
@@ -911,19 +911,25 @@ std::unique_ptr<SwitchStatement> Parser::ParseSwitchStatement()
     while (lexer.Is(Token::Case) || lexer.Is(Token::Default))
     {
         const bool IsCase = lexer.Is(Token::Case);
-        Token T           = Lex();    // eat 'case' or 'default'
+        Token Label       = Lex();    // eat 'case' or 'default'
 
         std::unique_ptr<Expression> CaseExpr;
 
         if (IsCase)
             CaseExpr = ParseExpression();
 
+        if (CaseExpr == nullptr && IsCase)
+        {
+            std::string msg {"expected expression here"};
+            DiagPrinter.AddError(msg, Label);
+        }
+
         Expect(Token::Colon);
 
         StmtPtrVec Statements;
         while (lexer.IsNot(Token::RightBrace) && lexer.IsNot(Token::Case) &&
                lexer.IsNot(Token::Default))
-            Statements.push_back(std::move(ParseStatement()));
+            Statements.push_back(ParseStatement());
 
         if (IsCase)
         {
@@ -936,7 +942,7 @@ std::unique_ptr<SwitchStatement> Parser::ParseSwitchStatement()
             if (FoundDefaults > 1)
             {
                 std::string ErrMsg = "multiple default labels in one switch";
-                EmitError(ErrMsg, lexer, T, DiagPrinter);
+                DiagPrinter.AddError(ErrMsg, Label);
             }
             else
                 SS->SetDefaultBody(std::move(Statements));
@@ -973,9 +979,9 @@ std::unique_ptr<WhileStatement> Parser::ParseWhileStatement()
     auto WS = std::make_unique<WhileStatement>();
     Expect(Token::While);
     Expect(Token::LeftParen);
-    WS->SetCondition(std::move(ParseExpression()));
+    WS->SetCondition(ParseExpression());
     Expect(Token::RightParen);
-    WS->SetBody(std::move(ParseStatement()));
+    WS->SetBody(ParseStatement());
 
     return WS;
 }
@@ -986,11 +992,11 @@ std::unique_ptr<DoWhileStatement> Parser::ParseDoWhileStatement()
     auto DWS = std::make_unique<DoWhileStatement>();
 
     Expect(Token::Do);
-    DWS->SetBody(std::move(ParseStatement()));
+    DWS->SetBody(ParseStatement());
     Expect(Token::While);
 
     Expect(Token::LeftParen);
-    DWS->SetCondition(std::move(ParseExpression()));
+    DWS->SetCondition(ParseExpression());
     Expect(Token::RightParen);
     Expect(Token::SemiColon);
 
@@ -1018,17 +1024,17 @@ std::unique_ptr<ForStatement> Parser::ParseForStatement()
     }
     else
     {
-        FS->SetInit(std::move(ParseExpression()));
+        FS->SetInit(ParseExpression());
         Expect(Token::SemiColon);
     }
 
-    FS->SetCondition(std::move(ParseExpression()));
+    FS->SetCondition(ParseExpression());
     Expect(Token::SemiColon);
 
-    FS->SetIncrement(std::move(ParseExpression()));
+    FS->SetIncrement(ParseExpression());
     Expect(Token::RightParen);
 
-    FS->SetBody(std::move(ParseStatement()));
+    FS->SetBody(ParseStatement());
 
     SymTabStack.PopSymbolTable();
 
@@ -1052,7 +1058,7 @@ std::unique_ptr<ReturnStatement> Parser::ParseReturnStatement()
     if (LeftType != RightType)
     {
         std::unique_ptr<Expression> CastExpr =
-            std::make_unique<ImplicitCastExpression>(std::move(Expr), LeftType);
+            std::make_unique<ImplicitCastExpression>(std::move(Expr), Type(LeftType));
 
         RS = std::make_unique<ReturnStatement>(std::move(CastExpr));
     }
@@ -1096,7 +1102,7 @@ std::unique_ptr<ExpressionStatement> Parser::ParseExpressionStatement()
     auto ES = std::make_unique<ExpressionStatement>();
 
     if (lexer.IsNot(Token::SemiColon))
-        ES->SetExpression(std::move(ParseExpression()));
+        ES->SetExpression(ParseExpression());
     Expect(Token::SemiColon);
 
     return ES;
@@ -1401,16 +1407,16 @@ std::unique_ptr<Expression> Parser::ParseUnaryExpression()
 
     if (IsUnaryOperator(GetCurrentTokenKind()))
     {
-        auto Expr = ParseUnaryExpression();
+        auto UnaryExpr = ParseUnaryExpression();
 
         if (hasSizeof)
             Expect(Token::RightParen);
 
         if (UnaryOperation.GetKind() == Token::Inc ||
             UnaryOperation.GetKind() == Token::Dec)
-            Expr->SetLValueness(true);
+            UnaryExpr->SetLValueness(true);
 
-        return std::make_unique<UnaryExpression>(UnaryOperation, std::move(Expr));
+        return std::make_unique<UnaryExpression>(UnaryOperation, std::move(UnaryExpr));
     }
 
     // TODO: Add semantic check that only pointer types are dereferenced
@@ -1478,12 +1484,12 @@ std::unique_ptr<Expression> Parser::ParseIdentifierExpression()
             return std::make_unique<IntegerLiteralExpression>(Val.GetIntVal());
 
         auto Ty = std::get<1>(SymEntry.value());
-        RE->SetResultType(Ty);
+        RE->SetType(Ty);
     }
     else if (UserDefinedTypes.count(IdStr) > 0)
     {
         auto Ty = std::get<0>(UserDefinedTypes[IdStr]);
-        RE->SetResultType(std::move(Ty));
+        RE->SetType(Ty);
     }
 
     return RE;
@@ -1512,9 +1518,9 @@ std::unique_ptr<Expression> Parser::ParseInitializerListExpression()
     {
         Lex();    // eat ','
         if (lexer.Is(Token::LeftBrace))
-            ExprList.push_back(std::move(ParseInitializerListExpression()));
+            ExprList.push_back(ParseInitializerListExpression());
         else
-            ExprList.push_back(std::move(ParseConstantExpression()));
+            ExprList.push_back(ParseConstantExpression());
     }
 
     Expect(Token::RightBrace);
@@ -1548,7 +1554,7 @@ std::unique_ptr<Expression> Parser::ParseCallExpression(Token Id)
     // a type of ...(void), which is a special case checked first.
     auto FuncArgTypes = FuncType.GetArgTypes();
     auto FuncArgNum   = FuncArgTypes.size();
-    if (!(CallArgs.size() == 0 && FuncArgNum == 1 && FuncArgTypes[0] == Type::Void))
+    if (!(CallArgs.size() == 0 && FuncArgNum == 1 && FuncArgTypes[0] == Type(Type::Void)))
     {
         for (size_t i = 0; i < std::min(FuncArgNum, CallArgs.size()); i++)
         {
@@ -1651,27 +1657,27 @@ std::unique_ptr<Expression> Parser::ParseConstantExpression()
             if (Str == "u")
             {
                 Lex();
-                IntLitExpr->SetResultType(Type::UnsignedInt);
+                IntLitExpr->SetType(Type(Type::UnsignedInt));
             }
             else if (Str == "l")
             {
                 Lex();
-                IntLitExpr->SetResultType(Type::Long);
+                IntLitExpr->SetType(Type(Type::Long));
             }
             else if (Str == "ul")
             {
                 Lex();
-                IntLitExpr->SetResultType(Type::UnsignedLong);
+                IntLitExpr->SetType(Type(Type::UnsignedLong));
             }
             else if (Str == "ll")
             {
                 Lex();
-                IntLitExpr->SetResultType(Type::LongLong);
+                IntLitExpr->SetType(Type(Type::LongLong));
             }
             else if (Str == "ull")
             {
                 Lex();
-                IntLitExpr->SetResultType(Type::UnsignedLongLong);
+                IntLitExpr->SetType(Type(Type::UnsignedLongLong));
             }
         }
 
@@ -1770,15 +1776,15 @@ std::unique_ptr<Expression>
 
         int NextTokenPrec = GetBinOpPrecedence(GetCurrentTokenKind());
 
-        int Associviaty = 1;    // left associative
+        int Associativity = 1;    // left associative
         if (BinaryOperator.GetKind() == Token::Assign)
         {
-            Associviaty = 0;    // right associative
+            Associativity = 0;    // right associative
             NextTokenPrec++;
         }
 
         if (TokenPrec < NextTokenPrec)
-            RightExpression = ParseBinaryExpressionRHS(TokenPrec + Associviaty,
+            RightExpression = ParseBinaryExpressionRHS(TokenPrec + Associativity,
                                                        std::move(RightExpression));
 
         // Implicit Cast Insertion if needed.
@@ -1799,12 +1805,12 @@ std::unique_ptr<Expression>
             else if (Type::IsImplicitlyCastable(RightType, LeftType) ||
                      Type::IsImplicitlyCastable(LeftType, RightType))
             {
-                auto DesiredType = Type::GetStrongestType(LeftType.GetTypeVariant(),
-                                                          RightType.GetTypeVariant())
-                                       .GetTypeVariant();
+                auto DesiredType =
+                    Type::GetStrongestType(LeftType, RightType).GetTypeVariant();
 
-                const bool LeftIsPtr          = LeftType.IsPointerType();
-                const bool LeftNeedConversion = (LeftType != DesiredType) && (!LeftIsPtr);
+                const bool LeftIsPtr = LeftType.IsPointerType();
+                const bool LeftNeedConversion =
+                    (LeftType != Type(DesiredType)) && (!LeftIsPtr);
 
                 // if LHS needs the conversion.
                 if (LeftNeedConversion)

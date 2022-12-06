@@ -16,7 +16,7 @@ class PPLexer
     int GetNextChar();
     int GetNextNthCharOnSameLine(unsigned n);
 
-    /// Update LineIndex to make them pointing to the next input character
+    /// Update LineIndex to make them point to the next input character
     void EatNextChar();
 
     std::optional<PPToken> LexIdentifier();

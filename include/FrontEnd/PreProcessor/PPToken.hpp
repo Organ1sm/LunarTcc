@@ -31,13 +31,13 @@ class PPToken
     };
 
     PPToken() : Kind(Invalid) {}
-    PPToken(PPTokenKind TK) : Kind(TK) {}
+    explicit PPToken(PPTokenKind TK) : Kind(TK) {}
     PPToken(PPTokenKind TK, std::string_view sv) : Kind(TK), StringValue(sv) {}
 
-    std::string GetString() const { return std::string(StringValue); }
-    PPTokenKind GetKind() const { return Kind; }
+    [[nodiscard]] std::string GetString() const { return std::string(StringValue); }
+    [[nodiscard]] PPTokenKind GetKind() const { return Kind; }
 
-    std::string ToString() const;
+    [[nodiscard]] std::string ToString() const;
     static std::string ToString(PPTokenKind TK);
 
     bool IsKeyword() const { return Kind >= Define; }
