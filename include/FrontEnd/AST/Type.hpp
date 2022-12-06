@@ -82,6 +82,7 @@ class Type
     bool IsConst() const { return Qualifiers & Const; }
     bool IsTypeDef() const { return Qualifiers & TypeDef; }
 
+    bool IsVoid() const { return Ty == Void && !IsPointerType(); }
     bool IsFloatingPoint() const { return Ty == Double || Ty == Float; }
     bool IsIntegerType() const;
     bool IsUnsigned() const;

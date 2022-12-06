@@ -198,6 +198,12 @@ bool Type::IsImplicitlyCastable(const Type from, const Type to)
     const auto IsFromArray = from.IsArray();
     const auto IsToPtr     = to.IsPointerType();
 
+
+    // function assignment case
+    if ((from.IsFunction() && !to.IsPointerType()) ||
+        (to.IsFunction() && !from.IsPointerType()))
+        return false;
+
     // from integer type to pointer
     if (IsToPtr && from.IsIntegerType())
         return true;
@@ -250,17 +256,39 @@ bool Type::OnlySignednessDifference(const Type::VariantKind V1,
 bool operator==(const Type &lhs, const Type &rhs)
 {
     bool result = lhs.Kind == rhs.Kind && lhs.Ty == rhs.Ty;
-    result      = result && lhs.GetPointerLevel() == rhs.GetPointerLevel();
+    result &= lhs.GetPointerLevel() == rhs.GetPointerLevel();
 
     if (!result)
         return false;
 
+
+    if (lhs.ParamList.size() != rhs.ParamList.size())
+        return false;
+
+    // at this point both type's parameter list has the same size
+    if (lhs.ParamList.size() > 0)
+    {
+        for (size_t i = 0; i < lhs.ParamList.size(); i++)
+            if (lhs.ParamList[i] != rhs.ParamList[i])
+                return false;
+    }
+
     switch (lhs.Kind)
     {
-        case Type::Array: result = result && (lhs.Dimensions == rhs.Dimensions); break;
+        case Type::Array: {
+            if (lhs.Dimensions.size() != rhs.Dimensions.size())
+                return false;
+            else
+                for (size_t i = 0; i < lhs.Dimensions.size(); i++)
+                    if (lhs.Dimensions[i] != rhs.Dimensions[i])
+                        return false;
+        }
+        break;
+
         default: break;
     }
-    return result;
+
+    return true;
 }
 
 bool operator!=(const Type &lhs, const Type &rhs) { return !(lhs == rhs); }

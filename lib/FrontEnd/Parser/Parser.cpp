@@ -74,12 +74,12 @@ bool Parser::IsQualifedType(Token T)
     return IsQualifer(T.GetKind()) || IsTypeSpecifier(T);
 }
 
-bool Parser::IsUserDefinedType(std::string Name)
+bool Parser::IsUserDefinedType(const std::string &Name)
 {
     return UserDefinedTypes.count(Name) > 0 || TypeDefinitions.count(Name);
 }
 
-Type Parser::GetUserDefinedType(std::string Name)
+Type Parser::GetUserDefinedType(const std::string &Name)
 {
     assert(IsUserDefinedType(Name));
 
@@ -89,7 +89,7 @@ Type Parser::GetUserDefinedType(std::string Name)
         return TypeDefinitions[Name];
 }
 
-std::vector<std::string> Parser::GetUserDefinedTypeMembers(std::string Name)
+std::vector<Token> Parser::GetUserDefinedTypeMembers(std::string Name)
 {
     assert(IsUserDefinedType(Name));
 
@@ -246,7 +246,7 @@ void DetermineUnspecifiedDimension(Expression *InitExpr, Type &type)
     if (auto InitListExpr = dynamic_cast<InitializerListExpression *>(InitExpr);
         InitListExpr != nullptr && type.GetDimensions()[0] == Parser::EmptyDimension)
     {
-        // TODO: only 1 dimensional init list are handled here now, altough C
+        // TODO: only 1 dimensional init list are handled here now, although C
         // only allows the first dimension to be a unspecified so arr[][] would
         // be invalid anyway
         type.GetDimensions()[0] = InitListExpr->GetExprList().size();
@@ -275,24 +275,12 @@ void DetermineUnspecifiedDimension(Expression *InitExpr, Type &type)
 
 void static EmitError(const std::string &msg, Lexer &L, DiagnosticPrinter &DP)
 {
-    static std::string Format = ">  {}: error: `{}`.\n\t\t{}\n";
-
-    auto Error = fmt::format(Format, L.GetLine(), msg, L.GetSource()[L.GetLine() - 1]);
-
-    DP.AddError(Error);
+    DP.AddError(msg);
 }
 
 void static EmitError(const std::string &msg, Lexer &L, Token &T, DiagnosticPrinter &DP)
 {
-    static std::string Format = ">  {}:{}: error: `{}`.\n\t\t{}\n";
-
-    auto Error = fmt::format(Format,
-                             T.GetLine() + 1,
-                             T.GetColumn() + 1,
-                             msg,
-                             L.GetSource()[T.GetLine()]);
-
-    DP.AddError(Error);
+    DP.AddError(msg, T);
 }
 
 Token Parser::Expect(Token::TokenKind TKind)
@@ -488,10 +476,10 @@ std::unique_ptr<Node> Parser::ParseExternalDeclaration()
                 if (CurrentType.IsArray() && !CurrentType.GetDimensions().empty())
                     DetermineUnspecifiedDimension(InitExpr.get(), CurrentType);
 
-                InsertToSymbolTable(NameStr, CurrentType);
+                InsertToSymbolTable(Name, CurrentType);
 
                 TU->AddDeclaration(
-                    std::make_unique<VariableDeclaration>(NameStr,
+                    std::make_unique<VariableDeclaration>(Name,
                                                           CurrentType,
                                                           std::move(InitExpr)));
 
@@ -535,11 +523,10 @@ std::unique_ptr<FunctionDeclaration>
     Expect(Token::RightParen);
 
     auto FuncType = FunctionDeclaration::CreateType(ReturnType, PL);
-    auto NameStr  = Name.GetString();
     if (HasVarArg)
         FuncType.SetVarArg(true);
 
-    InsertToSymbolTable(NameStr, FuncType, true);
+    InsertToSymbolTable(Name, FuncType, true);
 
     this->ReturnNumber = 0;
     std::unique_ptr<CompoundStatement> Body {nullptr};
@@ -550,11 +537,7 @@ std::unique_ptr<FunctionDeclaration>
 
     SymTabStack.PopSymbolTable();
 
-    return std::make_unique<FunctionDeclaration>(FuncType,
-                                                 NameStr,
-                                                 PL,
-                                                 Body,
-                                                 ReturnNumber);
+    return std::make_unique<FunctionDeclaration>(FuncType, Name, PL, Body, ReturnNumber);
 }
 
 // <ParameterDeclaration> ::= { <TypeSpecifier> '*' <Identifier>? }?
@@ -577,16 +560,9 @@ std::unique_ptr<FunctionParameterDeclaration> Parser::ParseParameterDeclaration(
             Lex();    // Eat the `*` character
         }
 
-        bool OnlySupportVoidPtrInParam =
-            !(Ty.GetTypeVariant() == Type::Void && Ty.GetPointerLevel() == 0 &&
-              lexer.IsNot(Token::RightParen));
-
-        assert(OnlySupportVoidPtrInParam &&
-               "void can only be pointer type for a parameter or standing alone");
-
         if (lexer.Is(Token::Identifier))
         {
-            auto IdName = Lex().GetString();
+            auto IdName = Expect(Token::Identifier);
             FPD->SetName(IdName);
 
             // support only empty dimensions for now like "int foo(int arr[]) "
@@ -647,7 +623,10 @@ Type Parser::ParseTypeSpecifier()
     }
 
     if (!IsTypeSpecifier(TK) || (Qualifiers & Type::TypeDef))
-        assert(!"Invalid type");
+        EmitError(fmt::format("Unexpected token '{}'", TK.GetString()),
+                  lexer,
+                  TK,
+                  DiagPrinter);
 
     auto ParsedType = ParseType(TK.GetKind());
     ParsedType.SetQualifiers(Qualifiers);
@@ -659,13 +638,13 @@ Node Parser::ParseReturnTypeSpecifier() { return Node(); }
 
 // <VariableDeclarationList> ::= <TypeSpecifier> <VariableDeclaration>
 //                             |               {,<VariableDeclaration>} ';'
-std::vector<std::unique_ptr<Statement>> Parser::ParseVariableDeclarationList()
+std::vector<std::unique_ptr<VariableDeclaration>> Parser::ParseVariableDeclarationList()
 {
     Type type = ParseTypeSpecifier();
     Lex();
 
     // int a, b;
-    std::vector<std::unique_ptr<Statement>> VariableDeclarations;
+    std::vector<std::unique_ptr<VariableDeclaration>> VariableDeclarations;
 
     while (lexer.IsNot(Token::SemiColon) && lexer.IsNot(Token::EndOfFile))
     {
@@ -693,7 +672,7 @@ std::unique_ptr<VariableDeclaration> Parser::ParseVariableDeclaration(Type Ty)
         Lex();    // Eat the `*` character
     }
 
-    std::string Name = Expect(Token::Identifier).GetString();
+    Token Name = Expect(Token::Identifier);
 
     ParseArrayDimensions(Ty);
 
@@ -756,7 +735,7 @@ std::unique_ptr<MemberDeclaration> Parser::ParseMemberDeclaration()
         Lex();    // Eat the * character
     }
 
-    std::string Name = Expect(Token::Identifier).GetString();
+    Token Name = Expect(Token::Identifier);
 
     std::vector<unsigned> Dimensions;
     while (lexer.Is(Token::LeftBracket))
@@ -777,25 +756,26 @@ std::unique_ptr<StructDeclaration> Parser::ParseStructDeclaration(unsigned Quali
 {
     Expect(Token::Struct);
 
-    std::string Name = Expect(Token::Identifier).GetString();
+    Token Name   = Expect(Token::Identifier);
+    auto NameStr = Name.GetString();
 
     Expect(Token::LeftBrace);    // eat '{'
 
     std::vector<std::unique_ptr<MemberDeclaration>> Members;
     Type type(Type::Struct);
-    type.SetName(Name);
+    type.SetName(NameStr);
     type.SetQualifiers(Qualifiers);
 
     // register the type already even though it is an incomplete type
     // at this time of parsing
-    UserDefinedTypes[Name] = {type, {}};
+    UserDefinedTypes[NameStr] = {type, {}};
 
-    std::vector<std::string> StructMemberIdentifiers;
+    std::vector<Token> StructMemberIdentifiers;
     while (lexer.IsNot(Token::RightBrace))
     {
         auto MD = ParseMemberDeclaration();
         type.GetTypeList().push_back(MD->GetType());
-        StructMemberIdentifiers.push_back(MD->GetName());
+        StructMemberIdentifiers.push_back(MD->GetNameToken());
         Members.push_back(std::move(MD));
     }
 
@@ -808,7 +788,7 @@ std::unique_ptr<StructDeclaration> Parser::ParseStructDeclaration(unsigned Quali
     }
 
     // saving the struct type and name
-    UserDefinedTypes[Name] = {type, std::move(StructMemberIdentifiers)};
+    UserDefinedTypes[NameStr] = {type, std::move(StructMemberIdentifiers)};
 
     return std::make_unique<StructDeclaration>(Name, Members, type);
 }
@@ -832,7 +812,7 @@ std::unique_ptr<EnumDeclaration> Parser::ParseEnumDeclaration(unsigned Qualifier
 
         // Insert into the symbol table and for now assign the index of the enum
         // to it, not considering explicit assignments like "enum { A = 10 };"
-        InsertToSymbolTable(Identifier.GetString(),
+        InsertToSymbolTable(Identifier,
                             Type(Type::Int),
                             false,
                             ValueType((unsigned)EnumCounter));
@@ -931,23 +911,12 @@ std::unique_ptr<SwitchStatement> Parser::ParseSwitchStatement()
     while (lexer.Is(Token::Case) || lexer.Is(Token::Default))
     {
         const bool IsCase = lexer.Is(Token::Case);
-        Lex();    // eat 'case' or 'default'
+        Token T           = Lex();    // eat 'case' or 'default'
 
-        std::unique_ptr<Expression> ConstExpr;
+        std::unique_ptr<Expression> CaseExpr;
 
         if (IsCase)
-        {
-            ConstExpr = ParseConstantExpression();
-            // For now if its not a constant then assuming its an enum const which is
-            // an identifier currently handled by the below function
-            // TODO: Move the handling of enum const to ParseConstantExpression maybe
-            // but, this would also need some caution
-            if (!ConstExpr)
-                ConstExpr = ParseIdentifierExpression();
-            // TODO: make it a semantic check and not assertion
-            assert(ConstExpr.get()->GetResultType().IsIntegerType() &&
-                   "Case expression must be an integer type");
-        }
+            CaseExpr = ParseExpression();
 
         Expect(Token::Colon);
 
@@ -958,16 +927,19 @@ std::unique_ptr<SwitchStatement> Parser::ParseSwitchStatement()
 
         if (IsCase)
         {
-            int CaseConstVal =
-                dynamic_cast<IntegerLiteralExpression *>(ConstExpr.get())->GetSIntValue();
-            CasesData.push_back({CaseConstVal, std::move(Statements)});
+            CasesData.push_back({std::move(CaseExpr), std::move(Statements)});
         }
         else
         {
             FoundDefaults++;
             // TODO: Make it a semantic check
-            assert(FoundDefaults <= 1 && "Too much default case!");
-            SS->SetDefaultBody(std::move(Statements));
+            if (FoundDefaults > 1)
+            {
+                std::string ErrMsg = "multiple default labels in one switch";
+                EmitError(ErrMsg, lexer, T, DiagPrinter);
+            }
+            else
+                SS->SetDefaultBody(std::move(Statements));
         }
     }
 
@@ -1166,30 +1138,37 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
     auto CurrentToken = lexer.GetCurrentToken();
 
     // Struct Initializing case
-    if (lexer.Is(Token::LeftParen) && lexer.LookAhead(2).GetKind() == Token::Identifier &&
-        IsUserDefinedType(lexer.LookAhead(2).GetString()))
+    if (lexer.Is(Token::LeftParen) &&
+        ((lexer.LookAhead(2).GetKind() == Token::Identifier &&
+          IsUserDefinedType(lexer.LookAhead(2).GetString())) ||
+         (lexer.LookAhead(2).GetKind() == Token::Struct &&
+          IsUserDefinedType(lexer.LookAhead(3).GetString()))))
     {
         Expect(Token::LeftParen);
+
+        if (lexer.Is(Token::Struct))
+            Lex();
+
         auto UserDTypeName = Expect(Token::Identifier).GetString();
         Expect(Token::RightParen);
 
         Expect(Token::LeftBrace);
 
-        std::vector<std::string> MemberList;
+        std::vector<Token> InitializedMemberList;
         ExprPtrVec InitList;
 
         while (lexer.Is(Token::Dot) || lexer.Is(Token::Identifier))
         {
-            std::string Member {};
+            Token Member;
 
             if (lexer.Is(Token::Dot))
             {
                 Lex();    // eat '.'
-                Member = Expect(Token::Identifier).GetString();
+                Member = Expect(Token::Identifier);
                 Expect(Token::Assign);
             }
 
-            MemberList.push_back(Member);
+            InitializedMemberList.push_back(Member);
             InitList.push_back(ParseExpression());
 
             if (!lexer.Is(Token::Comma))
@@ -1211,23 +1190,35 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
         //      ```
         //  in the above case the InitOrder would look like: {1, 0}, so the first
         //  init expression actually initializing the 2nd (index 1) struct member
-
         auto MemberNames = GetUserDefinedTypeMembers(UserDTypeName);
         std::vector<unsigned> InitOrder;
 
-        for (auto &Member : MemberList)
+        for (auto &Member : InitializedMemberList)
         {
             unsigned Order = 0;
+            bool Found     = false;
             for (auto &TypeMemberName : MemberNames)
             {
                 if (TypeMemberName == Member)
                 {
                     InitOrder.push_back(Order);
+                    Found = true;
                     break;
                 }
                 Order++;
             }
+            // TODO: move this to semantic
+            if (!Found)
+            {
+                auto StructType = GetUserDefinedType(UserDTypeName);
+                auto ErrMsg     = fmt::format("'{}' has no member named '{}'",
+                                          StructType.ToString(),
+                                          Member.GetString());
+
+                EmitError(ErrMsg, lexer, Member, DiagPrinter);
+            }
         }
+
 
         return std::make_unique<StructInitExpression>(GetUserDefinedType(UserDTypeName),
                                                       std::move(InitList),
@@ -1266,24 +1257,25 @@ std::unique_ptr<Expression> Parser::ParsePostFixExpression()
             auto MemberId    = Expect(Token::Identifier);
             auto MemberIdStr = MemberId.GetString();
 
-            assert(Expr->GetResultType().IsStruct() && "TODO: emit error");
-            assert((!IsArrow || (IsArrow && Expr->GetResultType().IsPointerType())) &&
-                   "struct pointer expected");
-
             // find the type of the member
             auto StructDataTuple   = UserDefinedTypes[Expr->GetResultType().GetName()];
             auto StructType        = std::get<0>(StructDataTuple);
             auto StructMemberNames = std::get<1>(StructDataTuple);
 
-            size_t i = 0;
-            for (; i < StructMemberNames.size(); i++)
-                if (StructMemberNames[i] == MemberIdStr)
+            std::size_t MemberIndex = -1;
+            for (std::size_t i = 0; i < StructMemberNames.size(); i++)
+            {
+                if (StructMemberNames[i] == MemberId)
+                {
+                    MemberIndex = i;
                     break;
+                }
+            }
 
-            assert(i <= StructMemberNames.size() && "Member not found");
-
-            Expr =
-                std::make_unique<StructMemberReference>(std::move(Expr), MemberIdStr, i);
+            Expr = std::make_unique<StructMemberReference>(std::move(Expr),
+                                                           MemberId,
+                                                           MemberIndex,
+                                                           IsArrow);
 
             if (Expr->GetResultType().IsStruct() || Expr->GetResultType().IsArray())
                 Expr->SetLValueness(true);
@@ -1346,10 +1338,12 @@ std::unique_ptr<Expression> Parser::ParseUnaryExpression()
     // cast expression case
     if (GetCurrentToken().GetKind() == Token::LeftParen &&
         IsTypeSpecifier(lexer.LookAhead(2)) &&
-        !(lexer.LookAhead(2).GetKind() == Token::Identifier &&
-          lexer.LookAhead(4).GetKind() ==
-              Token::LeftBrace))    // it is not a struct initialization like
-                                    // "(StructType){ ...}"
+        !((lexer.LookAhead(2).GetKind() == Token::Identifier &&
+           lexer.LookAhead(4).GetKind() == Token::LeftBrace) ||
+          (lexer.LookAhead(2).GetKind() == Token::Struct &&
+           lexer.LookAhead(5).GetKind() ==
+               Token::LeftBrace)))    // it is not a struct initialization like
+                                      // "(StructType){ ...}"
     {
         Lex();    // eat '('
         auto Ty = ParseType(GetCurrentToken().GetKind());
@@ -1491,8 +1485,6 @@ std::unique_ptr<Expression> Parser::ParseIdentifierExpression()
         auto Ty = std::get<0>(UserDefinedTypes[IdStr]);
         RE->SetResultType(std::move(Ty));
     }
-    else
-        UndefinedSymbolError(Id, lexer, DiagPrinter);
 
     return RE;
 }
@@ -1532,16 +1524,14 @@ std::unique_ptr<Expression> Parser::ParseInitializerListExpression()
 
 std::unique_ptr<Expression> Parser::ParseCallExpression(Token Id)
 {
-    // FIXME: Make this a semantic check
     assert(Id.GetKind() == Token::Identifier && "Identifier expected");
     Lex();    // eat the '('
 
-    Type FuncType;
+    // default return type is int
+    Type FuncType {Type::Int};
 
     if (auto SymEntry = SymTabStack.Contains(Id.GetString()))
         FuncType = std::get<1>(SymEntry.value());
-    else
-        UndefinedSymbolError(Id, lexer, DiagPrinter);
 
     std::vector<std::unique_ptr<Expression>> CallArgs;
 
@@ -1560,10 +1550,7 @@ std::unique_ptr<Expression> Parser::ParseCallExpression(Token Id)
     auto FuncArgNum   = FuncArgTypes.size();
     if (!(CallArgs.size() == 0 && FuncArgNum == 1 && FuncArgTypes[0] == Type::Void))
     {
-        if (!FuncType.HasVarArg() && FuncArgNum != CallArgs.size())
-            EmitError("arguments number mismatch", lexer, DiagPrinter);
-
-        for (size_t i = 0; i < FuncArgNum; i++)
+        for (size_t i = 0; i < std::min(FuncArgNum, CallArgs.size()); i++)
         {
             auto CallArgType = CallArgs[i]->GetResultType();
 
@@ -1581,7 +1568,7 @@ std::unique_ptr<Expression> Parser::ParseCallExpression(Token Id)
 
     Expect(Token::RightParen);
 
-    return std::make_unique<CallExpression>(Id.GetString(), CallArgs, FuncType);
+    return std::make_unique<CallExpression>(Id, CallArgs, FuncType);
 }
 
 std::unique_ptr<Expression> Parser::ParseArrayExpression(std::unique_ptr<Expression> Base)
@@ -1592,22 +1579,21 @@ std::unique_ptr<Expression> Parser::ParseArrayExpression(std::unique_ptr<Express
 
     Type type = Base->GetResultType();
 
-    /// Remove the first N dimensions from the actual type. Example:
+    /// Remove the first  dimensions from the actual type. Example:
     /// ActualType is 'int arr[5][10]' and our reference is 'arr[0]'
     /// then the result type of 'arr[0]' is 'int[10]'. N is the
     /// amount of index expressions used when referencing the array here
     /// 'arr'. In the example its 1.
-    if (!type.IsPointerType())
+    if (!type.IsPointerType() && type.IsArray())
     {
-        type.GetDimensions().erase(type.GetDimensions().begin(),
-                                   type.GetDimensions().begin() + 1);
+        type.GetDimensions().erase(type.GetDimensions().begin());
 
         // if the result is now a scalar, then change the type to Simple (scalar)
         if (type.GetDimensions().empty())
             type.SetTypeKind(Type::Simple);
     }
 
-    else
+    else if (type.IsPointerType())
         type.DecrementPointerLevel();
 
     Base->SetLValueness(true);
@@ -1738,8 +1724,8 @@ std::unique_ptr<Expression>
 
         auto RightExpression = ParseUnaryExpression();
 
-        bool IsArithmetic          = BinaryOperator.IsArithmetic(BinOPTK);
-        bool IsCompositeAssignment = BinaryOperator.IsCompositeAssignment(BinOPTK);
+        bool IsArithmetic = BinaryOperator.IsArithmetic(BinOPTK);
+        bool IsAssignment = BinaryOperator.IsCompositeAssignment(BinOPTK);
 
         if (IsArithmetic &&
             Type::IsSmallerThanInt(LeftExpression->GetResultType().GetTypeVariant()))
@@ -1760,7 +1746,7 @@ std::unique_ptr<Expression>
         /// In case of Assignment check if the left operand since if should be an
         /// lvalue. Which is either an identifier reference or an array expression.
         const auto LHS = LeftExpression.get();
-        if (BinaryOperator.GetKind() == Token::Assign)
+        if (IsAssignment)
         {
             // clang-format off
             if (instanceof <ArrayExpression>(LHS) || 
@@ -1769,15 +1755,12 @@ std::unique_ptr<Expression>
                 (instanceof<UnaryExpression>(LHS) && dynamic_cast<UnaryExpression *>(LHS)->GetOperationKind() == UnaryExpression::DeRef))
             // clang-format on
             {
-                /// If it's an Assign BinaryOperator and the left hand side is an
-                /// ArrayExpression or ReferenceExpression, then it's an LValue. This can
-                /// reduces one time load instruction generate for global Variable.
                 LeftExpression->SetLValueness(true);
             }
         }
 
         // convert left expression to Rvalue if the operantion is not assignment
-        if (BinaryOperator.GetKind() != Token::Assign && !IsCompositeAssignment)
+        if (!IsAssignment)
         {
             LeftExpression->SetLValueness(false);
         }
@@ -1802,22 +1785,19 @@ std::unique_ptr<Expression>
         auto LeftType  = LeftExpression->GetResultType();
         auto RightType = RightExpression->GetResultType();
 
-        if (LeftType != RightType &&
-            !Type::OnlySignednessDifference(LeftType.GetTypeVariant(),
-                                            RightType.GetTypeVariant()))
+        if (LeftType != RightType)
         {
             /// if an assignment, then try to cast the RHS to type of LHS.
-            if (BinaryOperator.GetKind() == Token::Assign || IsCompositeAssignment)
+            if (IsAssignment)
             {
-                if (!Type::IsImplicitlyCastable(RightType, LeftType))
-                    EmitError("FuncType mismatch", lexer, BinaryOperator, DiagPrinter);
-                else
+                if (Type::IsImplicitlyCastable(RightType, LeftType))
                     RightExpression = std::make_unique<ImplicitCastExpression>(
                         std::move(RightExpression),
                         LeftType);
             }
             /// Otherwise cast the one with lower conversion rank to higher one .
-            else
+            else if (Type::IsImplicitlyCastable(RightType, LeftType) ||
+                     Type::IsImplicitlyCastable(LeftType, RightType))
             {
                 auto DesiredType = Type::GetStrongestType(LeftType.GetTypeVariant(),
                                                           RightType.GetTypeVariant())
@@ -1837,16 +1817,6 @@ std::unique_ptr<Expression>
                         LeftType);
             }
         }
-        /// mod operation
-        else if (BinaryOperator.GetKind() == Token::Mod)
-        {
-            if (LeftType != Type::Int || RightType != Type::Int)
-                ;    // TODO: fix this semantic check
-                     // EmitError("Mod Operator can only operator on integers",
-                     //           lexer,
-                     //           BinaryOperator);
-        }
-
         // TODO: This will only work here if the ternary condition was in
         //  parenthesis, which for the time being is sufficient. Make it work as it
         //  should.
@@ -1871,22 +1841,12 @@ std::unique_ptr<Expression> Parser::ParseTernaryExpression(ExprPtr Condition)
     return std::make_unique<TernaryExpression>(Condition, TrueExpr, FalseExpr);
 }
 
-void Parser::InsertToSymbolTable(const std::string &SymbolName,
-                                 Type SymType,
+void Parser::InsertToSymbolTable(const Token &SymbolName,
+                                 const Type &SymType,
                                  const bool ToGlobal,
                                  ValueType SymValue)
 {
     SymbolTableStack::Entry SymEntry(SymbolName, SymType, SymValue);
-    if (SymTabStack.ContainsInCurrentScope(SymEntry))
-    {
-        std::string Format = "Symbol `{}` with type `{}` is already defined.\n";
-        auto Error         = fmt::format(Format, SymbolName, SymType.ToString());
-
-        DiagPrinter.AddError(Error);
-    }
-    else
-    {
-        ToGlobal ? SymTabStack.InsertGlobalEntry(SymEntry) :
-                   SymTabStack.InsertEntry(SymEntry);
-    }
+    ToGlobal ? SymTabStack.InsertGlobalEntry(SymEntry) :
+               SymTabStack.InsertEntry(SymEntry);
 }

@@ -131,7 +131,7 @@ std::optional<Token> Lexer::LexNumber()
             Length++;
             EatNextChar();
 
-            unsigned CurrentDigit = 0;
+            unsigned CurrentDigit;
 
             if (isdigit(ch))
                 CurrentDigit = ch - '0';
@@ -477,7 +477,7 @@ Token Lexer::Lex(bool LookAhead)
 
     if (CurrentCharacter == EOF)
     {
-        return {Token::EndOfFile};
+        return Token {Token::EndOfFile};
     }
 
     auto Result = LexKeyWord();
@@ -521,7 +521,7 @@ Token Lexer::Lex(bool LookAhead)
     if (Result)
         return Result.value();
 
-    return {Token::Invalid};
+    return Token {Token::Invalid};
 }
 
 std::optional<Token> Lexer::LexCharLiteral()

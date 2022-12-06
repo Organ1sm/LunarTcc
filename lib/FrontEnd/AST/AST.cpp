@@ -19,14 +19,16 @@
 //=--------------------------------------------------------------------------=//
 
 StructMemberReference::StructMemberReference(ExprPtr Expr,
-                                             std::string Id,
-                                             std::size_t Idx)
-    : StructTypedExpression(std::move(Expr)), MemberIdentifier(Id), MemberIndex(Idx)
+                                             Token &Id,
+                                             std::size_t Idx,
+                                             bool Arrow)
+    : StructTypedExpression(std::move(Expr)), MemberIdentifier(Id), MemberIndex(Idx),
+      Arrow(Arrow)
 {
     auto STEType = StructTypedExpression->GetResultType();
-    assert(MemberIndex < STEType.GetTypeList().size());
 
-    this->ResultType = STEType.GetTypeList()[MemberIndex];
+    if (MemberIndex < STEType.GetTypeList().size())
+        this->ResultType = STEType.GetTypeList()[MemberIndex];
 }
 
 BinaryExpression::BinaryExpression(ExprPtr L, Token Op, ExprPtr R)
@@ -259,11 +261,13 @@ Value *SwitchStatement::IRCodegen(IRFactory *IRF)
     // code block, CaseIdx keep track the current target basic block so falling
     // through cases could refer to it
     std::size_t CaseIndex = 0;
-    for (auto &[Const, Statements] : Cases)
+    for (auto &[CaseExpr, Statements] : Cases)
     {
+        auto CaseConst =
+            dynamic_cast<IntegerLiteralExpression *>(CaseExpr.get())->GetSIntValue();
         auto CmpRes = IRF->CreateCmp(CompareInstruction::EQ,
                                      Cond,
-                                     IRF->GetConstant((uint64_t)Const));
+                                     IRF->GetConstant((uint64_t)CaseConst));
         IRF->CreateBranch(CmpRes, CaseBodies[CaseIndex].get());
 
         if (!Statements.empty())
@@ -542,7 +546,8 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
         default: assert(!"Invalid function return type."); break;
     }
 
-    IRF->CreateNewFunction(Name, ReturnType);
+    auto NameStr = Name.GetString();
+    IRF->CreateNewFunction(NameStr, ReturnType);
     IRF->GetCurrentFunction()->SetReturnNumber(ReturnNumber);
 
     if (Body == nullptr)
@@ -575,8 +580,8 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
 
                 if (RefExpr)
                 {
-                    IRF->GetCurrentFunction()->SetIgnorableStructName(
-                        RefExpr->GetIdentifier());
+                    auto ID = RefExpr->GetIdentifier();
+                    IRF->GetCurrentFunction()->SetIgnorableStructName(ID);
                 }
             }
         }
@@ -587,14 +592,14 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
     auto HasMultipleReturn = ReturnNumber > 1 && !ReturnType.IsVoid();
     if (HasMultipleReturn)
         IRF->GetCurrentFunction()->SetReturnValue(
-            IRF->CreateSA(Name + ".return", ReturnType));
+            IRF->CreateSA(Name.GetString() + ".return", ReturnType));
 
     Body->IRCodegen(IRF);
 
     // patching JUMP -s with nullptr destination to make them point to the last BB
     if (HasMultipleReturn)
     {
-        auto BBName   = Name + "_end";
+        auto BBName   = Name.GetString() + "_end";
         auto RetBB    = std::make_unique<BasicBlock>(BBName, IRF->GetCurrentFunction());
         auto RetBBPtr = RetBB.get();
         IRF->InsertBB(std::move(RetBB));
@@ -621,6 +626,7 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
 Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF)
 {
     auto ParamType     = GetIRTypeFromASTType(Ty);
+    auto ParamName     = Name.GetString();
     auto ParamTypeSize = ParamType.GetByteSize() * 8;
     auto ABIMaxStructSize =
         IRF->GetTargetMachine()->GetABI()->GetMaxStructSizePassedByValue();
@@ -633,10 +639,10 @@ Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF)
         ParamType.IncrementPointerLevel();
     }
 
-    auto Param = std::make_unique<FunctionParameter>(Name, ParamType);
-    auto SA    = IRF->CreateSA(Name, ParamType);
+    auto Param = std::make_unique<FunctionParameter>(ParamName, ParamType);
+    auto SA    = IRF->CreateSA(ParamName, ParamType);
 
-    IRF->AddToSymbolTable(Name, SA);
+    IRF->AddToSymbolTable(ParamName, SA);
     IRF->CreateStore(Param.get(), SA);
     IRF->Insert(std::move(Param));
 
@@ -646,6 +652,7 @@ Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF)
 Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
 {
     auto VarType = GetIRTypeFromASTType(AType);
+    auto VarName = Name.GetString();
 
     // If an array type, then change type to reflect this.
     if (AType.IsArray())
@@ -705,26 +712,26 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
                 // increase to pointer level since now the pointer to the data
                 // is stored and not data itself.
                 VarType.IncrementPointerLevel();
-                return IRF->CreateGlobalVar(Name, VarType, GlobalStr);
+                return IRF->CreateGlobalVar(VarName, VarType, GlobalStr);
             }
         }
 
-        return IRF->CreateGlobalVar(Name, VarType, std::move(InitList));
+        return IRF->CreateGlobalVar(VarName, VarType, std::move(InitList));
     }
 
-    if (IRF->GetCurrentFunction()->GetIgnorableStructVarName() == Name)
+    if (IRF->GetCurrentFunction()->GetIgnorableStructVarName() == VarName)
     {
         auto &Parameters = IRF->GetCurrentFunction()->GetParameters();
         auto ParamValue  = Parameters[Parameters.size() - 1].get();
 
-        IRF->AddToSymbolTable(Name, ParamValue);
+        IRF->AddToSymbolTable(VarName, ParamValue);
 
         return ParamValue;
     }
 
     /// Othewise we are in a local scope of a function.
     /// Allocate space on stack and update the local symbol Table.
-    auto SA = IRF->CreateSA(Name, VarType);
+    auto SA = IRF->CreateSA(VarName, VarType);
 
     if (Init)
     {
@@ -773,7 +780,7 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
         }
     }
 
-    IRF->AddToSymbolTable(Name, SA);
+    IRF->AddToSymbolTable(VarName, SA);
 
     return SA;
 }
@@ -819,6 +826,7 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
     }
 
     auto ReturnType = GetResultType().GetReturnType();
+    auto FuncName   = Name.GetString();
 
     IRType ReturnIRType;
     StackAllocationInstruction *StructTemp {nullptr};
@@ -851,7 +859,7 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
             // If the return type is a struct, then also make a stack allocation
             // to use that as a temporary, where the result would be copied to after
             // the call
-            StructTemp = IRF->CreateSA(Name + ".temp", ReturnIRType);
+            StructTemp = IRF->CreateSA(FuncName + ".temp", ReturnIRType);
 
             // check if the call expression is returning a non pointer struct which is
             // to big to be returned back. In this case the called function were
@@ -889,19 +897,19 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
     if (StructTemp)
     {
         // make the call
-        auto CallRes = IRF->CreateCall(Name, Args, ReturnIRType, ImplicitStructIndex);
+        auto CallRes = IRF->CreateCall(FuncName, Args, ReturnIRType, ImplicitStructIndex);
         // issue a store using the freshly allocated temporary StructTemp if needed
         if (!IsRetChanged)
             IRF->CreateStore(CallRes, StructTemp);
         return StructTemp;
     }
 
-    return IRF->CreateCall(Name, Args, ReturnIRType);
+    return IRF->CreateCall(FuncName, Args, ReturnIRType);
 }
 
 Value *ReferenceExpression::IRCodegen(IRFactory *IRF)
 {
-    auto Local = IRF->GetSymbolValue(Identifier);
+    auto Local = IRF->GetSymbolValue(GetIdentifier());
 
     if (Local && this->GetResultType().IsStruct())
         return Local;
@@ -914,7 +922,7 @@ Value *ReferenceExpression::IRCodegen(IRFactory *IRF)
             return IRF->CreateLoad(Local->GetType(), Local);
     }
 
-    auto GV = IRF->GetGlobalVar(Identifier);
+    auto GV = IRF->GetGlobalVar(GetIdentifier());
     assert(GV && "Cannot be null.");
 
     // If Lvalue, then return as a ptr to the global value.
@@ -1507,6 +1515,12 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         {
             Instruction *OperationResult {nullptr};
 
+            // converting the LValue L to an RValue by loading it in
+            auto ResultIRType = L->GetType();
+            ResultIRType.DecrementPointerLevel();
+
+            L = IRF->CreateLoad(ResultIRType, L);
+
             switch (GetOperationKind())
             {
                 case AddAssign: OperationResult = IRF->CreateAdd(L, R); break;
@@ -1703,7 +1717,7 @@ Type FunctionDeclaration::CreateType(const Type &t,
     return funcType;
 }
 
-BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
+BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind() const
 {
     switch (Operation.GetKind())
     {
@@ -1770,7 +1784,7 @@ BinaryExpression::BinaryOperation BinaryExpression::GetOperationKind()
     }
 }
 
-bool BinaryExpression::IsCompositeAssignmentOperator()
+bool BinaryExpression::IsCompositeAssignmentOperator() const
 {
     switch (GetOperationKind())
     {
@@ -1787,6 +1801,16 @@ bool BinaryExpression::IsCompositeAssignmentOperator()
 
         default: return false;
     }
+}
+
+bool BinaryExpression::IsModulo() const
+{
+    return GetOperationKind() == Mod || GetOperationKind() == ModU;
+}
+
+bool BinaryExpression::IsShift() const
+{
+    return GetOperationKind() == LSL || GetOperationKind() == LSR;
 }
 
 UnaryExpression::UnaryOperation UnaryExpression::GetOperationKind() const

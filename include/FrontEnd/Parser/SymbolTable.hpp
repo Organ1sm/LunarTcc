@@ -10,10 +10,12 @@
 #include <tuple>
 #include <variant>
 
+class Token;
+
 class SymbolTableStack
 {
   public:
-    using Entry = std::tuple<std::string, Type, ValueType>;
+    using Entry = std::tuple<Token, Type, ValueType>;
     using Table = std::vector<Entry>;
 
     // Adding the first empty table
@@ -28,9 +30,11 @@ class SymbolTableStack
 
     void InsertEntry(const Entry &e);
     void InsertGlobalEntry(const Entry &e);
-    bool Contains(Entry e);
+
     std::optional<Entry> Contains(const std::string &sym);
-    bool ContainsInCurrentScope(Entry e);
+    std::optional<Entry> ContainsInCurrentScope(const std::string &sym);
+    std::optional<Entry> ContainsInGlobalScope(const std::string &sym);
+
 
   private:
     std::vector<Table> SymTabStack;

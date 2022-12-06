@@ -137,11 +137,11 @@ void ASTPrint::VisitSwitchStatement(const SwitchStatement *node)
 
     for (auto &[CaseConst, CaseBody] : node->GetCaseBodies())
     {
-        auto Str = fmt::format("Case `{}`", CaseConst);
-        PrintLn(Str.c_str(), tab + 2);
+        PrintLn("Case", tab);
 
         tab += 2;
 
+        CaseConst->Accept(this);
         for (auto &CaseStmt : CaseBody)
             CaseStmt->Accept(this);
 

@@ -29,13 +29,9 @@ class Lexer
     bool Is(Token::TokenKind tk);
     bool IsNot(Token::TokenKind tk);
 
-    std::vector<std::string> &GetSource() { return Source; }
-
-    unsigned GetLine() { return LineIndex + 1; }
-
     Token Lex(bool LookAhead = false);
 
-    Lexer(std::vector<std::string> &s);
+    explicit Lexer(std::vector<std::string> &s);
 
   private:
     static std::unordered_map<std::string, Token::TokenKind> KeyWords;
