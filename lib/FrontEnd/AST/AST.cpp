@@ -463,7 +463,7 @@ Value *ContinueStatement::IRCodegen(IRFactory *IRF)
 
 Value *BreakStatement::IRCodegen(IRFactory *IRF)
 {
-    assert(IRF->GetBreakEndBBsTable().size() > 0);
+    assert(!IRF->GetBreakEndBBsTable().empty());
     return IRF->CreateJump(IRF->GetBreakEndBBsTable().back());
 }
 
@@ -811,7 +811,7 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
         if (ArgIR->GetTypeRef().IsStruct() && ArgIRTy.IsPointer() && ArgTy.IsStruct() &&
             !ArgTy.IsPointerType())
         {
-            if (!(IRTySize > MaxStructSize))
+            if (IRTySize <= MaxStructSize)
                 ArgIR = IRF->CreateLoad(ArgIR->GetType(), ArgIR);
         }
 
@@ -884,7 +884,7 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
             IsRetChanged        = true;
             ImplicitStructIndex = Args.size();
             Args.push_back(StructTemp);
-            ReturnIRType = IRType::None;
+            ReturnIRType = IRType(IRType::None);
 
             break;
         }
@@ -893,7 +893,7 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
 
     assert(!ReturnIRType.IsInvalid() && "Must be a valid type.");
 
-    // in case if the ret type was a struct, so StructTemp not nullptr
+    // in case if the return type was a struct, so StructTemp not nullptr
     if (StructTemp)
     {
         // make the call
@@ -975,7 +975,7 @@ Value *ArrayExpression::IRCodegen(IRFactory *IRF)
 
     auto GEP = IRF->CreateGEP(ResultType, BaseValue, IndexValue);
 
-    if (!GetLValueness() && ResultType.GetDimensions().size() == 0)
+    if (!GetLValueness() && ResultType.GetDimensions().empty())
         return IRF->CreateLoad(ResultType, GEP);
 
     return GEP;
@@ -1255,7 +1255,7 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
             auto ResultType = E->GetType();
 
             // global vars technically pointer like, which means an "int a;"
-            // should be treated as a i32* and not i32 for loads an stores
+            // should be treated as a i32* and not i32 for loads and stores
             if (E->IsGlobalVar())
                 ResultType.IncrementPointerLevel();
 

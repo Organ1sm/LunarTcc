@@ -16,8 +16,8 @@ uint64_t Constant::GetIntValue() const
 {
     assert(ValueType.IsInt());
 
-    int64_t result = 0;
-    auto value     = std::get<uint64_t>(Val);
+    int64_t result;
+    auto value = std::get<uint64_t>(Val);
 
     // signed extend it
     // TODO: maybe value should be stored as int64_t

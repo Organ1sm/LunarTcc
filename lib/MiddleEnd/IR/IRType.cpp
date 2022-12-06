@@ -22,7 +22,7 @@ void IRType::DecrementPointerLevel()
 
 void IRType::ReduceDimension()
 {
-    if (Dimensions.size() > 0)
+    if (!Dimensions.empty())
         Dimensions.erase(Dimensions.begin());
 }
 
@@ -70,9 +70,9 @@ std::size_t IRType::GetByteSize(TargetMachine *TM) const
 {
     unsigned NumberOfElements = 1;
 
-    if (Dimensions.size() > 0)
-        for (std::size_t i = 0; i < Dimensions.size(); i++)
-            NumberOfElements *= Dimensions[i];
+    if (!Dimensions.empty())
+        for (unsigned int Dimension : Dimensions)
+            NumberOfElements *= Dimension;
 
     if (IsStruct() && !IsPointer())
     {

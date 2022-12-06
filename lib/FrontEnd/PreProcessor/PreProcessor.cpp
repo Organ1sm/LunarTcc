@@ -91,7 +91,6 @@ void PreProcessor::ParseDirective(std::string &Line, std::size_t LineIdx)
         bool IsSysHeaderFile = lexer.Is(PPToken::LessThan);
         lexer.Lex();    // eat the token.
 
-
         std::string FileName;
         auto NextToken     = lexer.Lex();
         auto NextTokenKind = NextToken.GetKind();

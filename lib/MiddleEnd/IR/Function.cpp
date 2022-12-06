@@ -7,7 +7,8 @@
 #include "fmt/color.h"
 #include "fmt/core.h"
 
-Function::Function(const std::string &Name, IRType RT) : Name(Name), ReturnType(RT)
+Function::Function(const std::string &Name, IRType RT)
+    : Name(Name), ReturnType(std::move(RT))
 {
     auto FinalName = std::string("entry_") + Name;
     auto BB        = std::make_unique<BasicBlock>(BasicBlock(FinalName, this));
@@ -21,7 +22,7 @@ BasicBlock *Function::GetCurrentBB()
     return BasicBlocks.back().get();
 }
 
-BasicBlock *Function::GetBB(const std::size_t Index)
+BasicBlock *Function::GetBB(std::size_t Index)
 {
     assert(!BasicBlocks.empty() && "Function must have basic blocks.");
     assert(BasicBlocks.size() > Index && " Invalid index.");

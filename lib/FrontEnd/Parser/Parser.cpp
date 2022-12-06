@@ -876,7 +876,7 @@ std::unique_ptr<IfStatement> Parser::ParseIfStatement()
 
     Expect(Token::If);
     Expect(Token::LeftParen);
-    IS->SetCondition(std::move(ParseExpression()));
+    IS->SetCondition(ParseExpression());
     Expect(Token::RightParen);
     IS->SetIfBody(ParseStatement());
 
@@ -1088,7 +1088,7 @@ std::unique_ptr<CompoundStatement> Parser::ParseCompoundStatement()
                 Statements.push_back(std::move(Declaration));
         }
         else
-            Statements.push_back(std::move(ParseStatement()));
+            Statements.push_back(ParseStatement());
     }
 
     Expect(Token::RightBrace);

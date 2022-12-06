@@ -14,14 +14,14 @@ class Value
     enum VKind { Invalid = 1, None, Register, Label, Const, Param, GlobalVar };
 
     Value() : Kind(Invalid) {}
-    Value(VKind VK) : Kind(VK) {}
-    Value(IRType T) : ValueType(T), Kind(Register) {}
-    Value(VKind VK, IRType T) : ValueType(T), Kind(VK) {}
+    explicit Value(VKind VK) : Kind(VK) {}
+    explicit Value(IRType T) : ValueType(std::move(T)), Kind(Register) {}
+    Value(VKind VK, IRType T) : ValueType(std::move(T)), Kind(VK) {}
 
-    virtual ~Value() {};
+    virtual ~Value() = default;
+
     IRType &GetTypeRef() { return ValueType; }
     IRType GetType() const { return ValueType; }
-    void SetType(IRType t) { ValueType = t; }
 
     unsigned GetID() const { return UniqueId; }
     void SetId(unsigned i) { UniqueId = i; }
@@ -39,7 +39,7 @@ class Value
     virtual std::string ValueString() const;
 
   protected:
-    unsigned UniqueId;
+    unsigned UniqueId = ~0;
     VKind Kind {Register};
     IRType ValueType;
 };
@@ -48,11 +48,11 @@ class Constant : public Value
 {
   public:
     Constant() = delete;
-    Constant(uint64_t V, uint8_t BW = 32)
+    explicit Constant(uint64_t V, uint8_t BW = 32)
         : Value(Value::Const, IRType(IRType::UInt, BW)), Val(V)
     {}
 
-    Constant(double V, uint8_t BW = 32)
+    explicit Constant(double V, uint8_t BW = 32)
         : Value(Value::Const, IRType(IRType::FP, BW)), Val(V)
     {}
 
@@ -70,7 +70,7 @@ class FunctionParameter : public Value
   public:
     FunctionParameter() = delete;
     FunctionParameter(std::string &Name, IRType T, bool IsStruct = false)
-        : Value(Value::Param, T), Name(Name), ImplicitStructPtr(IsStruct)
+        : Value(Value::Param, std::move(T)), Name(Name), ImplicitStructPtr(IsStruct)
     {}
 
     std::string &GetName() { return Name; }
@@ -87,17 +87,22 @@ class GlobalVariable : public Value
 {
   public:
     GlobalVariable() = delete;
-    GlobalVariable(std::string Name, IRType T) : Value(Value::GlobalVar, T), Name(Name) {}
+
+    GlobalVariable(std::string Name, IRType T)
+        : Value(Value::GlobalVar, std::move(T)), Name(Name)
+    {}
+
     GlobalVariable(std::string Name, IRType T, std::vector<uint64_t> InitList)
-        : Value(Value::GlobalVar, T), Name(Name), InitList(std::move(InitList))
+        : Value(Value::GlobalVar, std::move(T)), Name(Name), InitList(std::move(InitList))
     {}
 
     GlobalVariable(std::string &Name, IRType T, Value *InitValue)
-        : Value(Value::GlobalVar, T), Name(Name), InitValue(InitValue)
+        : Value(Value::GlobalVar, std::move(T)), Name(Name), InitValue(InitValue)
     {}
 
     GlobalVariable(std::string &Name, IRType T, std::string InitStr)
-        : Value(Value::GlobalVar, T), Name(Name), InitString(InitStr)
+        : Value(Value::GlobalVar, std::move(T)), Name(Name),
+          InitString(std::move(InitStr))
     {}
 
     void SetName(std::string N) { Name = N; }
