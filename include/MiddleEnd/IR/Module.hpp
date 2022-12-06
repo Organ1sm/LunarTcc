@@ -1,9 +1,8 @@
 //
 // Created by Organ1sm.
 //
+#pragma once
 
-#ifndef LUNARTCC_MODULE_HPP
-#define LUNARTCC_MODULE_HPP
 
 #include <vector>
 #include <cassert>
@@ -41,5 +40,3 @@ class Module
     std::vector<std::unique_ptr<Value>> GlobalVars;
     std::vector<Function> Functions;
 };
-
-#endif    // LUNARTCC_MODULE_HPP

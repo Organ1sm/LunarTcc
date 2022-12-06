@@ -24,7 +24,6 @@ class IRFactory
 {
   public:
     IRFactory() = delete;
-    IRFactory(Module &M) : CurrentModule(M), ID(0) {}
     IRFactory(Module &M, TargetMachine *T) : TM(T), CurrentModule(M), ID(0) {}
 
     Instruction *CreateAdd(Value *LHS, Value *RHS);
@@ -59,19 +58,20 @@ class IRFactory
 
     CallInstruction *CreateCall(std::string &FuncName,
                                 std::vector<Value *> Args,
-                                IRType Type,
+                                const IRType &Type,
                                 int StructIdx = -1);
 
     ReturnInstruction *CreateRet(Value *ReturnVal);
 
-    StackAllocationInstruction *CreateSA(std::string Indentifier, IRType Type);
+    StackAllocationInstruction *CreateSA(std::string Indentifier, const IRType &Type);
 
-    GetElemPointerInstruction *CreateGEP(IRType ResultType, Value *Source, Value *Index);
+    GetElemPointerInstruction *
+        CreateGEP(const IRType &ResultType, Value *Source, Value *Index);
 
     StoreInstruction *CreateStore(Value *Source, Value *Destination);
 
     LoadInstruction *
-        CreateLoad(IRType ResultType, Value *Source, Value *Offset = nullptr);
+        CreateLoad(const IRType &ResultType, Value *Source, Value *Offset = nullptr);
 
     MemoryCopyInstruction *
         CreateMemCopy(Value *Destination, Value *Source, std::size_t Bytes);
@@ -84,14 +84,14 @@ class IRFactory
     BranchInstruction *
         CreateBranch(Value *Condition, BasicBlock *True, BasicBlock *False = nullptr);
 
-    GlobalVariable *CreateGlobalVar(std::string &Identifier, const IRType Type);
+    GlobalVariable *CreateGlobalVar(std::string &Identifier, const IRType &Type);
     GlobalVariable *CreateGlobalVar(std::string &Identifier,
-                                    const IRType Type,
+                                    const IRType &Type,
                                     std::vector<uint64_t> InitList);
     GlobalVariable *
-        CreateGlobalVar(std::string &Identifier, const IRType Type, Value *Val);
+        CreateGlobalVar(std::string &Identifier, const IRType &Type, Value *Val);
     GlobalVariable *
-        CreateGlobalVar(std::string &Identifier, const IRType Type, std::string Value);
+        CreateGlobalVar(std::string &Identifier, const IRType &Type, std::string Value);
 
     void CreateNewFunction(std::string &Name, IRType ReturnType);
     void AddGlobalVariable(Value *GlobalValue);

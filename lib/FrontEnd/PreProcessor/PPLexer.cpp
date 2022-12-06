@@ -21,7 +21,7 @@ PPLexer::PPLexer(std::string &s)
 
 void PPLexer::ConsumeCurrentPPToken()
 {
-    assert(PPTokenBuffer.size() > 0 && "PPTokenBuffer is empty.");
+    assert(!PPTokenBuffer.empty() && "PPTokenBuffer is empty.");
 
     PPTokenBuffer.erase(PPTokenBuffer.begin());
 }
@@ -129,7 +129,7 @@ PPToken PPLexer::LookAhead(unsigned n)
 bool PPLexer::Is(PPToken::PPTokenKind tk)
 {
     // fill in the buffer with one token if it is empty
-    if (PPTokenBuffer.size() == 0)
+    if (PPTokenBuffer.empty())
         LookAhead(1);
 
     return GetCurrentPPToken().GetKind() == tk;
@@ -141,7 +141,7 @@ PPToken PPLexer::Lex(bool LookAhead)
 {
     // if the PPTokenBuffer not empty then return the PPToken from there
     // and remove it from the stack
-    if (PPTokenBuffer.size() > 0 && !LookAhead)
+    if (!PPTokenBuffer.empty() && !LookAhead)
     {
         auto CurrentPPToken = GetCurrentPPToken();
         ConsumeCurrentPPToken();

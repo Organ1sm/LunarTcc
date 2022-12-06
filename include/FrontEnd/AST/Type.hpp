@@ -33,11 +33,11 @@ class Type
     enum TypeQualifier : unsigned { None, TypeDef, Const };
 
     Type() : Kind(Simple), Ty(Invalid) {};
-    Type(VariantKind vk) : Ty(vk), Kind(Simple) {}
-    Type(TypeKind tk);
+    explicit Type(VariantKind vk) : Ty(vk), Kind(Simple) {}
+    explicit Type(TypeKind tk);
 
-    Type(Type t, std::vector<unsigned> d);
-    Type(Type t, std::vector<Type> a);
+    Type(const Type &t, std::vector<unsigned> d);
+    Type(const Type &t, std::vector<Type> a);
 
     Type(Type &&) = default;
     Type &operator=(Type &&);
@@ -48,7 +48,6 @@ class Type
     std::string GetName() const { return Name; }
     void SetName(std::string &n) { Name = n; }
 
-    TypeKind GetTypeKind() const { return Kind; }
     void SetTypeKind(TypeKind t) { Kind = t; }
 
     VariantKind GetTypeVariant() const { return Ty; }
@@ -58,7 +57,6 @@ class Type
     VariantKind GetReturnType() const { return Ty; }
 
     uint8_t GetPointerLevel() const { return PointerLevel; }
-    void SetPointerLevel(uint8_t pl) { PointerLevel = pl; }
 
     std::vector<Type> &GetParamList() { return ParamList; }
     std::vector<Type> &GetArgTypes();
@@ -69,9 +67,7 @@ class Type
     void IncrementPointerLevel() { PointerLevel++; }
     void DecrementPointerLevel();
 
-    unsigned GetQualifiers() const { return Qualifiers; }
     void SetQualifiers(unsigned q) { Qualifiers = q; }
-    void AddQualifiers(unsigned q) { Qualifiers |= q; }
 
     bool IsPointerType() const { return PointerLevel != 0; }
     bool IsSimpleType() const { return Kind == Simple; }
@@ -82,6 +78,7 @@ class Type
     bool IsConst() const { return Qualifiers & Const; }
     bool IsTypeDef() const { return Qualifiers & TypeDef; }
 
+    bool IsVoid() const { return Ty == Void && !IsPointerType(); }
     bool IsFloatingPoint() const { return Ty == Double || Ty == Float; }
     bool IsIntegerType() const;
     bool IsUnsigned() const;
@@ -95,12 +92,12 @@ class Type
     std::string ToString() const;
     static std::string ToString(const Type &);
 
-    static Type GetStrongestType(const VariantKind T1, const VariantKind T2)
+    static Type GetStrongestType(const Type &T1, const Type &T2)
     {
-        return std::max(T1, T2);
+        return T1.GetTypeVariant() > T2.GetTypeVariant() ? T1 : T2;
     }
 
-    static bool IsImplicitlyCastable(const Type from, const Type to);
+    static bool IsImplicitlyCastable(const Type &from, const Type &to);
     static bool IsImplicitlyCastable(const VariantKind from, const VariantKind to);
     static bool IsSmallerThanInt(const Type::VariantKind V);
     static bool OnlySignednessDifference(const Type::VariantKind V1,
@@ -126,8 +123,8 @@ class ValueType
 {
   public:
     ValueType() : Kind(Empty) {}
-    ValueType(unsigned v) : Kind(Integer), IntVal(v) {}
-    ValueType(double v) : Kind(Float), FloatVal(v) {}
+    explicit ValueType(unsigned v) : Kind(Integer), IntVal(v) {}
+    explicit ValueType(double v) : Kind(Float), FloatVal(v) {}
 
     ValueType(ValueType &&)            = default;
     ValueType &operator=(ValueType &&) = delete;
@@ -149,7 +146,7 @@ class ValueType
     ValueKind Kind;
     union
     {
-        unsigned IntVal;
+        unsigned IntVal {};
         double FloatVal;
     };
 };

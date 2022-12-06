@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cassert>
 #include <vector>
 #include "MiddleEnd//IR/Value.hpp"
@@ -65,7 +66,7 @@ class Instruction : public Value
     static std::string AsString(InstructionKind IK);
 
     Instruction(InstructionKind K, BasicBlock *P, IRType V)
-        : InstKind(K), Parent(P), Value(V)
+        : InstKind(K), Parent(P), Value(std::move(V))
     {}
 
     InstructionKind GetInstructionKind() { return InstKind; }
@@ -108,7 +109,7 @@ class UnaryInstruction : public Instruction
     {}
 
     UnaryInstruction(InstructionKind UO, IRType ResultType, Value *Operand, BasicBlock *P)
-        : Instruction(UO, P, ResultType), Op(Operand)
+        : Instruction(UO, P, std::move(ResultType)), Op(Operand)
     {}
 
     Value *GetOperand() { return Op; }
@@ -150,18 +151,20 @@ class CompareInstruction : public Instruction
 class CallInstruction : public Instruction
 {
   public:
-    CallInstruction(const std::string &N, IRType T, BasicBlock *P)
-        : Instruction(InstructionKind::Call, P, T), Name(N)
+    CallInstruction(std::string N, IRType T, BasicBlock *P)
+        : Instruction(InstructionKind::Call, P, std::move(T)), Name(std::move(N))
     {}
 
-    CallInstruction(const std::string &N,
+    // clang-format off
+    CallInstruction(std::string N,
                     std::vector<Value *> &A,
                     IRType T,
                     BasicBlock *P,
                     int StructIdx)
-        : Instruction(InstructionKind::Call, P, T), Name(N), Arguments(A),
+        : Instruction(InstructionKind::Call, P, T), Name(std::move(N)), Arguments(A),
           ImplicitStructArgIndex(StructIdx)
     {}
+    // clang-format on
 
     std::string &GetName() { return Name; }
     std::vector<Value *> &GetArgs() { return Arguments; }
@@ -219,7 +222,7 @@ class ReturnInstruction : public Instruction
 {
   public:
     ReturnInstruction(Value *RV, BasicBlock *P)
-        : Instruction(InstructionKind::Ret, P, RV ? RV->GetType() : IRType::None),
+        : Instruction(InstructionKind::Ret, P, RV ? RV->GetType() : IRType(IRType::None)),
           ReturnVal(RV)
     {
         BasicBlockTerminator = true;
@@ -237,7 +240,7 @@ class StackAllocationInstruction : public Instruction
 {
   public:
     StackAllocationInstruction(std::string &S, IRType T, BasicBlock *P)
-        : Instruction(InstructionKind::StackAlloc, P, T), VariableName(S)
+        : Instruction(InstructionKind::StackAlloc, P, std::move(T)), VariableName(S)
     {
         this->GetTypeRef().SetPointerLevel(this->GetTypeRef().GetPointerLevel() + 1);
     }
@@ -255,7 +258,7 @@ class GetElemPointerInstruction : public Instruction
                               Value *CompositeObject,
                               Value *AccessIndex,
                               BasicBlock *P)
-        : Instruction(Instruction::GetELemPtr, P, T), Source(CompositeObject),
+        : Instruction(Instruction::GetELemPtr, P, std::move(T)), Source(CompositeObject),
           Index(AccessIndex)
     {}
 
@@ -273,7 +276,8 @@ class StoreInstruction : public Instruction
 {
   public:
     StoreInstruction(Value *S, Value *D, BasicBlock *P)
-        : Instruction(InstructionKind::Store, P, IRType::None), Source(S), Destination(D)
+        : Instruction(InstructionKind::Store, P, IRType(IRType::None)), Source(S),
+          Destination(D)
     {
         assert(Source && Destination);
     }
@@ -292,7 +296,7 @@ class LoadInstruction : public Instruction
 {
   public:
     LoadInstruction(IRType T, Value *S, Value *O, BasicBlock *P)
-        : Instruction(InstructionKind::Load, P, T), Source(S), Offset(O)
+        : Instruction(InstructionKind::Load, P, std::move(T)), Source(S), Offset(O)
     {
         ConstructorHelper();
     }

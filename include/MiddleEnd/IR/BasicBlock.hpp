@@ -20,7 +20,7 @@ class BasicBlock : public Value
         : Name(Name), Parent(Parent), Value(Value::Label)
     {}
 
-    BasicBlock(Function *P) : Parent(P), Value(Value::Label) {}
+    explicit BasicBlock(Function *P) : Parent(P), Value(Value::Label) {}
 
     BasicBlock(const BasicBlock &) = delete;
     BasicBlock(BasicBlock &&)      = default;

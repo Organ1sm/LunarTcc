@@ -8,7 +8,7 @@ class PreProcessor
 {
   public:
     PreProcessor() = delete;
-    explicit PreProcessor(std::vector<std::string> &Src, std::string Path);
+    PreProcessor(std::vector<std::string> &Src, const std::string &Path);
 
     void ParseDirective(std::string &Line, std::size_t LineIdx);
     void SubstituteMacros(std::string &line);

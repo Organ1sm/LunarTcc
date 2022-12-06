@@ -9,7 +9,8 @@
 #include <string>
 #include <filesystem>
 
-PreProcessor::PreProcessor(std::vector<std::string> &Src, std::string Path) : Source(Src)
+PreProcessor::PreProcessor(std::vector<std::string> &Src, const std::string &Path)
+    : Source(Src)
 {
     FilePath = Path.substr(0, Path.rfind('/'));
 
@@ -90,7 +91,6 @@ void PreProcessor::ParseDirective(std::string &Line, std::size_t LineIdx)
         bool IsSysHeaderFile = lexer.Is(PPToken::LessThan);
         lexer.Lex();    // eat the token.
 
-
         std::string FileName;
         auto NextToken     = lexer.Lex();
         auto NextTokenKind = NextToken.GetKind();
@@ -161,8 +161,8 @@ void PreProcessor::SubstituteMacros(std::string &Line)
 
             for (std::size_t i = 0; i < MacroParam; i++)
             {
-                std::size_t EndPos = i != MacroParam - 1 ? RemainingLine.find(",") :
-                                                           RemainingLine.find(")");
+                std::size_t EndPos = i != MacroParam - 1 ? RemainingLine.find(',') :
+                                                           RemainingLine.find(')');
 
                 ActualParams.push_back(RemainingLine.substr(StartPos, EndPos - StartPos));
                 StartPos = EndPos + 1;

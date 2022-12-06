@@ -132,6 +132,7 @@ bool Token::IsCompositeAssignment(TokenKind TK)
 {
     switch (TK)
     {
+        case Token::Assign:
         case Token::ModEqual:
         case Token::AndEqual:
         case Token::OrEqual:
@@ -145,4 +146,9 @@ bool Token::IsCompositeAssignment(TokenKind TK)
 
         default: return false;
     }
+}
+
+bool Token::operator==(const Token &RHS)
+{
+    return GetString() == RHS.GetString() && Kind == RHS.Kind;
 }

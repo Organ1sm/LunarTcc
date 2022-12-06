@@ -16,7 +16,7 @@ Type::Type(Type::TypeKind tk) : Kind(tk)
     }
 }
 
-Type::Type(Type t, std::vector<unsigned> d) : Type(t)
+Type::Type(const Type &t, std::vector<unsigned> d) : Type(t)
 {
     if (d.empty())
     {
@@ -29,10 +29,11 @@ Type::Type(Type t, std::vector<unsigned> d) : Type(t)
     }
 }
 
-Type::Type(Type t, std::vector<Type> a)
+Type::Type(const Type &t, std::vector<Type> a)
 {
     ParamList = std::move(a);
     Ty        = t.GetTypeVariant();
+    Kind      = Simple;
 }
 
 Type &Type::operator=(Type &&ct)
@@ -129,8 +130,8 @@ std::string Type::ToString() const
     {
         auto TyStr = Type::ToString(*this);
 
-        for (size_t i = 0; i < Dimensions.size(); i++)
-            TyStr += "[" + std::to_string(Dimensions[i]) + "]";
+        for (unsigned Dimension : Dimensions)
+            TyStr += "[" + std::to_string(Dimension) + "]";
         return TyStr;
     }
     else
@@ -192,11 +193,17 @@ bool Type::IsImplicitlyCastable(const Type::VariantKind from, const Type::Varian
     }
 }
 
-bool Type::IsImplicitlyCastable(const Type from, const Type to)
+bool Type::IsImplicitlyCastable(const Type &from, const Type &to)
 {
     const auto IsFromPtr   = from.IsPointerType();
     const auto IsFromArray = from.IsArray();
     const auto IsToPtr     = to.IsPointerType();
+
+
+    // function assignment case
+    if ((from.IsFunction() && !to.IsPointerType()) ||
+        (to.IsFunction() && !from.IsPointerType()))
+        return false;
 
     // from integer type to pointer
     if (IsToPtr && from.IsIntegerType())
@@ -250,17 +257,39 @@ bool Type::OnlySignednessDifference(const Type::VariantKind V1,
 bool operator==(const Type &lhs, const Type &rhs)
 {
     bool result = lhs.Kind == rhs.Kind && lhs.Ty == rhs.Ty;
-    result      = result && lhs.GetPointerLevel() == rhs.GetPointerLevel();
+    result &= lhs.GetPointerLevel() == rhs.GetPointerLevel();
 
     if (!result)
         return false;
 
+
+    if (lhs.ParamList.size() != rhs.ParamList.size())
+        return false;
+
+    // at this point both type's parameter list has the same size
+    if (!lhs.ParamList.empty())
+    {
+        for (size_t i = 0; i < lhs.ParamList.size(); i++)
+            if (lhs.ParamList[i] != rhs.ParamList[i])
+                return false;
+    }
+
     switch (lhs.Kind)
     {
-        case Type::Array: result = result && (lhs.Dimensions == rhs.Dimensions); break;
+        case Type::Array: {
+            if (lhs.Dimensions.size() != rhs.Dimensions.size())
+                return false;
+            else
+                for (size_t i = 0; i < lhs.Dimensions.size(); i++)
+                    if (lhs.Dimensions[i] != rhs.Dimensions[i])
+                        return false;
+        }
+        break;
+
         default: break;
     }
-    return result;
+
+    return true;
 }
 
 bool operator!=(const Type &lhs, const Type &rhs) { return !(lhs == rhs); }
@@ -286,8 +315,8 @@ bool operator==(const ValueType &lhs, const ValueType &rhs)
 
     switch (lhs.Kind)
     {
-        case ValueType::Integer: result = result && (lhs.IntVal == rhs.IntVal); break;
-        case ValueType::Float: result = result && (lhs.FloatVal == rhs.FloatVal); break;
+        case ValueType::Integer: result = lhs.IntVal == rhs.IntVal; break;
+        case ValueType::Float: result = lhs.FloatVal == rhs.FloatVal; break;
         default: break;
     }
     return result;

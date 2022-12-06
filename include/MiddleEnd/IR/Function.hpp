@@ -24,7 +24,7 @@ class Function
     Function(Function &&)      = default;
 
     BasicBlock *GetCurrentBB();
-    BasicBlock *GetBB(const std::size_t Index);
+    BasicBlock *GetBB(std::size_t Index);
 
     std::string &GetName() { return Name; }
 

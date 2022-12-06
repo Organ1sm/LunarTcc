@@ -24,11 +24,8 @@ class IRType
     };
 
     IRType() : Kind(Invalid), BitWidth(0) {}
-    IRType(TKind kind) : Kind(kind), BitWidth(32) {}
+    explicit IRType(TKind kind) : Kind(kind), BitWidth(32) {}
     IRType(TKind kind, uint8_t bw) : Kind(kind), BitWidth(bw) {}
-
-    void SetKind(TKind K) { Kind = K; }
-    void SetToPointerKind() { Kind = Ptr; }
 
     uint8_t GetPointerLevel() const { return PointerLevel; }
     void SetPointerLevel(uint8_t pl);
@@ -62,7 +59,7 @@ class IRType
     std::size_t GetByteSize(TargetMachine *TM = nullptr) const;
 
     unsigned CalcElemSize(unsigned dim);
-    unsigned GetElemByteOffset(const unsigned StructElemIndex,
+    unsigned GetElemByteOffset(unsigned StructElemIndex,
                                TargetMachine *TM = nullptr) const;
 
     IRType GetBaseType() const { return IRType(Kind, BitWidth); }
@@ -77,9 +74,9 @@ class IRType
         return BitWidth == RHS.BitWidth && Kind == RHS.Kind;
     }
 
-    static IRType CreateBool() { return IRType(SInt, 1); }
-    static IRType CreateInt(uint8_t BW = 32) { return IRType(SInt, BW); }
-    static IRType CreateFloat(uint8_t BW = 32) { return IRType(FP, BW); }
+    static IRType CreateBool() { return {SInt, 1}; }
+    static IRType CreateInt(uint8_t BW = 32) { return {SInt, BW}; }
+    static IRType CreateFloat(uint8_t BW = 32) { return {FP, BW}; }
 
   private:
     TKind Kind;

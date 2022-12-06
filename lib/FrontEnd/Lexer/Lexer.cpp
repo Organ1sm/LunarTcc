@@ -50,6 +50,8 @@ void Lexer::ConsumeCurrentToken()
     TokenBuffer.erase(TokenBuffer.begin());
 }
 
+// If it is an empty line then move forward by calling EatNextChar() which
+// will advance to the next line's first character.
 int Lexer::GetNextChar()
 {
     if (LineIndex < Source.size() && Source[LineIndex].length() == 0)
@@ -69,6 +71,8 @@ int Lexer::GetNextNthCharOnSameLine(unsigned int n)
     return Source[LineIndex][ColumnIndex + n];
 }
 
+// Update LineIndex and ColumnIndex to make them point to the next
+// input character
 void Lexer::EatNextChar()
 {
     if (LineIndex < Source.size())
@@ -85,6 +89,7 @@ void Lexer::EatNextChar()
         }
     }
 }
+
 std::optional<Token> Lexer::LexNumber()
 {
     auto StartLineIndex   = LineIndex;
@@ -131,7 +136,7 @@ std::optional<Token> Lexer::LexNumber()
             Length++;
             EatNextChar();
 
-            unsigned CurrentDigit = 0;
+            unsigned CurrentDigit;
 
             if (isdigit(ch))
                 CurrentDigit = ch - '0';
@@ -200,8 +205,8 @@ std::optional<Token> Lexer::LexKeyWord()
 
 std::optional<Token> Lexer::LexSymbol()
 {
-    auto TokenKind = Token::Invalid;
-    unsigned Size  = 1;
+    Token::TokenKind TokenKind;
+    unsigned Size = 1;
 
     switch (GetNextChar())
     {
@@ -477,7 +482,7 @@ Token Lexer::Lex(bool LookAhead)
 
     if (CurrentCharacter == EOF)
     {
-        return {Token::EndOfFile};
+        return Token {Token::EndOfFile};
     }
 
     auto Result = LexKeyWord();
@@ -521,7 +526,7 @@ Token Lexer::Lex(bool LookAhead)
     if (Result)
         return Result.value();
 
-    return {Token::Invalid};
+    return Token {Token::Invalid};
 }
 
 std::optional<Token> Lexer::LexCharLiteral()

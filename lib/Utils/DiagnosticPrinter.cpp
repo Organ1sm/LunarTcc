@@ -56,12 +56,12 @@ void DiagnosticPrinter::AddMessage(const std::string &Msg,
                                 fmt::styled(Type, fmt::emphasis::bold),
                                 fmt::styled(Msg, fmt::emphasis::bold));
 
-    std::string MsgWithLineNums = fmt::format("{}{}\n{}\n",
-                                              WholeMsg,
-                                              Source[T.GetLine()],
-                                              CreateCodePointerString(T));
+    std::string Message = fmt::format("{}{}\n{}\n",
+                                      WholeMsg,
+                                      Source[T.GetLine()],
+                                      CreateCodePointerString(T));
 
-    AddMessage(MsgWithLineNums);
+    AddMessage(Message);
 }
 
 void DiagnosticPrinter::AddError(const std::string &Msg)

@@ -3,6 +3,8 @@
 //
 
 #include "FrontEnd/Parser/SymbolTable.hpp"
+#include "FrontEnd/Lexer/Token.hpp"
+#include <optional>
 
 void SymbolTableStack::PushSymbolTable(SymbolTableStack::Table t)
 {
@@ -30,20 +32,6 @@ void SymbolTableStack::InsertGlobalEntry(const SymbolTableStack::Entry &e)
     SymTabStack[0].push_back(e);
 }
 
-bool SymbolTableStack::Contains(SymbolTableStack::Entry e)
-{
-    for (int i = Size() - 1; i >= 0; i--)
-    {
-        auto t = SymTabStack[i];
-        for (int j = t.size() - 1; j >= 0; j--)
-        {
-            if (t[j] == e)
-                return true;
-        }
-    }
-
-    return false;
-}
 
 std::optional<SymbolTableStack::Entry> SymbolTableStack::Contains(const std::string &sym)
 {
@@ -52,22 +40,37 @@ std::optional<SymbolTableStack::Entry> SymbolTableStack::Contains(const std::str
         auto t = SymTabStack[i];
         for (int j = t.size() - 1; j >= 0; j--)
         {
-            if (sym == std::get<0>(t[j]))
+            if (sym == std::get<0>(t[j]).GetString())
                 return t[j];
         }
     }
     return std::nullopt;
 }
 
-bool SymbolTableStack::ContainsInCurrentScope(SymbolTableStack::Entry e)
+std::optional<SymbolTableStack::Entry>
+    SymbolTableStack::ContainsInCurrentScope(const std::string &sym)
 {
-    auto idx = Size() > 0 ? Size() - 1 : 0;
+    auto table = SymTabStack.back();
 
-    for (int i = SymTabStack[idx].size() - 1; i >= 0; i--)
+    for (int i = table.size() - 1; i >= 0; i--)
     {
-        if (SymTabStack[idx][i] == e)
-            return true;
+        if (sym == std::get<0>(table[i]).GetString())
+            return table[i];
     }
 
-    return false;
+    return std::nullopt;
+}
+
+std::optional<SymbolTableStack::Entry>
+    SymbolTableStack::ContainsInGlobalScope(const std::string &sym)
+{
+    auto table = SymTabStack[0];
+
+    for (int i = table.size() - 1; i >= 0; i--)
+    {
+        if (sym == std::get<0>(table[i]).GetString())
+            return table[i];
+    }
+
+    return std::nullopt;
 }

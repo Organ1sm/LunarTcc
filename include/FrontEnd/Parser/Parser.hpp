@@ -71,16 +71,16 @@ class Parser
     bool IsQualifer(Token::TokenKind tk);
     bool IsQualifedType(Token T);
 
-    bool IsUserDefinedType(std::string Name);
-    Type GetUserDefinedType(std::string Name);
-    std::vector<std::string> GetUserDefinedTypeMembers(std::string Name);
+    bool IsUserDefinedType(const std::string &Name);
+    Type GetUserDefinedType(const std::string &Name);
+    std::vector<Token> GetUserDefinedTypeMembers(std::string Name);
 
     std::unique_ptr<Node> ParseTranslationUnit();
     std::unique_ptr<Node> ParseExternalDeclaration();
     std::unique_ptr<FunctionDeclaration> ParseFunctionDeclaration(const Type &ReturnType,
                                                                   const Token &Name);
     std::unique_ptr<VariableDeclaration> ParseVariableDeclaration(Type type);
-    std::vector<StmtPtr> ParseVariableDeclarationList();
+    std::vector<std::unique_ptr<VariableDeclaration>> ParseVariableDeclarationList();
 
     FuncParamDeclPtr ParseParameterDeclaration();
     std::vector<FuncParamDeclPtr> ParseParameterList(bool &HasVarArg);
@@ -117,8 +117,8 @@ class Parser
     ExprPtr ParseBinaryExpressionRHS(int Precedence,
                                      std::unique_ptr<Expression> LeftExpression);
 
-    void InsertToSymbolTable(const std::string &SymbolName,
-                             Type SymType,
+    void InsertToSymbolTable(const Token &SymbolName,
+                             const Type &SymType,
                              const bool ToGlobal = false,
                              ValueType SymValue  = ValueType());
 
@@ -131,7 +131,7 @@ class Parser
 
     // Type name to type, and the list of names for the struct field
     // TODO: write example to explain it.
-    std::map<std::string, std::tuple<Type, std::vector<std::string>>> UserDefinedTypes;
+    std::map<std::string, std::tuple<Type, std::vector<Token>>> UserDefinedTypes;
 
     /// Mapping identifiers to types. Eg: "typedef int i32" -> {"i32", Type::Int}
     std::map<std::string, Type> TypeDefinitions;

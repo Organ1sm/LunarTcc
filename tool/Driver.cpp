@@ -1,4 +1,5 @@
 #include "FrontEnd/AST/ASTPrint.hpp"
+#include "FrontEnd/AST/Semantics.hpp"
 #include "Utils/DiagnosticPrinter.hpp"
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include "FrontEnd/AST/AST.hpp"
@@ -147,6 +148,16 @@ int main(int argc, char *argv[])
     {
         auto ASTPrinter = std::make_unique<ASTPrint>();
         AST->Accept(ASTPrinter.get());
+    }
+
+    // Do semantic analysis on the AST
+    auto Sema = std::make_unique<Semantics>(DP);
+    AST->Accept(Sema.get());
+
+    if (DP.HasErrors(Wall))
+    {
+        DP.ReportErrors();
+        exit(1);
     }
 
     AST->IRCodegen(&IRF);

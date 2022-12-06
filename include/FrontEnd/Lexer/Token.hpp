@@ -129,7 +129,7 @@ class Token
 
     Token() : Kind(Invalid) {}
 
-    Token(TokenKind tk) : Kind {tk} {}
+    explicit Token(TokenKind tk) : Kind {tk} {}
 
     Token(TokenKind tk, std::string_view sv, std::size_t line, std::size_t col)
         : Kind(tk), StringValue(sv), Line(line), Column(col)
@@ -139,16 +139,17 @@ class Token
         : Kind(tk), StringValue(sv), Line(line), Column(col), Value(v)
     {}
 
-    std::string GetString() const { return std::string(StringValue); }
+    [[nodiscard]] std::string GetString() const { return std::string(StringValue); }
 
-    TokenKind GetKind() const { return Kind; }
+    [[nodiscard]] TokenKind GetKind() const { return Kind; }
 
-    std::size_t GetLine() const { return Line; }
-    std::size_t GetColumn() const { return Column; }
-    unsigned GetValue() const { return this->Value; }
+    [[nodiscard]] std::size_t GetLine() const { return Line; }
+    [[nodiscard]] std::size_t GetColumn() const { return Column; }
+    [[nodiscard]] unsigned GetValue() const { return this->Value; }
 
-    std::string ToString() const;
+    [[nodiscard]] std::string ToString() const;
 
+    bool operator==(const Token &RHS);
     static std::string ToString(TokenKind tk);
     static bool IsArithmetic(TokenKind TK);
     static bool IsCompositeAssignment(TokenKind TK);
@@ -156,8 +157,8 @@ class Token
   private:
     TokenKind Kind;
     std::string_view StringValue;
-    std::size_t Line;
-    std::size_t Column;
+    std::size_t Line {};
+    std::size_t Column {};
     unsigned Value = 0;
 
   public:

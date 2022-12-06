@@ -253,7 +253,7 @@ UnaryInstruction *IRFactory::CreateBitCast(Value *Operand, const IRType &To)
 
 CallInstruction *IRFactory::CreateCall(std::string &FuncName,
                                        std::vector<Value *> Args,
-                                       IRType Type,
+                                       const IRType &Type,
                                        int StructIdx)
 {
     auto Inst    = std::make_unique<CallInstruction>(FuncName,
@@ -281,7 +281,8 @@ ReturnInstruction *IRFactory::CreateRet(Value *ReturnVal)
     return InstPtr;
 }
 
-StackAllocationInstruction *IRFactory::CreateSA(std::string Indentifier, IRType Type)
+StackAllocationInstruction *IRFactory::CreateSA(std::string Indentifier,
+                                                const IRType &Type)
 {
     auto Inst    = std::make_unique<StackAllocationInstruction>(Indentifier,
                                                              Type,
@@ -295,7 +296,7 @@ StackAllocationInstruction *IRFactory::CreateSA(std::string Indentifier, IRType 
 }
 
 GetElemPointerInstruction *
-    IRFactory::CreateGEP(IRType ResultType, Value *Source, Value *Index)
+    IRFactory::CreateGEP(const IRType &ResultType, Value *Source, Value *Index)
 {
     auto Inst    = std::make_unique<GetElemPointerInstruction>(ResultType,
                                                             Source,
@@ -318,7 +319,8 @@ StoreInstruction *IRFactory::CreateStore(Value *Source, Value *Destination)
     return InstPtr;
 }
 
-LoadInstruction *IRFactory::CreateLoad(IRType ResultType, Value *Source, Value *Offset)
+LoadInstruction *
+    IRFactory::CreateLoad(const IRType &ResultType, Value *Source, Value *Offset)
 {
     auto Inst =
         std::make_unique<LoadInstruction>(ResultType, Source, Offset, GetCurrentBB());
@@ -380,7 +382,7 @@ BranchInstruction *
     return InstPtr;
 }
 
-GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier, const IRType Type)
+GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier, const IRType &Type)
 {
     auto GlobalVar = new GlobalVariable(Identifier, Type);
     GlobalVar->SetId(ID++);
@@ -389,7 +391,7 @@ GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier, const IRType
 }
 
 GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier,
-                                           const IRType Type,
+                                           const IRType &Type,
                                            std::vector<uint64_t> InitList)
 {
     auto GlobalVar = new GlobalVariable(Identifier, Type, std::move(InitList));
@@ -399,7 +401,7 @@ GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier,
 }
 
 GlobalVariable *
-    IRFactory::CreateGlobalVar(std::string &Identifier, const IRType Type, Value *Val)
+    IRFactory::CreateGlobalVar(std::string &Identifier, const IRType &Type, Value *Val)
 {
     auto GlobalVar = new GlobalVariable(Identifier, Type, Val);
     GlobalVar->SetId(ID++);
@@ -408,10 +410,10 @@ GlobalVariable *
 }
 
 GlobalVariable *IRFactory::CreateGlobalVar(std::string &Identifier,
-                                           const IRType Type,
+                                           const IRType &Type,
                                            std::string StrValue)
 {
-    auto GlobalVar = new GlobalVariable(Identifier, Type, StrValue);
+    auto GlobalVar = new GlobalVariable(Identifier, Type, std::move(StrValue));
     GlobalVar->SetId(ID++);
 
     return GlobalVar;
