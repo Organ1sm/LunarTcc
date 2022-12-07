@@ -59,7 +59,15 @@ const FunctionDeclaration *Semantics::GetFuncDecl(const std::string &FuncName)
 //=----------------------------- Sema functions -----------------------------=//
 //=--------------------------------------------------------------------------=//
 
-void Semantics::VisitVariableDeclaration(const VariableDeclaration *node) {}
+void Semantics::VisitVariableDeclaration(const VariableDeclaration *node)
+{
+    auto VarName = node->GetName();
+
+    InsertToSymTable(node->GetNameToken(), node->GetType());
+
+    if (node->GetInitExpr())
+        node->GetInitExpr()->Accept(this);
+}
 
 void Semantics::VisitMemberDeclaration(const MemberDeclaration *node) {}
 
@@ -67,9 +75,21 @@ void Semantics::VisitEnumDeclaration(const EnumDeclaration *node) {}
 
 void Semantics::VisitStructDeclaration(const StructDeclaration *node) {}
 
-void Semantics::VisitCompoundStatement(const CompoundStatement *node) {}
+void Semantics::VisitCompoundStatement(const CompoundStatement *node)
+{
+    SymbolTables.PushSymbolTable();
 
-void Semantics::VisitExpressionStatement(const ExpressionStatement *node) {}
+    for (const auto &Stmt : node->GetStatements())
+        Stmt->Accept(this);
+
+    SymbolTables.PopSymbolTable();
+}
+
+void Semantics::VisitExpressionStatement(const ExpressionStatement *node)
+{
+    if (node->GetExpression() != nullptr)
+        node->GetExpression()->Accept(this);
+}
 
 void Semantics::VisitIfStatement(const IfStatement *node) {}
 
@@ -81,7 +101,11 @@ void Semantics::VisitDoWhileStatement(const DoWhileStatement *node) {}
 
 void Semantics::VisitForStatement(const ForStatement *node) {}
 
-void Semantics::VisitReturnStatement(const ReturnStatement *node) {}
+void Semantics::VisitReturnStatement(const ReturnStatement *node)
+{
+    if (node->GetReturnVal())
+        node->GetReturnVal()->Accept(this);
+}
 
 void Semantics::VisitBreakStatement(const BreakStatement *node) {}
 
@@ -92,7 +116,38 @@ void Semantics::VisitFunctionParameterDeclaration(const FunctionParameterDeclara
 // clang-format on
 {}
 
-void Semantics::VisitFunctionDeclaration(const FunctionDeclaration *node) {}
+void Semantics::VisitFunctionDeclaration(const FunctionDeclaration *node)
+{
+    auto FuncName = node->GetName();
+
+    InsertToSymTable(node->GetNameToken(), node->GetType(), true);
+
+    // Opening a new scope for the function
+    SymbolTables.PushSymbolTable();
+
+    for (const auto &Arg : node->GetArguments())
+        Arg->Accept(this);
+
+    if (node->GetBody())
+    {
+        auto &ParamList = node->GetArguments();
+
+        for (auto &Param : ParamList)
+            if (Param->GetType().IsVoid())
+            {
+                std::string Msg =
+                    fmt::format("('{}') has incomplete type", Param->GetName());
+
+                DiagPrinter.AddError(Msg, Param->GetNameToken());
+            }
+        node->GetBody()->Accept(this);
+    }
+
+    SymbolTables.PopSymbolTable();
+
+    // Adding this function declaration to the already processed ones
+    FuncDeclList.push_back(node);
+}
 
 void Semantics::VisitBinaryExpression(const BinaryExpression *node) {}
 
@@ -106,7 +161,16 @@ void Semantics::VisitUnaryExpression(const UnaryExpression *node) {}
 
 void Semantics::VisitCallExpression(const CallExpression *node) {}
 
-void Semantics::VisitReferenceExpression(const ReferenceExpression *node) {}
+void Semantics::VisitReferenceExpression(const ReferenceExpression *node)
+{
+    if (!SymbolTables.Contains(node->GetIdentifier()))
+    {
+        std::string Msg =
+            fmt::format("use of undeclared identifier '{}'", node->GetIdentifier());
+
+        DiagPrinter.AddError(Msg, node->GetIdentifierToken());
+    }
+}
 
 void Semantics::VisitIntegerLiteralExpression(const IntegerLiteralExpression *node) {}
 
@@ -116,8 +180,15 @@ void Semantics::VisitStringLiteralExpression(const StringLiteralExpression *node
 
 void Semantics::VisitArrayExpression(const ArrayExpression *node) {}
 
-void Semantics::VisitImplicitCastExpression(const ImplicitCastExpression *node) {}
+void Semantics::VisitImplicitCastExpression(const ImplicitCastExpression *node)
+{
+    node->GetCastableExpression()->Accept(this);
+}
 
 void Semantics::VisitInitializerListExpression(const InitializerListExpression *node) {}
 
-void Semantics::VisitTranslationUnit(const TranslationUnit *node) {}
+void Semantics::VisitTranslationUnit(const TranslationUnit *node)
+{
+    for (const auto &Decl : node->GetDeclarations())
+        Decl->Accept(this);
+}
