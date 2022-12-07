@@ -39,7 +39,7 @@ void DiagnosticPrinter::AddMessage(const std::string &Msg)
 
 void DiagnosticPrinter::AddMessage(const std::string &Msg, MessageType MsgType)
 {
-    ErrorMessages.push_back(MessageTypeToString(MsgType) + Msg);
+    ErrorMessages.push_back(" " + MessageTypeToString(MsgType) + Msg);
 }
 
 void DiagnosticPrinter::AddMessage(const std::string &Msg,
