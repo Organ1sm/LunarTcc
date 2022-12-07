@@ -421,6 +421,8 @@ class StructMemberReference : public Expression
     const ExprPtr &GetExpr() const { return StructTypedExpression; }
     void SetExpr(ExprPtr &e) { StructTypedExpression = std::move(e); }
 
+    bool IsArrow() const { return Arrow; }
+
     void Accept(ASTVisitor *Visitor) const override;
     Value *IRCodegen(IRFactory *IRF) override;
 
