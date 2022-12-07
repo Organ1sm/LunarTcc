@@ -36,6 +36,7 @@ def CheckFile(fileName):
     FunctionDecls = []
     TestCases = []
     NegativeTest = False
+    ExtraCompileFlags = ""
 
     with open(fileName) as file:
         for line in file:
@@ -59,10 +60,14 @@ def CheckFile(fileName):
                 NegativeTest = True
                 continue
 
-    return Arch, FunctionDecls, TestCases, NegativeTest
+            m = re.search(r'(?:/{2}|#) *EXTRA-FLAGS: (.*)', line)
+            if m:
+                ExtraCompileFlags = m.group(1)
+
+    return Arch, FunctionDecls, TestCases, NegativeTest, ExtraCompileFlags
 
 
-def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases):
+def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases, ExtraCompileFlags):
     if len(Arch) == 0:
         return False, True
 
@@ -80,8 +85,11 @@ def CompileAndExecuteTestFile(fileName, Arch, FunctionDecls, TestCases):
     testMain_C_TemPlate += "}"
 
     commandList = [CompilerPath, fileName]
+    if ExtraCompileFlags != "":
+        commandList.append(ExtraCompileFlags)
+
     retCode = subprocess.run(
-        commandList, stdout=subprocess.DEVNULL, timeout=10).returncode
+        commandList, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, timeout=10).returncode
 
     if retCode != 0:
         return False
@@ -139,13 +147,14 @@ testSet.sort()
 for filePath in testSet:
     simplifyFilePath = filePath.replace(WorkDir, "")
     prettyFilePath = "[orange]" + simplifyFilePath + "[/orange]"
-    Arch, FunctionDeclarations, TestCases, NegativeTest = CheckFile(filePath)
+    Arch, FunctionDeclarations, TestCases, NegativeTest, flags = CheckFile(
+        filePath)
 
     if Arch == "":
         continue
 
     success = CompileAndExecuteTestFile(
-        filePath, Arch, FunctionDeclarations, TestCases)
+        filePath, Arch, FunctionDeclarations, TestCases, flags)
 
     if (NegativeTest and not success):
         success = True

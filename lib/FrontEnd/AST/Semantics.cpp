@@ -159,7 +159,50 @@ void Semantics::VisitStructInitExpression(const StructInitExpression *node) {}
 
 void Semantics::VisitUnaryExpression(const UnaryExpression *node) {}
 
-void Semantics::VisitCallExpression(const CallExpression *node) {}
+void Semantics::VisitCallExpression(const CallExpression *node)
+{
+    auto CalledFunc = SymbolTables.Contains(node->GetName());
+
+    if (CalledFunc)
+    {
+        // too many argument
+        auto &[CalledFuncName, CalledFuncType, _] = CalledFunc.value();
+
+        const auto FuncArgNum = CalledFuncType.GetArgTypes().size();
+        const auto CallArgNum = node->GetArguments().size();
+
+        // Exception case if the function has only one void argument, in which
+        // calling it without a parameter is permitted.
+        bool CallNoParameterFunc = (FuncArgNum == 1 && CallArgNum == 0 &&
+                                    CalledFuncType.GetArgTypes()[0] == Type(Type::Void));
+
+        if (!CalledFuncType.HasVarArg() && FuncArgNum != CallArgNum &&
+            !CallNoParameterFunc)
+        {
+            std::string descript = FuncArgNum > CallArgNum ? "few" : "many";
+
+            auto Msg = fmt::format("too {} arguments to function '{}' call",
+                                   descript,
+                                   node->GetName());
+
+            DiagPrinter.AddError(Msg, node->GetNameToken());
+
+            auto FuncDeclMsg =
+                fmt::format("'{}' function declared here", CalledFuncName.GetString());
+            DiagPrinter.AddNote(FuncDeclMsg, CalledFuncName);
+        }
+    }
+
+    else
+    {
+        auto Msg = fmt::format("implicit declaration of function '{}'", node->GetName());
+
+        DiagPrinter.AddWarning(Msg, node->GetNameToken());
+    }
+
+    for (const auto &Arg : node->GetArguments())
+        Arg->Accept(this);
+}
 
 void Semantics::VisitReferenceExpression(const ReferenceExpression *node)
 {
