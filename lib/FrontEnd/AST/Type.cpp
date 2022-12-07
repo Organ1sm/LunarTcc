@@ -92,7 +92,7 @@ std::string Type::ToString(const Type &t)
         case Char: Result = "char"; break;
         case UnsignedChar: Result = "unsigned char"; break;
         case Void: Result = "void"; break;
-        case Composite: Result = t.GetName(); break;
+        case Composite: Result = "struct " + t.GetName(); break;
         case Invalid: return "invalid";
 
         default: assert(!"Unknown type."); break;

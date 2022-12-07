@@ -73,7 +73,21 @@ void Semantics::VisitMemberDeclaration(const MemberDeclaration *node) {}
 
 void Semantics::VisitEnumDeclaration(const EnumDeclaration *node) {}
 
-void Semantics::VisitStructDeclaration(const StructDeclaration *node) {}
+void Semantics::VisitStructDeclaration(const StructDeclaration *node)
+{
+    // Register the incomplete type
+    UserDefinedTypes[node->GetName()] = {node->GetType(), {}};
+
+    for (const auto &M : node->GetMembers())
+        M->Accept(this);
+
+    // Register the full defined type
+    std::vector<Token> StructMemberIdentifiers;
+    for (const auto &M : node->GetMembers())
+        StructMemberIdentifiers.push_back(M->GetNameToken());
+
+    UserDefinedTypes[node->GetName()] = {node->GetType(), {StructMemberIdentifiers}};
+}
 
 void Semantics::VisitCompoundStatement(const CompoundStatement *node)
 {
@@ -91,15 +105,53 @@ void Semantics::VisitExpressionStatement(const ExpressionStatement *node)
         node->GetExpression()->Accept(this);
 }
 
-void Semantics::VisitIfStatement(const IfStatement *node) {}
+void Semantics::VisitIfStatement(const IfStatement *node)
+{
+    node->GetCondition()->Accept(this);
+    node->GetIfBody()->Accept(this);
+
+    if (node->GetElseBody())
+        node->GetElseBody()->Accept(this);
+}
 
 void Semantics::VisitSwitchStatement(const SwitchStatement *node) {}
 
-void Semantics::VisitWhileStatement(const WhileStatement *node) {}
+void Semantics::VisitWhileStatement(const WhileStatement *node)
+{
+    node->GetCondition()->Accept(this);
+    node->GetBody()->Accept(this);
+}
 
-void Semantics::VisitDoWhileStatement(const DoWhileStatement *node) {}
+void Semantics::VisitDoWhileStatement(const DoWhileStatement *node)
+{
+    node->GetBody()->Accept(this);
+    node->GetCondition()->Accept(this);
+}
 
-void Semantics::VisitForStatement(const ForStatement *node) {}
+void Semantics::VisitForStatement(const ForStatement *node)
+{
+    SymbolTables.PushSymbolTable();
+
+    if (node->GetInit())
+        node->GetInit()->Accept(this);
+    else
+    {
+        const auto &VarDecls = node->GetVarDecls();
+        for (const auto &Decl : VarDecls)
+            Decl->Accept(this);
+    }
+
+    if (node->GetCondition())
+        node->GetCondition()->Accept(this);
+
+    if (node->GetIncrement())
+        node->GetIncrement()->Accept(this);
+
+    node->GetBody()->Accept(this);
+
+
+    SymbolTables.PopSymbolTable();
+}
 
 void Semantics::VisitReturnStatement(const ReturnStatement *node)
 {
@@ -114,7 +166,9 @@ void Semantics::VisitContinueStatement(const ContinueStatement *node) {}
 // clang-format off
 void Semantics::VisitFunctionParameterDeclaration(const FunctionParameterDeclaration *node)
 // clang-format on
-{}
+{
+    InsertToSymTable(node->GetNameToken(), node->GetType());
+}
 
 void Semantics::VisitFunctionDeclaration(const FunctionDeclaration *node)
 {
@@ -151,11 +205,62 @@ void Semantics::VisitFunctionDeclaration(const FunctionDeclaration *node)
 
 void Semantics::VisitBinaryExpression(const BinaryExpression *node) {}
 
-void Semantics::VisitTernaryExpression(const TernaryExpression *node) {}
+void Semantics::VisitTernaryExpression(const TernaryExpression *node)
+{
+    node->GetCondition()->Accept(this);
+    node->GetExprIfTrue()->Accept(this);
+    node->GetExprIfFalse()->Accept(this);
+}
 
-void Semantics::VisitStructMemberReference(const StructMemberReference *node) {}
+void Semantics::VisitStructMemberReference(const StructMemberReference *node)
+{
+    std::string Msg;
+    // Validate that indeed a struct is the base type for member reference
+    if (!node->IsArrow() && !node->GetExpr()->GetResultType().IsStruct())
+    {
+        Msg = fmt::format("member reference base type '{}' is not a structure or union",
+                          node->GetExpr()->GetResultType().ToString());
+    }
 
-void Semantics::VisitStructInitExpression(const StructInitExpression *node) {}
+    else if (node->IsArrow() && !node->GetExpr()->GetResultType().IsPointerType())
+    {
+        Msg = fmt::format("invalid type argument of '->'(have '{}')",
+                          node->GetExpr()->GetResultType().ToString());
+    }
+    else
+    {
+        /// Validate that the accessed member name is exists in the struct
+        bool FoundMatch = false;
+
+        const auto StructName = node->GetExpr()->GetResultType().GetName();
+        for (auto StructMember : std::get<1>(UserDefinedTypes[StructName]))
+        {
+            if (StructMember == node->GetMemberIdToken())
+            {
+                FoundMatch = true;
+                break;
+            }
+        }
+
+        if (!FoundMatch)
+        {
+            Msg = fmt::format(" no member named '{}' in '{}'",
+                              node->GetMemberId(),
+                              std::get<0>(UserDefinedTypes[StructName]).ToString());
+        }
+    }
+
+    if (!Msg.empty())
+        DiagPrinter.AddError(Msg, node->GetMemberIdToken());
+
+    node->GetExpr()->Accept(this);
+}
+
+void Semantics::VisitStructInitExpression(const StructInitExpression *node)
+{
+    for (auto &InitValue : node->GetInitList())
+        InitValue->Accept(this);
+}
 
 void Semantics::VisitUnaryExpression(const UnaryExpression *node) {}
 
@@ -228,7 +333,11 @@ void Semantics::VisitImplicitCastExpression(const ImplicitCastExpression *node)
     node->GetCastableExpression()->Accept(this);
 }
 
-void Semantics::VisitInitializerListExpression(const InitializerListExpression *node) {}
+void Semantics::VisitInitializerListExpression(const InitializerListExpression *node)
+{
+    for (const auto &E : node->GetExprList())
+        E->Accept(this);
+}
 
 void Semantics::VisitTranslationUnit(const TranslationUnit *node)
 {
