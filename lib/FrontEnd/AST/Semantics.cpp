@@ -1,6 +1,7 @@
 #include "FrontEnd/AST/Semantics.hpp"
 #include "FrontEnd/AST/AST.hpp"
 #include "FrontEnd/Lexer/Token.hpp"
+#include "FrontEnd/Support.hpp"
 #include "fmt/core.h"
 #include <optional>
 
@@ -124,7 +125,30 @@ void Semantics::VisitIfStatement(const IfStatement *node)
         node->GetElseBody()->Accept(this);
 }
 
-void Semantics::VisitSwitchStatement(const SwitchStatement *node) {}
+void Semantics::VisitSwitchStatement(const SwitchStatement *node)
+{
+    node->GetCondition()->Accept(this);
+
+    for (const auto &[CaseConst, CaseBody] : node->GetCaseBodies())
+    {
+        // if non constant value used as label
+        if (! instanceof <IntegerLiteralExpression>(CaseConst.get()))
+        {
+            std::string Msg =
+                "case lable expression is not an integer constant expression\n";
+            DiagPrinter.AddError(Msg);
+        }
+
+        for (const auto &CaseStmt : CaseBody)
+            CaseStmt->Accept(this);
+    }
+
+    if (!node->GetDefaultBody().empty())
+    {
+        for (const auto &DefaultStmt : node->GetDefaultBody())
+            DefaultStmt->Accept(this);
+    }
+}
 
 void Semantics::VisitWhileStatement(const WhileStatement *node)
 {
