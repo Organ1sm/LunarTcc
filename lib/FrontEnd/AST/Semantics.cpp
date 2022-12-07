@@ -203,7 +203,17 @@ void Semantics::VisitFunctionDeclaration(const FunctionDeclaration *node)
     FuncDeclList.push_back(node);
 }
 
-void Semantics::VisitBinaryExpression(const BinaryExpression *node) {}
+void Semantics::VisitBinaryExpression(const BinaryExpression *node)
+{
+    // Check if the left hand side of the assignment is an L-value
+    if (node->IsAssignment() && !node->GetLeftExpr()->GetLValueness())
+    {
+        std::string Msg =
+            "lvalue required of left operand of expression, so expression is not assignable";
+
+        DiagPrinter.AddError(Msg, node->GetOperation());
+    }
+}
 
 void Semantics::VisitTernaryExpression(const TernaryExpression *node)
 {
@@ -262,7 +272,11 @@ void Semantics::VisitStructInitExpression(const StructInitExpression *node)
         InitValue->Accept(this);
 }
 
-void Semantics::VisitUnaryExpression(const UnaryExpression *node) {}
+void Semantics::VisitUnaryExpression(const UnaryExpression *node)
+{
+    if (node->GetExpr())
+        node->GetExpr()->Accept(this);
+}
 
 void Semantics::VisitCallExpression(const CallExpression *node)
 {
