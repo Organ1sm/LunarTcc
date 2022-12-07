@@ -107,7 +107,7 @@ void DiagnosticPrinter::ReportErrors() const
 {
     for (auto &Msg : ErrorMessages)
     {
-        fmt::print("{}{}\n", fmt::styled(FileName, fmt::emphasis::bold), Msg);
+        fmt::print("{}{}", fmt::styled(FileName, fmt::emphasis::bold), Msg);
     }
 }
 
@@ -123,6 +123,6 @@ std::string DiagnosticPrinter::MessageTypeToString(MessageType MsgType)
                                fmt::styled("warning: ", fmt::fg(fmt::color::yellow)));
 
         case MessageType::Note:
-            return fmt::format("{}", fmt::styled("note: ", fmt::fg(fmt::color::red)));
+            return fmt::format("{}", fmt::styled("note: ", fmt::fg(fmt::color::blue)));
     }
 }
