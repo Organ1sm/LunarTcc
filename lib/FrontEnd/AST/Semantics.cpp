@@ -326,7 +326,17 @@ void Semantics::VisitFloatLiteralExpression(const FloatLiteralExpression *node) 
 
 void Semantics::VisitStringLiteralExpression(const StringLiteralExpression *node) {}
 
-void Semantics::VisitArrayExpression(const ArrayExpression *node) {}
+void Semantics::VisitArrayExpression(const ArrayExpression *node)
+{
+    if (!node->GetBase()->GetResultType().IsArray() &&
+        !node->GetBase()->GetResultType().IsPointerType())
+    {
+        std::string Msg = "subscripted value is not an array, pointer";
+        DiagPrinter.AddError(Msg,
+                             dynamic_cast<ReferenceExpression *>(node->GetBase().get())
+                                 ->GetIdentifierToken());
+    }
+}
 
 void Semantics::VisitImplicitCastExpression(const ImplicitCastExpression *node)
 {
