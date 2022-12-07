@@ -8,6 +8,16 @@
 //=--------------------------- Helper functions -----------------------------=//
 //=--------------------------------------------------------------------------=//
 
+static Expression *GetExprIgnoreImplicitCast(Expression *Expr)
+{
+    Expression *CastedExpr = Expr;
+
+    while (auto ICE = dynamic_cast<ImplicitCastExpression *>(CastedExpr))
+        CastedExpr = ICE->GetCastableExpression().get();
+
+    return CastedExpr;
+}
+
 void Semantics::InsertToSymTable(const Token &SymName,
                                  Type SymType,
                                  const bool ToGlobal,
@@ -205,14 +215,50 @@ void Semantics::VisitFunctionDeclaration(const FunctionDeclaration *node)
 
 void Semantics::VisitBinaryExpression(const BinaryExpression *node)
 {
+    std::string Msg;
     // Check if the left hand side of the assignment is an L-value
     if (node->IsAssignment() && !node->GetLeftExpr()->GetLValueness())
     {
-        std::string Msg =
+        Msg =
             "lvalue required of left operand of expression, so expression is not assignable";
-
-        DiagPrinter.AddError(Msg, node->GetOperation());
     }
+
+    const auto &LHSType = node->GetLeftExpr()->GetResultType();
+    const auto &RHSType = node->GetRightExpr()->GetResultType();
+
+    // Ensure that the left hand side of the assignment is not a const
+    if (node->IsAssignment() && LHSType.IsConst())
+    {
+        Msg = fmt::format("cannot assign to variable with const-qualified type '{}'",
+                          LHSType.ToString());
+    }
+
+    // Modulo operator only applicable to integers
+    // Shift right hand operand must be an integer
+    if ((node->IsModulo() && (!LHSType.IsIntegerType() || !RHSType.IsIntegerType())) ||
+        (node->IsShift() && !RHSType.IsIntegerType()))
+    {
+        Msg = fmt::format("invalid operands to binary expression ('{}' and '{}')",
+                          GetExprIgnoreImplicitCast(node->GetLeftExpr().get())
+                              ->GetResultType()
+                              .ToString(),
+                          RHSType.ToString());
+    }
+
+    /// Check if the types are matching in an assignment
+    if (node->IsAssignment() && LHSType != RHSType)
+    {
+        Msg =
+            fmt::format("incompatiable types when assigning to type '{}' from type '{}'",
+                        LHSType.ToString(),
+                        RHSType.ToString());
+    }
+
+    if (!Msg.empty())
+        DiagPrinter.AddError(Msg, node->GetOperation());
+
+    node->GetLeftExpr()->Accept(this);
+    node->GetRightExpr()->Accept(this);
 }
 
 void Semantics::VisitTernaryExpression(const TernaryExpression *node)
