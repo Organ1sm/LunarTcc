@@ -65,8 +65,8 @@ std::vector<Type> &Type::GetArgTypes() { return ParamList; }
 
 void Type::DecrementPointerLevel()
 {
-    assert(PointerLevel > 0 && "Cannot decrement below 0");
-    PointerLevel--;
+    if (PointerLevel > 0)
+        PointerLevel--;
 }
 
 std::string Type::ToString(const Type &t)

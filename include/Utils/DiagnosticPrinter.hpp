@@ -43,6 +43,7 @@ class DiagnosticPrinter
     void AddWarning(const std::string &Msg, const Token &T);
 
     void AddNote(const std::string &Msg);
+
     void AddNote(const std::string &Msg, const Token &T);
 
     bool HasErrors(bool Wall = false) const;

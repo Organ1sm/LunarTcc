@@ -221,6 +221,7 @@ void Semantics::VisitFunctionDeclaration(const FunctionDeclaration *node)
         auto &ParamList = node->GetArguments();
 
         for (auto &Param : ParamList)
+        {
             if (Param->GetType().IsVoid())
             {
                 std::string Msg =
@@ -228,6 +229,19 @@ void Semantics::VisitFunctionDeclaration(const FunctionDeclaration *node)
 
                 DiagPrinter.AddError(Msg, Param->GetNameToken());
             }
+            // Validate that a parameter has a name as well. Function prototypes are
+            // allowed to omit it, but since this function declaration has a body,
+            // therefore it is a function definition as well. Parameters have to be
+            // named in this case.
+            else if (Param->GetName().empty())
+            {
+                std::string Msg = "parameter name omitted";
+                // TODO: Using the function name token to report the error since
+                // type does not hold the token which defined it. Maybe add the
+                // defining token to the type.
+                DiagPrinter.AddError(Msg, node->GetNameToken());
+            }
+        }
         node->GetBody()->Accept(this);
     }
 
@@ -344,6 +358,16 @@ void Semantics::VisitStructInitExpression(const StructInitExpression *node)
 
 void Semantics::VisitUnaryExpression(const UnaryExpression *node)
 {
+    // Validate that the dereferenced expression has pointer type
+    if (node->GetOperationKind() == UnaryExpression::DeRef &&
+        !node->GetExpr()->GetResultType().IsPointerType())
+    {
+        std::string Msg = fmt::format("invalid type argument of unary '*' (have '{}')",
+                                      node->GetExpr()->GetResultType().ToString());
+
+        DiagPrinter.AddError(Msg, node->GetOperation());
+    }
+
     if (node->GetExpr())
         node->GetExpr()->Accept(this);
 }
