@@ -408,6 +408,26 @@ Value *ForStatement::IRCodegen(IRFactory *IRF)
     auto LoopEnd       = std::make_unique<BasicBlock>("loop_end", FuncPtr);
     auto HeaderPtr     = Header.get();
 
+    // TODO: Handle all cases (only condition missing, only increment etc)
+    if (!Init && VarDecls.empty() && !Condition && !Increment)
+    {
+        auto LoopBodyPtr = LoopBody.get();
+        IRF->InsertBB(std::move(LoopBody));
+
+        IRF->GetLoopIncrementBBsTable().push_back(LoopEnd.get());
+        IRF->GetBreakEndBBsTable().push_back(LoopEnd.get());
+
+        Body->IRCodegen(IRF);
+
+        IRF->GetBreakEndBBsTable().pop_back();
+        IRF->GetLoopIncrementBBsTable().pop_back();
+
+        IRF->CreateJump(LoopBodyPtr);
+        IRF->InsertBB(std::move(LoopEnd));
+
+        return nullptr;
+    }
+
     IRF->GetLoopIncrementBBsTable().push_back(LoopIncrement.get());
     IRF->GetBreakEndBBsTable().push_back(LoopEnd.get());
 
