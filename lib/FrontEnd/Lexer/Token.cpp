@@ -100,6 +100,17 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Enum,               "enum"             },
     {TypeDef,            "typedef"          },
     {Sizeof,             "sizeof"           },
+
+    {Goto,               "goto"             },
+    {Bool,               "_Bool"            },
+    {Complex,            "_Complex"         },
+    {Alignas,            "_Alignas"         },
+    {Alignof,            "_Alignof"         },
+    {Generic,            "_Generic"         },
+    {Imaginary,          "_Imaginary"       },
+    {Noreturn,           "_Noreturn"        },
+    {StaticAssert,       "_Static_assert"   },
+    {ThreadLocal,        "_Thread_local"    },
 };
 
 std::string Token::ToString(Token::TokenKind tk)
