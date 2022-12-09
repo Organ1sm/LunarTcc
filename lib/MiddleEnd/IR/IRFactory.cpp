@@ -464,6 +464,28 @@ void IRFactory::Insert(std::unique_ptr<FunctionParameter> FP)
     GetCurrentFunction()->Insert(std::move(FP));
 }
 
+void IRFactory::EraseLastBB() { GetCurrentFunction()->GetBasicBlocks().pop_back(); }
+
+void IRFactory::EraseLastInst()
+{
+    GetCurrentFunction()->GetBasicBlocks().back()->GetInstructions().pop_back();
+}
+
+void IRFactory::EraseInst(Instruction *I)
+{
+    for (auto &BB : GetCurrentFunction()->GetBasicBlocks())
+    {
+        for (std::size_t i = 0; i < BB->GetInstructions().size(); i++)
+        {
+            if (BB->GetInstructions()[i].get() == I)
+            {
+                BB->GetInstructions().erase(BB->GetInstructions().begin() + 1);
+                return;
+            }
+        }
+    }
+}
+
 void IRFactory::AddToSymbolTable(std::string &Identifier, Value *V)
 {
     SymbolTable[Identifier] = V;

@@ -348,19 +348,51 @@ Value *WhileStatement::IRCodegen(IRFactory *IRF)
     IRF->InsertBB(std::move(Header));
     auto Cond = Condition->IRCodegen(IRF);
 
-    if (auto CMP = dynamic_cast<CompareInstruction *>(Cond); CMP != nullptr)
+    bool IsEndlessLoop = false;
+    /// If the condition is a compile time computable constant, then generate
+    /// the if or else body.
+
+    if (Cond->IsConstant())
     {
-        CMP->InvertRelation();
-        IRF->CreateBranch(Cond, LoopEnd.get());
-    }
-    else
-    {
-        auto Cmp =
-            IRF->CreateCmp(CompareInstruction::EQ, Cond, IRF->GetConstant((uint64_t)0));
-        IRF->CreateBranch(Cmp, LoopEnd.get());
+        assert(!Cond->IsFPType() && "Only support integer converted to boolean");
+
+        // If the condition is a constant false value, then
+        if (static_cast<Constant *>(Cond)->GetIntValue() == 0)
+        {
+            // remove loop_header
+            IRF->EraseLastBB();
+
+            // remove jump to loop_header
+            IRF->EraseLastInst();
+
+            return nullptr;
+        }
+        else
+        {
+            IsEndlessLoop = true;
+        }
     }
 
-    IRF->InsertBB(std::move(LoopBody));
+    if (!IsEndlessLoop)
+    {
+        if (auto CMP = dynamic_cast<CompareInstruction *>(Cond); CMP != nullptr)
+        {
+            CMP->InvertRelation();
+            IRF->CreateBranch(Cond, LoopEnd.get());
+        }
+        else
+        {
+            auto Cmp = IRF->CreateCmp(CompareInstruction::EQ,
+                                      Cond,
+                                      IRF->GetConstant((uint64_t)0));
+            IRF->CreateBranch(Cmp, LoopEnd.get());
+        }
+    }
+
+
+    if (!IsEndlessLoop)
+        IRF->InsertBB(std::move(LoopBody));
+
     Body->IRCodegen(IRF);
 
     IRF->CreateJump(HeaderPtr);
@@ -1072,11 +1104,11 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
     // fit into the desired Type
     if (Val->IsConstant())
     {
-        if (DestType.IsIntegerType() || DestType.IsPointerType())
-        {
-            uint64_t DestBitSize =
-                DestType.IsPointerType() ? TM->GetPointerSize() : DestIRType.GetBitSize();
+        const uint64_t DestBitSize =
+            DestType.IsPointerType() ? TM->GetPointerSize() : DestIRType.GetBitSize();
 
+        if (!DestType.IsFloatingPoint() && !SourceType.IsFloatingPoint())
+        {
             uint64_t mask = ~0ull;
 
             // if the bit size is less than 64, then full 1s mask would be wrong, instead
@@ -1090,11 +1122,30 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
             return IRF->GetConstant(CV, DestBitSize);
         }
 
-        assert(DestType.IsFloatingPoint());
+        if (DestType.IsFloatingPoint() && !SourceType.IsFloatingPoint())
+        {
+            double ConvertedVal = static_cast<Constant *>(Val)->GetIntValue();
+            return IRF->GetConstant(ConvertedVal, DestIRType.GetBitSize());
+        }
+        else if (!DestType.IsFloatingPoint() && SourceType.IsFloatingPoint())
+        {
+            uint64_t ConvertedVal =
+                (uint64_t) static_cast<Constant *>(Val)->GetFloatValue();
 
-        double ConvertedVal = static_cast<Constant *>(Val)->GetIntValue();
+            return IRF->GetConstant(ConvertedVal, DestBitSize);
+        }
+        else
+        {
+            assert((DestIRType.GetBitSize() == 32 && SourceIRType.GetBitSize() == 64) ||
+                   (DestIRType.GetBitSize() == 64 && DestIRType.GetBitSize() == 32));
 
-        return IRF->GetConstant(ConvertedVal, DestIRType.GetBitSize());
+            double ConvertedVal = static_cast<Constant *>(Val)->GetFloatValue();
+
+            if (DestIRType.GetBitSize() == 32)
+                ConvertedVal = static_cast<float>(ConvertedVal);
+
+            return IRF->GetConstant((double)ConvertedVal, DestBitSize);
+        }
     }
 
     // cast one pointer type to another

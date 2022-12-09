@@ -107,6 +107,11 @@ class IRFactory
     void InsertBB(std::unique_ptr<BasicBlock> BB);
     void Insert(std::unique_ptr<FunctionParameter> FP);
 
+    void EraseLastBB();
+    void EraseLastInst();
+
+    void EraseInst(Instruction *I);
+
     void AddToSymbolTable(std::string &Identifier, Value *V);
     Value *GetSymbolValue(const std::string &Identifier);
 
@@ -114,7 +119,6 @@ class IRFactory
     Constant *GetConstant(double C, unsigned BW = 64);
 
     std::vector<BasicBlock *> &GetLoopIncrementBBsTable();
-
     std::vector<BasicBlock *> &GetBreakEndBBsTable();
 
     TargetMachine *GetTargetMachine() { return TM; }

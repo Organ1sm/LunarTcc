@@ -1056,6 +1056,10 @@ std::unique_ptr<WhileStatement> Parser::ParseWhileStatement()
         DiagPrinter.AddError(Msg, T);
     }
 
+    if (Condition && !Condition->GetResultType().IsIntegerType())
+        Condition = std::make_unique<ImplicitCastExpression>(std::move(Condition),
+                                                             Type(Type::Int));
+
     WS->SetCondition(std::move(Condition));
     Expect(Token::RightParen);
     WS->SetBody(ParseStatement());
@@ -1079,6 +1083,10 @@ std::unique_ptr<DoWhileStatement> Parser::ParseDoWhileStatement()
         std::string Msg = "expected expression here";
         DiagPrinter.AddError(Msg, T);
     }
+
+    if (Condition && !Condition->GetResultType().IsIntegerType())
+        Condition = std::make_unique<ImplicitCastExpression>(std::move(Condition),
+                                                             Type(Type::Int));
 
     DWS->SetCondition(std::move(Condition));
     Expect(Token::RightParen);
