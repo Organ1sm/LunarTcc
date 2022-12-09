@@ -1548,6 +1548,37 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         // LHS
         auto L = Lhs->IRCodegen(IRF);
 
+
+        // If the left hand side is a constant
+        if (L->IsConstant())
+        {
+            assert(!L->IsFPType() && "Only integer support converted to boolean value");
+
+            IRF->EraseInst(Result);
+            IRF->EraseInst(Store);
+
+            // If the condition is a constant false value, then
+            if (static_cast<Constant *>(L)->GetIntValue() == 0)
+            {
+                // false && expr -> false
+                if (IsLogicalAnd)
+                    return L;
+                // false || expr -> expr
+                else
+                    return Rhs->IRCodegen(IRF);
+            }
+            /// L is true
+            else
+            {
+                // true && expr -> expr
+                if (IsLogicalAnd)
+                    return Rhs->IRCodegen(IRF);
+                // ture || expr -> is always true
+                else
+                    return L;
+            }
+        }
+
         // if L was a compare instruction then just revert its relation
         if (auto LCMP = dynamic_cast<CompareInstruction *>(L); LCMP != nullptr)
         {

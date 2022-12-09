@@ -141,7 +141,7 @@ Value *IRFactory::EvaluateBinaryConstantExpression(const Constant *LHS,
 Value *
     IRFactory::CreateBinaryInstruction(Instruction::InstructionKind K, Value *L, Value *R)
 {
-    if (R->IsConstant() && R->IsConstant())
+    if (L->IsConstant() && R->IsConstant())
     {
         auto ConstLHS = dynamic_cast<Constant *>(L);
         auto ConstRHS = dynamic_cast<Constant *>(R);
@@ -587,7 +587,7 @@ void IRFactory::EraseInst(Instruction *I)
         {
             if (BB->GetInstructions()[i].get() == I)
             {
-                BB->GetInstructions().erase(BB->GetInstructions().begin() + 1);
+                BB->GetInstructions().erase(BB->GetInstructions().begin() + i);
                 return;
             }
         }
