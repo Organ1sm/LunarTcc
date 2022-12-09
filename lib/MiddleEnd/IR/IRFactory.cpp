@@ -226,36 +226,6 @@ Value *IRFactory::CreateLSR(Value *LHS, Value *RHS)
     return CreateBinaryInstruction(Instruction::LSR, LHS, RHS);
 }
 
-UnaryInstruction *IRFactory::CreateMov(Value *Operand, uint8_t BitWidth)
-{
-    auto Inst = std::make_unique<UnaryInstruction>(Instruction::Mov,
-                                                   IRType::CreateInt(BitWidth),
-                                                   Operand,
-                                                   GetCurrentBB());
-
-    Inst->SetId(ID++);
-    auto InstPtr = Inst.get();
-
-    Insert(std::move(Inst));
-
-    return InstPtr;
-}
-
-UnaryInstruction *IRFactory::CreateMovF(Value *Operand, uint8_t BitWidth)
-{
-    auto Inst = std::make_unique<UnaryInstruction>(Instruction::MovF,
-                                                   IRType::CreateFloat(BitWidth),
-                                                   Operand,
-                                                   GetCurrentBB());
-
-    Inst->SetId(ID++);
-    auto InstPtr = Inst.get();
-
-    Insert(std::move(Inst));
-
-    return InstPtr;
-}
-
 UnaryInstruction *IRFactory::CreateSExt(Value *Operand, uint8_t BitWidth)
 {
     auto Inst = std::make_unique<UnaryInstruction>(Instruction::SExt,

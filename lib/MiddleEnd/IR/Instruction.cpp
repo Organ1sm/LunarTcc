@@ -65,8 +65,6 @@ std::string Instruction::AsString(Instruction::InstructionKind IK)
         case GetELemPtr: return "gep";
         case Cmp: return "cmp";
         case CmpF: return "cmpf";
-        case Mov: return "mov";
-        case MovF: return "movf";
 
         default: assert(!"Unknown instruction kind."); break;
     }

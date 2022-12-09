@@ -52,11 +52,8 @@ class Instruction : public Value
         Branch,
         Ret,
 
-        Mov = Ret + 2,
-        MovF,
-
         // Memory Operations.
-        Load,
+        Load = Ret + 4,
         Store,
         MemCopy,
         StackAlloc,
