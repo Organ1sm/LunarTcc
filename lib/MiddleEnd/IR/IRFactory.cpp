@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <memory>
 
-Instruction *
+Value *
     IRFactory::CreateBinaryInstruction(Instruction::InstructionKind K, Value *L, Value *R)
 {
     auto Inst = std::make_unique<BinaryInstruction>(K, L, R, GetCurrentBB());
@@ -27,7 +27,7 @@ Instruction *IRFactory::Insert(std::unique_ptr<Instruction> I)
     return this->GetCurrentBB()->Insert(std::move(I));
 }
 
-Instruction *IRFactory::CreateAdd(Value *LHS, Value *RHS)
+Value *IRFactory::CreateAdd(Value *LHS, Value *RHS)
 {
     if (LHS->IsConstant() && RHS->IsConstant())
     {
@@ -43,7 +43,7 @@ Instruction *IRFactory::CreateAdd(Value *LHS, Value *RHS)
     return CreateBinaryInstruction(Instruction::Add, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateAddF(Value *LHS, Value *RHS)
+Value *IRFactory::CreateAddF(Value *LHS, Value *RHS)
 {
     if (LHS->IsConstant() && RHS->IsConstant())
     {
@@ -59,22 +59,22 @@ Instruction *IRFactory::CreateAddF(Value *LHS, Value *RHS)
     return CreateBinaryInstruction(Instruction::AddF, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateSub(Value *LHS, Value *RHS)
+Value *IRFactory::CreateSub(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Sub, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateSubF(Value *LHS, Value *RHS)
+Value *IRFactory::CreateSubF(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::SubF, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateMul(Value *LHS, Value *RHS)
+Value *IRFactory::CreateMul(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Mul, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateMulF(Value *LHS, Value *RHS)
+Value *IRFactory::CreateMulF(Value *LHS, Value *RHS)
 {
     if (LHS->IsConstant() && RHS->IsConstant())
     {
@@ -87,52 +87,52 @@ Instruction *IRFactory::CreateMulF(Value *LHS, Value *RHS)
     return CreateBinaryInstruction(Instruction::MulF, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateDiv(Value *LHS, Value *RHS)
+Value *IRFactory::CreateDiv(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Div, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateDivF(Value *LHS, Value *RHS)
+Value *IRFactory::CreateDivF(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::DivF, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateMod(Value *LHS, Value *RHS)
+Value *IRFactory::CreateMod(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Mod, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateDivU(Value *LHS, Value *RHS)
+Value *IRFactory::CreateDivU(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::DivU, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateModU(Value *LHS, Value *RHS)
+Value *IRFactory::CreateModU(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::ModU, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateOr(Value *LHS, Value *RHS)
+Value *IRFactory::CreateOr(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Or, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateXOr(Value *LHS, Value *RHS)
+Value *IRFactory::CreateXOr(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::XOr, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateAnd(Value *LHS, Value *RHS)
+Value *IRFactory::CreateAnd(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::And, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateLSL(Value *LHS, Value *RHS)
+Value *IRFactory::CreateLSL(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::LSL, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateLSR(Value *LHS, Value *RHS)
+Value *IRFactory::CreateLSR(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::LSR, LHS, RHS);
 }
@@ -347,9 +347,9 @@ MemoryCopyInstruction *
     return InstPtr;
 }
 
-CompareInstruction *IRFactory::CreateCmp(CompareInstruction::CompareRelation Relation,
-                                         Value *LHS,
-                                         Value *RHS)
+Value *IRFactory::CreateCmp(CompareInstruction::CompareRelation Relation,
+                            Value *LHS,
+                            Value *RHS)
 {
     auto Inst = std::make_unique<CompareInstruction>(LHS, RHS, Relation, GetCurrentBB());
     auto InstPtr = Inst.get();
@@ -507,7 +507,7 @@ Constant *IRFactory::GetConstant(uint64_t C, uint8_t BW)
     return IntConstantPool[RequestedConstant].get();
 }
 
-Constant *IRFactory::GetConstant(double C, unsigned BW)
+Constant *IRFactory::GetConstant(double C, uint8_t BW)
 {
     if (auto ConstVal = FloatConstantPool[C].get(); ConstVal != nullptr)
         return ConstVal;

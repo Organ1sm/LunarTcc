@@ -1456,7 +1456,7 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
 
             auto LoadedExpr = IRF->CreateLoad(LoadedValType, E);
 
-            Instruction *AddOrSub;
+            Value *AddOrSub {nullptr};
             if (GetOperationKind() == PreIncrement)
                 AddOrSub = IRF->CreateAdd(LoadedExpr, IRF->GetConstant((uint64_t)1));
             else
@@ -1476,7 +1476,7 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
 
             auto LoadedExpr = IRF->CreateLoad(LoadedValType, E);
 
-            Instruction *AddOrSub;
+            Value *AddOrSub {nullptr};
             if (GetOperationKind() == PostIncrement)
                 AddOrSub = IRF->CreateAdd(LoadedExpr, IRF->GetConstant((uint64_t)1));
             else
@@ -1631,7 +1631,7 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         }
         else
         {
-            Instruction *OperationResult {nullptr};
+            Value *OperationResult {nullptr};
 
             // converting the LValue L to an RValue by loading it in
             auto ResultIRType = L->GetType();
