@@ -1761,13 +1761,27 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
 
 Value *TernaryExpression::IRCodegen(IRFactory *IRF)
 {
+    auto C = Condition->IRCodegen(IRF);
+
+    /// If the condition is a compile time computable constant, then generate
+    /// the if or else body.
+    if (C->IsConstant())
+    {
+        assert(!C->IsFPType() && "Only support integer converted to boolean");
+
+        // If the condition is a constant false value, then
+        if (static_cast<Constant *>(C)->GetIntValue() == 0)
+            return ExprIfFalse->IRCodegen(IRF);
+        else
+            return ExprIfTrue->IRCodegen(IRF);
+    }
+
     const auto FuncPtr = IRF->GetCurrentFunction();
 
     auto TrueBB  = std::make_unique<BasicBlock>("tenary_true", FuncPtr);
     auto FalseBB = std::make_unique<BasicBlock>("tenary_false", FuncPtr);
     auto FinalBB = std::make_unique<BasicBlock>("tenary_end", FuncPtr);
 
-    auto C = Condition->IRCodegen(IRF);
 
     // Condition Test
 

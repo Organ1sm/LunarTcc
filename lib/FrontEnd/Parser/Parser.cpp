@@ -1947,6 +1947,9 @@ std::unique_ptr<Expression>
 // <TernaryExpression> ::= <Expression> '?' <Expression> ':' <Expression>
 std::unique_ptr<Expression> Parser::ParseTernaryExpression(ExprPtr Condition)
 {
+    if (Condition && !Condition->GetResultType().IsIntegerType())
+        Condition = std::make_unique<ImplicitCastExpression>(std::move(Condition),
+                                                             Type(Type::Int));
     Expect(Token::Cond);
 
     auto TrueExpr = ParseExpression();
