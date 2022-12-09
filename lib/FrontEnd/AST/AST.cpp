@@ -190,6 +190,27 @@ Value *IfStatement::IRCodegen(IRFactory *IRF)
     auto IfEnd = std::make_unique<BasicBlock>("if_end", FuncPtr);
     auto Cond  = Condition->IRCodegen(IRF);
 
+    // If the condition is a compile time computable constant, then generate
+    // then if or else body based on it.
+    if (Cond->IsConstant())
+    {
+        assert(!Cond->IsFPType() && "Only support integer converted to boolean");
+
+        // If the condition is a constant true value, then
+        if (static_cast<Constant *>(Cond)->GetIntValue() != 0)
+        {
+            IfBody->IRCodegen(IRF);
+        }
+        else if (HaveElse)
+        {
+            ElseBody->IRCodegen(IRF);
+        }
+        else
+            ;    // if no else then do nothing
+
+        return nullptr;
+    }
+
     // if Condition was a compare instruction then just revert its relation.
     if (auto CMP = dynamic_cast<CompareInstruction *>(Cond); CMP != nullptr)
     {

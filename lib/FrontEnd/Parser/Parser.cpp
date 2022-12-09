@@ -934,6 +934,10 @@ std::unique_ptr<IfStatement> Parser::ParseIfStatement()
         DiagPrinter.AddError(Msg, T);
     }
 
+    if (Condition && !Condition->GetResultType().IsIntegerType())
+        Condition = std::make_unique<ImplicitCastExpression>(std::move(Condition),
+                                                             Type(Type::Int));
+
     IS->SetCondition(std::move(Condition));
     Expect(Token::RightParen);
     IS->SetIfBody(ParseStatement());

@@ -54,7 +54,7 @@ class Function
     void Insert(std::unique_ptr<BasicBlock> BB);
     void Insert(std::unique_ptr<FunctionParameter> FP);
 
-    void Print() const;
+    void Print(bool ShowColor = false) const;
 
   private:
     std::string Name;

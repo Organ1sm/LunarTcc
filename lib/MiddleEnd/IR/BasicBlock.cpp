@@ -31,12 +31,12 @@ Instruction *BasicBlock::InsertSA(std::unique_ptr<Instruction> Ins)
     return Insert(std::move(Ins));
 }
 
-void BasicBlock::Print() const
+void BasicBlock::Print(bool ShowColor) const
 {
     fmt::print(".{}:\n", Name);
 
     for (auto &Instruction : Instructions)
-        Instruction->Print();
+        Instruction->Print(ShowColor);
 
     fmt::print("\n\n");
 }

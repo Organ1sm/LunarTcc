@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
     bool DumpPreProcessedFile = false;
     bool PrintBeforePasses    = false;
     bool Wall                 = false;
+    bool ShowColor            = true;
 
     std::string TargetArch = "aarch64";
 
@@ -82,6 +83,11 @@ int main(int argc, char *argv[])
             else if (!option.compare("E"))
             {
                 DumpPreProcessedFile = true;
+                continue;
+            }
+            else if (!option.compare("no-color"))
+            {
+                ShowColor = false;
                 continue;
             }
             else if (!option.compare("debug"))
@@ -163,7 +169,7 @@ int main(int argc, char *argv[])
     AST->IRCodegen(&IRF);
 
     if (DumpIR)
-        IRModule.Print();
+        IRModule.Print(ShowColor);
 
     MachineIRModule LLIRModule;
     IRtoLLIR I2LLIR(IRModule, &LLIRModule, TM.get());

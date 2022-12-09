@@ -63,11 +63,11 @@ Value *Module::GetGlobalVar(const std::string &Name) const
     return nullptr;
 }
 
-void Module::Print() const
+void Module::Print(bool ShowColor) const
 {
     for (auto &GlobalVar : GlobalVars)
         dynamic_cast<GlobalVariable *>(GlobalVar.get())->Print();
 
     for (auto &Function : Functions)
-        Function.Print();
+        Function.Print(ShowColor);
 }

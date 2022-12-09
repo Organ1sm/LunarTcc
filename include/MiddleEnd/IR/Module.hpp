@@ -33,7 +33,7 @@ class Module
 
     Value *GetGlobalVar(const std::string &Name) const;
 
-    void Print() const;
+    void Print(bool showColor = false) const;
 
   private:
     std::vector<IRType> StructTypes;
