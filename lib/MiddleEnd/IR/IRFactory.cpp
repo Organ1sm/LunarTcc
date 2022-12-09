@@ -9,6 +9,26 @@
 #include <cstdint>
 #include <memory>
 
+template <typename T>
+static Value *EvaluateComparison(const T L,
+                                 const T R,
+                                 const CompareInstruction::CompareRelation Relation,
+                                 Value *TrueVal,
+                                 Value *FalseVal)
+{
+    switch (Relation)
+    {
+        case CompareInstruction::EQ: return L == R ? TrueVal : FalseVal;
+        case CompareInstruction::NE: return L != R ? TrueVal : FalseVal;
+        case CompareInstruction::GT: return L > R ? TrueVal : FalseVal;
+        case CompareInstruction::GE: return L >= R ? TrueVal : FalseVal;
+        case CompareInstruction::LT: return L < R ? TrueVal : FalseVal;
+        case CompareInstruction::LE: return L <= R ? TrueVal : FalseVal;
+
+        default: assert(!"Unreachable");
+    }
+}
+
 Value *IRFactory::EvaluateIntegerBinaryConstantExpression(const int64_t LHS,
                                                           const int64_t RHS,
                                                           const uint8_t BitWidth,
@@ -410,6 +430,35 @@ Value *IRFactory::CreateCmp(CompareInstruction::CompareRelation Relation,
                             Value *LHS,
                             Value *RHS)
 {
+    // If both operand is constant, then evaluate them
+    if (LHS->IsConstant() && RHS->IsConstant())
+    {
+        assert(LHS->IsFPType() == RHS->IsFPType());
+        assert(LHS->GetBitWidth() == RHS->GetBitWidth());
+
+        auto ConstLHS = dynamic_cast<Constant *>(LHS);
+        auto ConstRHS = dynamic_cast<Constant *>(RHS);
+
+        auto TrueVal  = GetConstant((uint64_t)1);
+        auto FalseVal = GetConstant((uint64_t)0);
+
+        // Integer comparison
+        if (!LHS->IsFPType() && !RHS->IsFPType())
+        {
+            const auto L = ConstLHS->GetIntValue();
+            const auto R = ConstRHS->GetIntValue();
+
+            return EvaluateComparison<uint64_t>(L, R, Relation, TrueVal, FalseVal);
+        }
+        else
+        {    // Float comparison
+            const auto L = ConstLHS->GetFloatValue();
+            const auto R = ConstRHS->GetFloatValue();
+
+            return EvaluateComparison<double>(L, R, Relation, TrueVal, FalseVal);
+        }
+    }
+
     auto Inst = std::make_unique<CompareInstruction>(LHS, RHS, Relation, GetCurrentBB());
     auto InstPtr = Inst.get();
 
