@@ -351,7 +351,6 @@ Value *WhileStatement::IRCodegen(IRFactory *IRF)
     bool IsEndlessLoop = false;
     /// If the condition is a compile time computable constant, then generate
     /// the if or else body.
-
     if (Cond->IsConstant())
     {
         assert(!Cond->IsFPType() && "Only support integer converted to boolean");
@@ -433,17 +432,44 @@ Value *DoWhileStatement::IRCodegen(IRFactory *IRF)
 
     IRF->CreateJump(LoopHeaderPtr);
 
-
     // Generate LoopHeader
     IRF->InsertBB(std::move(LoopHeader));
     auto Cond = Condition->IRCodegen(IRF);
 
-    // Check that the condition is or not 0
-    auto CMP =
-        IRF->CreateCmp(CompareInstruction::NE, Cond, IRF->GetConstant((uint64_t)0));
+    bool IsEndlessLoop = false;
+    /// If the condition is a compile time computable constant, then generate
+    /// the if or else body.
+    if (Cond->IsConstant())
+    {
+        assert(!Cond->IsFPType() && "Only support integer converted to boolean");
 
-    IRF->CreateBranch(CMP, LoopBodyPtr);
-    IRF->InsertBB(std::move(LoopEnd));
+        // remove loop_header
+        IRF->EraseLastBB();
+        // remove jump to loop_header
+        IRF->EraseLastInst();
+
+        // If the condition is a constant false value, then
+        if (static_cast<Constant *>(Cond)->GetIntValue() == 0)
+            return nullptr;
+        else
+            IsEndlessLoop = true;
+    }
+
+    if (!IsEndlessLoop)
+    {
+        // Check that the condition is or not 0
+        auto CMP =
+            IRF->CreateCmp(CompareInstruction::NE, Cond, IRF->GetConstant((uint64_t)0));
+
+        IRF->CreateBranch(CMP, LoopBodyPtr);
+    }
+    else
+    {
+        IRF->CreateJump(LoopBodyPtr);
+    }
+
+    if (!IsEndlessLoop)
+        IRF->InsertBB(std::move(LoopEnd));
 
     return nullptr;
 }
