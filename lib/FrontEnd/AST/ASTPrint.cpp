@@ -358,7 +358,7 @@ void ASTPrint::VisitIntegerLiteralExpression(const IntegerLiteralExpression *nod
 void ASTPrint::VisitFloatLiteralExpression(const FloatLiteralExpression *node)
 {
     auto TypeStr = fmt::format("`{}` ", node->GetResultType().ToString());
-    auto ValStr  = fmt::format("`{}`", node->GetValue());
+    auto ValStr  = fmt::format("`{:f}`", node->GetValue());
 
     Print("FloatLiteralExpression ", tab);
     Print(TypeStr.c_str());

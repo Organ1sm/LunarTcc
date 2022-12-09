@@ -22,6 +22,8 @@ class TargetMachine;
 
 class IRFactory
 {
+    using IKind = Instruction::InstructionKind;
+
   public:
     IRFactory() = delete;
     IRFactory(Module &M, TargetMachine *T) : TM(T), CurrentModule(M), ID(0) {}
@@ -124,7 +126,21 @@ class IRFactory
     TargetMachine *GetTargetMachine() { return TM; }
 
   private:
-    Value *CreateBinaryInstruction(Instruction::InstructionKind K, Value *L, Value *R);
+    Value *CreateBinaryInstruction(IKind K, Value *L, Value *R);
+
+    Value *EvaluateIntegerBinaryConstantExpression(const int64_t LHS,
+                                                   const int64_t RHS,
+                                                   const uint8_t BitWidth,
+                                                   const IKind Operation);
+
+    Value *EvaluateFloatingBinaryConstantExpression(const double LHS,
+                                                    const double RHS,
+                                                    const uint8_t BitWidth,
+                                                    const IKind Operation);
+
+    Value *EvaluateBinaryConstantExpression(const Constant *LHS,
+                                            const Constant *RHS,
+                                            const IKind Operation);
 
     BasicBlock *GetCurrentBB();
 

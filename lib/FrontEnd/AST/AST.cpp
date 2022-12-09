@@ -1542,10 +1542,10 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         auto FalseBB            = std::make_unique<BasicBlock>("false", FuncPtr);
         auto FinalBB            = std::make_unique<BasicBlock>("final", FuncPtr);
 
-        // LHS test
         auto Result = IRF->CreateSA("result", IRType::CreateBool());
-        IRF->CreateStore(IRF->GetConstant((uint64_t)0), Result);
+        auto Store  = IRF->CreateStore(IRF->GetConstant((uint64_t)0), Result);
 
+        // LHS
         auto L = Lhs->IRCodegen(IRF);
 
         // if L was a compare instruction then just revert its relation
@@ -1693,11 +1693,6 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
             default: break;
         }
     }
-
-    if (L->IsConstant() && L->IsIntType())
-        L = IRF->CreateMov(L, R->GetBitWidth());
-    else if (L->IsConstant() && L->IsFPType())
-        L = IRF->CreateMovF(L, R->GetBitWidth());
 
     switch (GetOperationKind())
     {
