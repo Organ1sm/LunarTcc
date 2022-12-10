@@ -1120,7 +1120,11 @@ std::unique_ptr<ForStatement> Parser::ParseForStatement()
         Expect(Token::SemiColon);
     }
 
-    FS->SetCondition(ParseExpression());
+    auto Condition = ParseExpression();
+    if (Condition && !Condition->GetResultType().IsIntegerType())
+        Condition = std::make_unique<ImplicitCastExpression>(std::move(Condition),
+                                                             Type(Type::Int));
+    FS->SetCondition(std::move(Condition));
     Expect(Token::SemiColon);
 
     FS->SetIncrement(ParseExpression());

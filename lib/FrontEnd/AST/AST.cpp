@@ -1305,12 +1305,14 @@ Value *StructInitExpression::IRCodegen(IRFactory *IRF)
 
 Value *IntegerLiteralExpression::IRCodegen(IRFactory *IRF)
 {
-    return IRF->GetConstant(IntValue);
+    const auto BW = GetIRTypeFromASTType(GetResultType()).GetBitSize();
+    return IRF->GetConstant(IntValue, BW);
 }
 
 Value *FloatLiteralExpression::IRCodegen(IRFactory *IRF)
 {
-    return IRF->GetConstant(FPValue);
+    const auto BW = GetIRTypeFromASTType(GetResultType()).GetBitSize();
+    return IRF->GetConstant(FPValue, BW);
 }
 
 Value *StringLiteralExpression::IRCodegen(IRFactory *IRF)

@@ -39,7 +39,7 @@ Value *IRFactory::EvaluateIntegerBinaryConstantExpression(const int64_t LHS,
         case Instruction::Add:
             return GetConstant(static_cast<uint64_t>(LHS) + RHS, BitWidth);
         case Instruction::Sub:
-            return GetConstant(static_cast<uint64_t>(LHS) + RHS, BitWidth);
+            return GetConstant(static_cast<uint64_t>(LHS) - RHS, BitWidth);
         case Instruction::Mul:
             return GetConstant(static_cast<uint64_t>(LHS) * RHS, BitWidth);
         case Instruction::Div:
