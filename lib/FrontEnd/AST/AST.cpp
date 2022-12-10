@@ -190,6 +190,27 @@ Value *IfStatement::IRCodegen(IRFactory *IRF)
     auto IfEnd = std::make_unique<BasicBlock>("if_end", FuncPtr);
     auto Cond  = Condition->IRCodegen(IRF);
 
+    // If the condition is a compile time computable constant, then generate
+    // then if or else body based on it.
+    if (Cond->IsConstant())
+    {
+        assert(!Cond->IsFPType() && "Only support integer converted to boolean");
+
+        // If the condition is a constant true value, then
+        if (static_cast<Constant *>(Cond)->GetIntValue() != 0)
+        {
+            IfBody->IRCodegen(IRF);
+        }
+        else if (HaveElse)
+        {
+            ElseBody->IRCodegen(IRF);
+        }
+        else
+            ;    // if no else then do nothing
+
+        return nullptr;
+    }
+
     // if Condition was a compare instruction then just revert its relation.
     if (auto CMP = dynamic_cast<CompareInstruction *>(Cond); CMP != nullptr)
     {
@@ -327,19 +348,50 @@ Value *WhileStatement::IRCodegen(IRFactory *IRF)
     IRF->InsertBB(std::move(Header));
     auto Cond = Condition->IRCodegen(IRF);
 
-    if (auto CMP = dynamic_cast<CompareInstruction *>(Cond); CMP != nullptr)
+    bool IsEndlessLoop = false;
+    /// If the condition is a compile time computable constant, then generate
+    /// the if or else body.
+    if (Cond->IsConstant())
     {
-        CMP->InvertRelation();
-        IRF->CreateBranch(Cond, LoopEnd.get());
-    }
-    else
-    {
-        auto Cmp =
-            IRF->CreateCmp(CompareInstruction::EQ, Cond, IRF->GetConstant((uint64_t)0));
-        IRF->CreateBranch(Cmp, LoopEnd.get());
+        assert(!Cond->IsFPType() && "Only support integer converted to boolean");
+
+        // If the condition is a constant false value, then
+        if (static_cast<Constant *>(Cond)->GetIntValue() == 0)
+        {
+            // remove loop_header
+            IRF->EraseLastBB();
+
+            // remove jump to loop_header
+            IRF->EraseLastInst();
+
+            return nullptr;
+        }
+        else
+        {
+            IsEndlessLoop = true;
+        }
     }
 
-    IRF->InsertBB(std::move(LoopBody));
+    if (!IsEndlessLoop)
+    {
+        if (auto CMP = dynamic_cast<CompareInstruction *>(Cond); CMP != nullptr)
+        {
+            CMP->InvertRelation();
+            IRF->CreateBranch(Cond, LoopEnd.get());
+        }
+        else
+        {
+            auto Cmp = IRF->CreateCmp(CompareInstruction::EQ,
+                                      Cond,
+                                      IRF->GetConstant((uint64_t)0));
+            IRF->CreateBranch(Cmp, LoopEnd.get());
+        }
+    }
+
+
+    if (!IsEndlessLoop)
+        IRF->InsertBB(std::move(LoopBody));
+
     Body->IRCodegen(IRF);
 
     IRF->CreateJump(HeaderPtr);
@@ -380,17 +432,44 @@ Value *DoWhileStatement::IRCodegen(IRFactory *IRF)
 
     IRF->CreateJump(LoopHeaderPtr);
 
-
     // Generate LoopHeader
     IRF->InsertBB(std::move(LoopHeader));
     auto Cond = Condition->IRCodegen(IRF);
 
-    // Check that the condition is or not 0
-    auto CMP =
-        IRF->CreateCmp(CompareInstruction::NE, Cond, IRF->GetConstant((uint64_t)0));
+    bool IsEndlessLoop = false;
+    /// If the condition is a compile time computable constant, then generate
+    /// the if or else body.
+    if (Cond->IsConstant())
+    {
+        assert(!Cond->IsFPType() && "Only support integer converted to boolean");
 
-    IRF->CreateBranch(CMP, LoopBodyPtr);
-    IRF->InsertBB(std::move(LoopEnd));
+        // remove loop_header
+        IRF->EraseLastBB();
+        // remove jump to loop_header
+        IRF->EraseLastInst();
+
+        // If the condition is a constant false value, then
+        if (static_cast<Constant *>(Cond)->GetIntValue() == 0)
+            return nullptr;
+        else
+            IsEndlessLoop = true;
+    }
+
+    if (!IsEndlessLoop)
+    {
+        // Check that the condition is or not 0
+        auto CMP =
+            IRF->CreateCmp(CompareInstruction::NE, Cond, IRF->GetConstant((uint64_t)0));
+
+        IRF->CreateBranch(CMP, LoopBodyPtr);
+    }
+    else
+    {
+        IRF->CreateJump(LoopBodyPtr);
+    }
+
+    if (!IsEndlessLoop)
+        IRF->InsertBB(std::move(LoopEnd));
 
     return nullptr;
 }
@@ -1051,11 +1130,11 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
     // fit into the desired Type
     if (Val->IsConstant())
     {
-        if (DestType.IsIntegerType() || DestType.IsPointerType())
-        {
-            uint64_t DestBitSize =
-                DestType.IsPointerType() ? TM->GetPointerSize() : DestIRType.GetBitSize();
+        const uint64_t DestBitSize =
+            DestType.IsPointerType() ? TM->GetPointerSize() : DestIRType.GetBitSize();
 
+        if (!DestType.IsFloatingPoint() && !SourceType.IsFloatingPoint())
+        {
             uint64_t mask = ~0ull;
 
             // if the bit size is less than 64, then full 1s mask would be wrong, instead
@@ -1069,11 +1148,30 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
             return IRF->GetConstant(CV, DestBitSize);
         }
 
-        assert(DestType.IsFloatingPoint());
+        if (DestType.IsFloatingPoint() && !SourceType.IsFloatingPoint())
+        {
+            double ConvertedVal = static_cast<Constant *>(Val)->GetIntValue();
+            return IRF->GetConstant(ConvertedVal, DestIRType.GetBitSize());
+        }
+        else if (!DestType.IsFloatingPoint() && SourceType.IsFloatingPoint())
+        {
+            uint64_t ConvertedVal =
+                (uint64_t) static_cast<Constant *>(Val)->GetFloatValue();
 
-        double ConvertedVal = static_cast<Constant *>(Val)->GetIntValue();
+            return IRF->GetConstant(ConvertedVal, DestBitSize);
+        }
+        else
+        {
+            assert((DestIRType.GetBitSize() == 32 && SourceIRType.GetBitSize() == 64) ||
+                   (DestIRType.GetBitSize() == 64 && DestIRType.GetBitSize() == 32));
 
-        return IRF->GetConstant(ConvertedVal, DestIRType.GetBitSize());
+            double ConvertedVal = static_cast<Constant *>(Val)->GetFloatValue();
+
+            if (DestIRType.GetBitSize() == 32)
+                ConvertedVal = static_cast<float>(ConvertedVal);
+
+            return IRF->GetConstant((double)ConvertedVal, DestBitSize);
+        }
     }
 
     // cast one pointer type to another
@@ -1207,12 +1305,14 @@ Value *StructInitExpression::IRCodegen(IRFactory *IRF)
 
 Value *IntegerLiteralExpression::IRCodegen(IRFactory *IRF)
 {
-    return IRF->GetConstant(IntValue);
+    const auto BW = GetIRTypeFromASTType(GetResultType()).GetBitSize();
+    return IRF->GetConstant(IntValue, BW);
 }
 
 Value *FloatLiteralExpression::IRCodegen(IRFactory *IRF)
 {
-    return IRF->GetConstant(FPValue);
+    const auto BW = GetIRTypeFromASTType(GetResultType()).GetBitSize();
+    return IRF->GetConstant(FPValue, BW);
 }
 
 Value *StringLiteralExpression::IRCodegen(IRFactory *IRF)
@@ -1358,7 +1458,7 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
 
             auto LoadedExpr = IRF->CreateLoad(LoadedValType, E);
 
-            Instruction *AddOrSub;
+            Value *AddOrSub {nullptr};
             if (GetOperationKind() == PreIncrement)
                 AddOrSub = IRF->CreateAdd(LoadedExpr, IRF->GetConstant((uint64_t)1));
             else
@@ -1378,7 +1478,7 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
 
             auto LoadedExpr = IRF->CreateLoad(LoadedValType, E);
 
-            Instruction *AddOrSub;
+            Value *AddOrSub {nullptr};
             if (GetOperationKind() == PostIncrement)
                 AddOrSub = IRF->CreateAdd(LoadedExpr, IRF->GetConstant((uint64_t)1));
             else
@@ -1444,11 +1544,42 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         auto FalseBB            = std::make_unique<BasicBlock>("false", FuncPtr);
         auto FinalBB            = std::make_unique<BasicBlock>("final", FuncPtr);
 
-        // LHS test
         auto Result = IRF->CreateSA("result", IRType::CreateBool());
-        IRF->CreateStore(IRF->GetConstant((uint64_t)0), Result);
+        auto Store  = IRF->CreateStore(IRF->GetConstant((uint64_t)0), Result);
 
+        // LHS
         auto L = Lhs->IRCodegen(IRF);
+
+
+        // If the left hand side is a constant
+        if (L->IsConstant())
+        {
+            assert(!L->IsFPType() && "Only integer support converted to boolean value");
+
+            IRF->EraseInst(Result);
+            IRF->EraseInst(Store);
+
+            // If the condition is a constant false value, then
+            if (static_cast<Constant *>(L)->GetIntValue() == 0)
+            {
+                // false && expr -> false
+                if (IsLogicalAnd)
+                    return L;
+                // false || expr -> expr
+                else
+                    return Rhs->IRCodegen(IRF);
+            }
+            /// L is true
+            else
+            {
+                // true && expr -> expr
+                if (IsLogicalAnd)
+                    return Rhs->IRCodegen(IRF);
+                // ture || expr -> is always true
+                else
+                    return L;
+            }
+        }
 
         // if L was a compare instruction then just revert its relation
         if (auto LCMP = dynamic_cast<CompareInstruction *>(L); LCMP != nullptr)
@@ -1533,7 +1664,7 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
         }
         else
         {
-            Instruction *OperationResult {nullptr};
+            Value *OperationResult {nullptr};
 
             // converting the LValue L to an RValue by loading it in
             auto ResultIRType = L->GetType();
@@ -1595,11 +1726,6 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
             default: break;
         }
     }
-
-    if (L->IsConstant() && L->IsIntType())
-        L = IRF->CreateMov(L, R->GetBitWidth());
-    else if (L->IsConstant() && L->IsFPType())
-        L = IRF->CreateMovF(L, R->GetBitWidth());
 
     switch (GetOperationKind())
     {
@@ -1663,13 +1789,27 @@ Value *BinaryExpression::IRCodegen(IRFactory *IRF)
 
 Value *TernaryExpression::IRCodegen(IRFactory *IRF)
 {
+    auto C = Condition->IRCodegen(IRF);
+
+    /// If the condition is a compile time computable constant, then generate
+    /// the if or else body.
+    if (C->IsConstant())
+    {
+        assert(!C->IsFPType() && "Only support integer converted to boolean");
+
+        // If the condition is a constant false value, then
+        if (static_cast<Constant *>(C)->GetIntValue() == 0)
+            return ExprIfFalse->IRCodegen(IRF);
+        else
+            return ExprIfTrue->IRCodegen(IRF);
+    }
+
     const auto FuncPtr = IRF->GetCurrentFunction();
 
     auto TrueBB  = std::make_unique<BasicBlock>("tenary_true", FuncPtr);
     auto FalseBB = std::make_unique<BasicBlock>("tenary_false", FuncPtr);
     auto FinalBB = std::make_unique<BasicBlock>("tenary_end", FuncPtr);
 
-    auto C = Condition->IRCodegen(IRF);
 
     // Condition Test
 

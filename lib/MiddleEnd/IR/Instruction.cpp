@@ -65,37 +65,45 @@ std::string Instruction::AsString(Instruction::InstructionKind IK)
         case GetELemPtr: return "gep";
         case Cmp: return "cmp";
         case CmpF: return "cmpf";
-        case Mov: return "mov";
-        case MovF: return "movf";
 
         default: assert(!"Unknown instruction kind."); break;
     }
 }
 
-void Instruction::PrintInst(const std::string Context) const
+void Instruction::PrintInst(bool ShowColor, const std::string Context) const
 {
-    fmt::print(fmt::emphasis::bold | fg(fmt::color::green),
-               InstFormat,
-               "",
-               Context.empty() ? AsString(InstKind) : AsString(InstKind) + "." + Context);
+    if (ShowColor)
+    {
+        fmt::print(fmt::emphasis::bold | fg(fmt::color::green),
+                   InstFormat,
+                   "",
+                   Context.empty() ? AsString(InstKind) :
+                                     AsString(InstKind) + "." + Context);
+    }
+    else
+    {
+        fmt::print("\t{}\t",
+                   Context.empty() ? AsString(InstKind) :
+                                     AsString(InstKind) + "." + Context);
+    }
 }
 
-void BinaryInstruction::Print() const
+void BinaryInstruction::Print(bool ShowColor) const
 {
     std::string Format = "{Dest}, {L}, {R}\n";
 
-    PrintInst();
+    PrintInst(ShowColor);
     fmt::print(Format,
                fmt::arg("Dest", ValueString()),
                fmt::arg("L", LHS->ValueString()),
                fmt::arg("R", RHS->ValueString()));
 }
 
-void UnaryInstruction::Print() const
+void UnaryInstruction::Print(bool ShowColor) const
 {
     std::string Format = "{Dest}, {Op}\n";
 
-    PrintInst();
+    PrintInst(ShowColor);
     fmt::print(Format,
                fmt::arg("Dest", ValueString()),
                fmt::arg("Op", Op->ValueString()));
@@ -129,18 +137,18 @@ void CompareInstruction::InvertRelation()
     }
 }
 
-void CompareInstruction::Print() const
+void CompareInstruction::Print(bool ShowColor) const
 {
     std::string Format = "{Value}, {L}, {R}\n";
 
-    PrintInst(GetRelationString());
+    PrintInst(ShowColor, GetRelationString());
     fmt::print(Format,
                fmt::arg("Value", ValueString()),
                fmt::arg("L", LHS->ValueString()),
                fmt::arg("R", RHS->ValueString()));
 }
 
-void CallInstruction::Print() const
+void CallInstruction::Print(bool ShowColor) const
 {
     std::string Format = "{RetValue}{FuncName}({Args})\n";
     std::string RetValue {};
@@ -159,22 +167,22 @@ void CallInstruction::Print() const
         i++;
     }
 
-    PrintInst();
+    PrintInst(ShowColor);
     fmt::print(Format,
                fmt::arg("RetValue", RetValue),
                fmt::arg("FuncName", Name),
                fmt::arg("Args", ArgsStr));
 }
 
-void JumpInstruction::Print() const
+void JumpInstruction::Print(bool ShowColor) const
 {
     std::string Format = "<{Label}>\n";
 
-    PrintInst();
+    PrintInst(ShowColor);
     fmt::print(Format, fmt::arg("Label", Target->GetName()));
 }
 
-void BranchInstruction::Print() const
+void BranchInstruction::Print(bool ShowColor) const
 {
     std::string Format = "{Condition}, <{TrueTarget}>{FalseTarget}\n";
     std::string FTStr {};
@@ -182,53 +190,52 @@ void BranchInstruction::Print() const
     if (FalseTarget)
         FTStr += ", <" + FalseTarget->GetName() + ">";
 
-    PrintInst();
+    PrintInst(ShowColor);
     fmt::print(Format,
                fmt::arg("Condition", Condition->ValueString()),
                fmt::arg("TrueTarget", TrueTarget->GetName()),
                fmt::arg("FalseTarget", FTStr));
 }
 
-void ReturnInstruction::Print() const
+void ReturnInstruction::Print(bool ShowColor) const
 {
     std::string Format = "{Value}\n";
 
-    PrintInst();
+    PrintInst(ShowColor);
     if (ReturnVal)
         fmt::print(Format, fmt::arg("Value", ReturnVal->ValueString()));
-
 }
 
-void StackAllocationInstruction::Print() const
+void StackAllocationInstruction::Print(bool ShowColor) const
 {
     std::string Format = "{Dest}\n";
 
-    PrintInst();
+    PrintInst(ShowColor);
     fmt::print(Format, fmt::arg("Dest", ValueString()));
 }
 
-void GetElemPointerInstruction::Print() const
+void GetElemPointerInstruction::Print(bool ShowColor) const
 {
     auto Format = "{Dest}, {Source}, {Index}\n";
 
-    PrintInst();
+    PrintInst(ShowColor);
     fmt::print(Format,
                fmt::arg("Dest", ValueString()),
                fmt::arg("Source", Source->ValueString()),
                fmt::arg("Index", Index->ValueString()));
 }
 
-void StoreInstruction::Print() const
+void StoreInstruction::Print(bool ShowColor) const
 {
     std::string Format = "[{Dest}], {Source}\n";
 
-    PrintInst();
+    PrintInst(ShowColor);
     fmt::print(Format,
                fmt::arg("Dest", Destination->ValueString()),
                fmt::arg("Source", Source->ValueString()));
 }
 
-void LoadInstruction::Print() const
+void LoadInstruction::Print(bool ShowColor) const
 {
     std::string Format = "{Dest}, [{Source}{Offset}]\n";
     std::string OffsetStr {};
@@ -236,18 +243,18 @@ void LoadInstruction::Print() const
     if (Offset)
         OffsetStr += " + " + Offset->ValueString();
 
-    PrintInst();
+    PrintInst(ShowColor);
     fmt::print(Format,
                fmt::arg("Dest", ValueString()),
                fmt::arg("Source", Source->ValueString()),
                fmt::arg("Offset", OffsetStr));
 }
 
-void MemoryCopyInstruction::Print() const
+void MemoryCopyInstruction::Print(bool ShowColor) const
 {
     std::string Format = "{Dest}, {Source}, {Number}\n";
 
-    PrintInst();
+    PrintInst(ShowColor);
     fmt::print(Format,
                fmt::arg("Dest", Dest->ValueString()),
                fmt::arg("Source", Source->ValueString()),

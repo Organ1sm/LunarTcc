@@ -22,30 +22,32 @@ class TargetMachine;
 
 class IRFactory
 {
+    using IKind = Instruction::InstructionKind;
+
   public:
     IRFactory() = delete;
     IRFactory(Module &M, TargetMachine *T) : TM(T), CurrentModule(M), ID(0) {}
 
-    Instruction *CreateAdd(Value *LHS, Value *RHS);
-    Instruction *CreateSub(Value *LHS, Value *RHS);
-    Instruction *CreateMul(Value *LHS, Value *RHS);
-    Instruction *CreateDiv(Value *LHS, Value *RHS);
-    Instruction *CreateMod(Value *LHS, Value *RHS);
+    Value *CreateAdd(Value *LHS, Value *RHS);
+    Value *CreateSub(Value *LHS, Value *RHS);
+    Value *CreateMul(Value *LHS, Value *RHS);
+    Value *CreateDiv(Value *LHS, Value *RHS);
+    Value *CreateMod(Value *LHS, Value *RHS);
 
-    Instruction *CreateDivU(Value *LHS, Value *RHS);
-    Instruction *CreateModU(Value *LHS, Value *RHS);
+    Value *CreateDivU(Value *LHS, Value *RHS);
+    Value *CreateModU(Value *LHS, Value *RHS);
 
-    Instruction *CreateAddF(Value *LHS, Value *RHS);
-    Instruction *CreateSubF(Value *LHS, Value *RHS);
-    Instruction *CreateMulF(Value *LHS, Value *RHS);
-    Instruction *CreateDivF(Value *LHS, Value *RHS);
+    Value *CreateAddF(Value *LHS, Value *RHS);
+    Value *CreateSubF(Value *LHS, Value *RHS);
+    Value *CreateMulF(Value *LHS, Value *RHS);
+    Value *CreateDivF(Value *LHS, Value *RHS);
 
-    Instruction *CreateLSL(Value *LHS, Value *RHS);
-    Instruction *CreateLSR(Value *LHS, Value *RHS);
+    Value *CreateLSL(Value *LHS, Value *RHS);
+    Value *CreateLSR(Value *LHS, Value *RHS);
 
-    Instruction *CreateOr(Value *LHS, Value *RHS);
-    Instruction *CreateXOr(Value *LHS, Value *RHS);
-    Instruction *CreateAnd(Value *LHS, Value *RHS);
+    Value *CreateOr(Value *LHS, Value *RHS);
+    Value *CreateXOr(Value *LHS, Value *RHS);
+    Value *CreateAnd(Value *LHS, Value *RHS);
 
     UnaryInstruction *CreateMov(Value *Operand, uint8_t BitWidth = 32);
     UnaryInstruction *CreateMovF(Value *Operand, uint8_t BitWidth = 32);
@@ -76,7 +78,7 @@ class IRFactory
     MemoryCopyInstruction *
         CreateMemCopy(Value *Destination, Value *Source, std::size_t Bytes);
 
-    CompareInstruction *
+    Value *
         CreateCmp(CompareInstruction::CompareRelation Relation, Value *LHS, Value *RHS);
 
     JumpInstruction *CreateJump(BasicBlock *Destination);
@@ -107,21 +109,38 @@ class IRFactory
     void InsertBB(std::unique_ptr<BasicBlock> BB);
     void Insert(std::unique_ptr<FunctionParameter> FP);
 
+    void EraseLastBB();
+    void EraseLastInst();
+
+    void EraseInst(Instruction *I);
+
     void AddToSymbolTable(std::string &Identifier, Value *V);
     Value *GetSymbolValue(const std::string &Identifier);
 
     Constant *GetConstant(uint64_t C, uint8_t BW = 32);
-    Constant *GetConstant(double C, unsigned BW = 64);
+    Constant *GetConstant(double C, uint8_t BW = 64);
 
     std::vector<BasicBlock *> &GetLoopIncrementBBsTable();
-
     std::vector<BasicBlock *> &GetBreakEndBBsTable();
 
     TargetMachine *GetTargetMachine() { return TM; }
 
   private:
-    Instruction *
-        CreateBinaryInstruction(Instruction::InstructionKind K, Value *L, Value *R);
+    Value *CreateBinaryInstruction(IKind K, Value *L, Value *R);
+
+    Value *EvaluateIntegerBinaryConstantExpression(const int64_t LHS,
+                                                   const int64_t RHS,
+                                                   const uint8_t BitWidth,
+                                                   const IKind Operation);
+
+    Value *EvaluateFloatingBinaryConstantExpression(const double LHS,
+                                                    const double RHS,
+                                                    const uint8_t BitWidth,
+                                                    const IKind Operation);
+
+    Value *EvaluateBinaryConstantExpression(const Constant *LHS,
+                                            const Constant *RHS,
+                                            const IKind Operation);
 
     BasicBlock *GetCurrentBB();
 

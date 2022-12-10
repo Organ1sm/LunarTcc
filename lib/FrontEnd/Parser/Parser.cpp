@@ -934,6 +934,10 @@ std::unique_ptr<IfStatement> Parser::ParseIfStatement()
         DiagPrinter.AddError(Msg, T);
     }
 
+    if (Condition && !Condition->GetResultType().IsIntegerType())
+        Condition = std::make_unique<ImplicitCastExpression>(std::move(Condition),
+                                                             Type(Type::Int));
+
     IS->SetCondition(std::move(Condition));
     Expect(Token::RightParen);
     IS->SetIfBody(ParseStatement());
@@ -1052,6 +1056,10 @@ std::unique_ptr<WhileStatement> Parser::ParseWhileStatement()
         DiagPrinter.AddError(Msg, T);
     }
 
+    if (Condition && !Condition->GetResultType().IsIntegerType())
+        Condition = std::make_unique<ImplicitCastExpression>(std::move(Condition),
+                                                             Type(Type::Int));
+
     WS->SetCondition(std::move(Condition));
     Expect(Token::RightParen);
     WS->SetBody(ParseStatement());
@@ -1075,6 +1083,10 @@ std::unique_ptr<DoWhileStatement> Parser::ParseDoWhileStatement()
         std::string Msg = "expected expression here";
         DiagPrinter.AddError(Msg, T);
     }
+
+    if (Condition && !Condition->GetResultType().IsIntegerType())
+        Condition = std::make_unique<ImplicitCastExpression>(std::move(Condition),
+                                                             Type(Type::Int));
 
     DWS->SetCondition(std::move(Condition));
     Expect(Token::RightParen);
@@ -1108,7 +1120,11 @@ std::unique_ptr<ForStatement> Parser::ParseForStatement()
         Expect(Token::SemiColon);
     }
 
-    FS->SetCondition(ParseExpression());
+    auto Condition = ParseExpression();
+    if (Condition && !Condition->GetResultType().IsIntegerType())
+        Condition = std::make_unique<ImplicitCastExpression>(std::move(Condition),
+                                                             Type(Type::Int));
+    FS->SetCondition(std::move(Condition));
     Expect(Token::SemiColon);
 
     FS->SetIncrement(ParseExpression());
@@ -1935,6 +1951,9 @@ std::unique_ptr<Expression>
 // <TernaryExpression> ::= <Expression> '?' <Expression> ':' <Expression>
 std::unique_ptr<Expression> Parser::ParseTernaryExpression(ExprPtr Condition)
 {
+    if (Condition && !Condition->GetResultType().IsIntegerType())
+        Condition = std::make_unique<ImplicitCastExpression>(std::move(Condition),
+                                                             Type(Type::Int));
     Expect(Token::Cond);
 
     auto TrueExpr = ParseExpression();

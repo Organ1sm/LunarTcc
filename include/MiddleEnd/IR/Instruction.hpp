@@ -52,11 +52,8 @@ class Instruction : public Value
         Branch,
         Ret,
 
-        Mov = Ret + 2,
-        MovF,
-
         // Memory Operations.
-        Load,
+        Load = Ret + 4,
         Store,
         MemCopy,
         StackAlloc,
@@ -74,8 +71,11 @@ class Instruction : public Value
     bool IsStackAllocation() const { return InstKind == StackAlloc; }
     bool IsTerminator() const { return BasicBlockTerminator; }
 
-    virtual void Print() const { assert(!"Cannot print base class."); }
-    virtual void PrintInst(const std::string Format = "") const;
+    virtual void Print(bool ShowColor = false) const
+    {
+        assert(!"Cannot print base class.");
+    }
+    virtual void PrintInst(bool ShowColor, const std::string Format = "") const;
 
   protected:
     InstructionKind InstKind;
@@ -94,7 +94,7 @@ class BinaryInstruction : public Instruction
     Value *GetLHS() { return LHS; }
     Value *GetRHS() { return RHS; }
 
-    void Print() const override;
+    void Print(bool ShowColor = false) const override;
 
   private:
     Value *LHS;
@@ -114,7 +114,7 @@ class UnaryInstruction : public Instruction
 
     Value *GetOperand() { return Op; }
 
-    void Print() const override;
+    void Print(bool ShowColor = false) const override;
 
   private:
     Value *Op;
@@ -140,7 +140,7 @@ class CompareInstruction : public Instruction
     Value *GetRHS() { return RHS; }
     unsigned GetRelation() { return Relation; }
 
-    void Print() const override;
+    void Print(bool ShowColor = false) const override;
 
   private:
     CompareRelation Relation {Invalid};
@@ -170,7 +170,7 @@ class CallInstruction : public Instruction
     std::vector<Value *> &GetArgs() { return Arguments; }
     int GetImplicitStructArgIndex() const { return ImplicitStructArgIndex; }
 
-    void Print() const override;
+    void Print(bool ShowColor = false) const override;
 
   private:
     int ImplicitStructArgIndex = -1;
@@ -190,7 +190,7 @@ class JumpInstruction : public Instruction
 
     std::string &GetTargetLabelName();
 
-    void Print() const override;
+    void Print(bool ShowColor = false) const override;
 
   private:
     BasicBlock *Target;
@@ -210,7 +210,7 @@ class BranchInstruction : public Instruction
     std::string &GetTrueLabelName();
     std::string &GetFalseLabelName();
 
-    void Print() const override;
+    void Print(bool ShowColor = false) const override;
 
   private:
     Value *Condition;
@@ -230,7 +230,7 @@ class ReturnInstruction : public Instruction
 
     Value *GetRetVal() const { return ReturnVal; }
 
-    void Print() const override;
+    void Print(bool ShowColor = false) const override;
 
   private:
     Value *ReturnVal;
@@ -245,7 +245,7 @@ class StackAllocationInstruction : public Instruction
         this->GetTypeRef().SetPointerLevel(this->GetTypeRef().GetPointerLevel() + 1);
     }
 
-    void Print() const override;
+    void Print(bool ShowColor = false) const override;
 
   private:
     std::string VariableName;
@@ -265,7 +265,7 @@ class GetElemPointerInstruction : public Instruction
     Value *GetSource() const { return Source; }
     Value *GetIndex() { return Index; }
 
-    void Print() const override;
+    void Print(bool ShowColor = false) const override;
 
   private:
     Value *Source;
@@ -285,7 +285,7 @@ class StoreInstruction : public Instruction
     Value *GetMemoryLocation() { return Destination; }
     Value *GetSavedValue() { return Source; }
 
-    void Print() const override;
+    void Print(bool ShowColor = false) const override;
 
   private:
     Value *Source;
@@ -310,7 +310,7 @@ class LoadInstruction : public Instruction
     void ConstructorHelper();
     Value *GetMemoryLocation() { return Source; }
 
-    void Print() const override;
+    void Print(bool ShowColor = false) const override;
 
   private:
     Value *Source;
@@ -332,7 +332,7 @@ class MemoryCopyInstruction : public Instruction
     Value *GetSource() { return Source; }
     std::size_t GetSize() const { return N; }
 
-    void Print() const;
+    void Print(bool ShowColor = false) const;
 
   private:
     Value *Dest;

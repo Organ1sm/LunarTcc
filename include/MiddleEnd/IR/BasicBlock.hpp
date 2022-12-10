@@ -20,7 +20,7 @@ class BasicBlock : public Value
         : Name(Name), Parent(Parent), Value(Value::Label)
     {}
 
-    explicit BasicBlock(Function *P) : Parent(P), Value(Value::Label) {}
+    BasicBlock(Function *P) : Parent(P), Value(Value::Label) {}
 
     BasicBlock(const BasicBlock &) = delete;
     BasicBlock(BasicBlock &&)      = default;
@@ -39,7 +39,7 @@ class BasicBlock : public Value
 
     InstructionList &GetInstructions() { return Instructions; }
 
-    void Print() const;
+    void Print(bool ShowColor = false) const;
 
   private:
     std::string Name;

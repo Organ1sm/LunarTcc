@@ -46,8 +46,9 @@ void Function::Insert(std::unique_ptr<FunctionParameter> FP)
     Parameters.push_back(std::move(FP));
 }
 
-void Function::Print() const
+void Function::Print(bool ShowColor) const
 {
+    // TODO: improve format
     auto size         = Parameters.size();
     bool HasParameter = !((size == 1) && (Parameters[0]->GetType().IsVoid()));
 
@@ -71,17 +72,16 @@ void Function::Print() const
         ReturnTyStr = ReturnType.AsString();
 
     if (DeclarationOnly)
-        fmt::print("declare ");
-
-
-    fmt::print(FDStr,
-               fmt::arg("n", Name),
-               fmt::arg("a", ArgsStr),
-               fmt::arg("r", ReturnTyStr));
+        fmt::print("declare func {} ({})", Name, ArgsStr);
+    else
+        fmt::print(FDStr,
+                   fmt::arg("n", Name),
+                   fmt::arg("a", ArgsStr),
+                   fmt::arg("r", ReturnTyStr));
 
     fmt::print("{}\n", DeclarationOnly ? ";\n" : ":");
 
     if (!DeclarationOnly)
         for (auto &BB : BasicBlocks)
-            BB->Print();
+            BB->Print(ShowColor);
 }

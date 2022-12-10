@@ -9,9 +9,148 @@
 #include <cstdint>
 #include <memory>
 
-Instruction *
+template <typename T>
+static Value *EvaluateComparison(const T L,
+                                 const T R,
+                                 const CompareInstruction::CompareRelation Relation,
+                                 Value *TrueVal,
+                                 Value *FalseVal)
+{
+    switch (Relation)
+    {
+        case CompareInstruction::EQ: return L == R ? TrueVal : FalseVal;
+        case CompareInstruction::NE: return L != R ? TrueVal : FalseVal;
+        case CompareInstruction::GT: return L > R ? TrueVal : FalseVal;
+        case CompareInstruction::GE: return L >= R ? TrueVal : FalseVal;
+        case CompareInstruction::LT: return L < R ? TrueVal : FalseVal;
+        case CompareInstruction::LE: return L <= R ? TrueVal : FalseVal;
+
+        default: assert(!"Unreachable");
+    }
+}
+
+Value *IRFactory::EvaluateIntegerBinaryConstantExpression(const int64_t LHS,
+                                                          const int64_t RHS,
+                                                          const uint8_t BitWidth,
+                                                          const IKind Operation)
+{
+    switch (Operation)
+    {
+        case Instruction::Add:
+            return GetConstant(static_cast<uint64_t>(LHS) + RHS, BitWidth);
+        case Instruction::Sub:
+            return GetConstant(static_cast<uint64_t>(LHS) - RHS, BitWidth);
+        case Instruction::Mul:
+            return GetConstant(static_cast<uint64_t>(LHS) * RHS, BitWidth);
+        case Instruction::Div:
+            assert(RHS != 0);
+            return GetConstant(static_cast<uint64_t>(LHS) / RHS, BitWidth);
+        case Instruction::DivU:
+            assert(RHS != 0);
+            return GetConstant(static_cast<uint64_t>(LHS) / static_cast<uint64_t>(RHS),
+                               BitWidth);
+        case Instruction::Mod:
+            return GetConstant(static_cast<uint64_t>(LHS) % RHS, BitWidth);
+
+        case Instruction::ModU:
+            return GetConstant(static_cast<uint64_t>(LHS) % static_cast<uint64_t>(RHS),
+                               BitWidth);
+        case Instruction::And:
+            return GetConstant(static_cast<uint64_t>(LHS) & static_cast<uint64_t>(RHS),
+                               BitWidth);
+        case Instruction::Or:
+            return GetConstant(static_cast<uint64_t>(LHS) | static_cast<uint64_t>(RHS),
+                               BitWidth);
+
+        case Instruction::XOr:
+            return GetConstant(static_cast<uint64_t>(LHS) ^ static_cast<uint64_t>(RHS),
+                               BitWidth);
+
+        case Instruction::LSL:
+            return GetConstant(static_cast<uint64_t>(LHS) << static_cast<uint64_t>(RHS),
+                               BitWidth);
+
+        case Instruction::LSR:
+            return GetConstant(static_cast<uint64_t>(LHS) >> static_cast<uint64_t>(RHS),
+                               BitWidth);
+
+
+        default: assert(!"Unreachable");
+    }
+}
+
+Value *IRFactory::EvaluateFloatingBinaryConstantExpression(const double LHS,
+                                                           const double RHS,
+                                                           const uint8_t BitWidth,
+                                                           const IKind Operation)
+{
+    switch (Operation)
+    {
+        case Instruction::AddF: return GetConstant(LHS + RHS, BitWidth);
+        case Instruction::SubF: return GetConstant(LHS - RHS, BitWidth);
+        case Instruction::MulF: return GetConstant(LHS * RHS, BitWidth);
+
+        case Instruction::DivF: {
+            assert(RHS != 0.0);
+            return GetConstant(LHS / RHS, BitWidth);
+        }
+
+        default: assert(!"Unreachable");
+    }
+}
+
+Value *IRFactory::EvaluateBinaryConstantExpression(const Constant *LHS,
+                                                   const Constant *RHS,
+                                                   const IKind Operation)
+{
+    assert(LHS->GetBitWidth() == RHS->GetBitWidth() && "Must have the same bit size");
+
+    switch (Operation)
+    {
+        case Instruction::Add:
+        case Instruction::Sub:
+        case Instruction::Mul:
+        case Instruction::Div:
+        case Instruction::DivU:
+        case Instruction::Mod:
+        case Instruction::ModU:
+        case Instruction::And:
+        case Instruction::Or:
+        case Instruction::XOr:
+        case Instruction::LSL:
+        case Instruction::LSR:
+            return EvaluateIntegerBinaryConstantExpression(LHS->GetIntValue(),
+                                                           RHS->GetIntValue(),
+                                                           LHS->GetBitWidth(),
+                                                           Operation);
+
+            // Floating Point
+        case Instruction::AddF:
+        case Instruction::SubF:
+        case Instruction::MulF:
+        case Instruction::DivF:
+            return EvaluateFloatingBinaryConstantExpression(LHS->GetFloatValue(),
+                                                            RHS->GetFloatValue(),
+                                                            LHS->GetBitWidth(),
+                                                            Operation);
+
+        default: assert(!"Unreachable");
+    }
+}
+
+Value *
     IRFactory::CreateBinaryInstruction(Instruction::InstructionKind K, Value *L, Value *R)
 {
+    if (L->IsConstant() && R->IsConstant())
+    {
+        auto ConstLHS = dynamic_cast<Constant *>(L);
+        auto ConstRHS = dynamic_cast<Constant *>(R);
+
+        assert(ConstLHS && ConstRHS);
+
+        return EvaluateBinaryConstantExpression(ConstLHS, ConstRHS, K);
+    }
+
     auto Inst = std::make_unique<BinaryInstruction>(K, L, R, GetCurrentBB());
     Inst->SetId(ID++);
     auto InstPtr = Inst.get();
@@ -27,144 +166,84 @@ Instruction *IRFactory::Insert(std::unique_ptr<Instruction> I)
     return this->GetCurrentBB()->Insert(std::move(I));
 }
 
-Instruction *IRFactory::CreateAdd(Value *LHS, Value *RHS)
+Value *IRFactory::CreateAdd(Value *LHS, Value *RHS)
 {
-    if (LHS->IsConstant() && RHS->IsConstant())
-    {
-        auto ConstL = dynamic_cast<Constant *>(LHS);
-        auto ConstR = dynamic_cast<Constant *>(RHS);
-
-        assert(ConstL && ConstR);
-
-        const auto Val = ConstL->GetIntValue() + ConstR->GetIntValue();
-        return CreateMov(GetConstant((uint64_t)Val));
-    }
-
     return CreateBinaryInstruction(Instruction::Add, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateAddF(Value *LHS, Value *RHS)
+Value *IRFactory::CreateAddF(Value *LHS, Value *RHS)
 {
-    if (LHS->IsConstant() && RHS->IsConstant())
-    {
-        auto ConstL = dynamic_cast<Constant *>(LHS);
-        auto ConstR = dynamic_cast<Constant *>(RHS);
-
-        assert(ConstL && ConstR);
-
-        const auto Val = ConstL->GetFloatValue() + ConstR->GetFloatValue();
-        return CreateMovF(GetConstant(Val));
-    }
-
     return CreateBinaryInstruction(Instruction::AddF, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateSub(Value *LHS, Value *RHS)
+Value *IRFactory::CreateSub(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Sub, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateSubF(Value *LHS, Value *RHS)
+Value *IRFactory::CreateSubF(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::SubF, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateMul(Value *LHS, Value *RHS)
+Value *IRFactory::CreateMul(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Mul, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateMulF(Value *LHS, Value *RHS)
+Value *IRFactory::CreateMulF(Value *LHS, Value *RHS)
 {
-    if (LHS->IsConstant() && RHS->IsConstant())
-    {
-        const auto Val = static_cast<Constant *>(LHS)->GetFloatValue() *
-                         static_cast<Constant *>(RHS)->GetFloatValue();
-
-        return CreateMovF(GetConstant(Val));
-    }
-
     return CreateBinaryInstruction(Instruction::MulF, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateDiv(Value *LHS, Value *RHS)
+Value *IRFactory::CreateDiv(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Div, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateDivF(Value *LHS, Value *RHS)
+Value *IRFactory::CreateDivF(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::DivF, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateMod(Value *LHS, Value *RHS)
+Value *IRFactory::CreateMod(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Mod, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateDivU(Value *LHS, Value *RHS)
+Value *IRFactory::CreateDivU(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::DivU, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateModU(Value *LHS, Value *RHS)
+Value *IRFactory::CreateModU(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::ModU, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateOr(Value *LHS, Value *RHS)
+Value *IRFactory::CreateOr(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::Or, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateXOr(Value *LHS, Value *RHS)
+Value *IRFactory::CreateXOr(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::XOr, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateAnd(Value *LHS, Value *RHS)
+Value *IRFactory::CreateAnd(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::And, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateLSL(Value *LHS, Value *RHS)
+Value *IRFactory::CreateLSL(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::LSL, LHS, RHS);
 }
 
-Instruction *IRFactory::CreateLSR(Value *LHS, Value *RHS)
+Value *IRFactory::CreateLSR(Value *LHS, Value *RHS)
 {
     return CreateBinaryInstruction(Instruction::LSR, LHS, RHS);
-}
-
-UnaryInstruction *IRFactory::CreateMov(Value *Operand, uint8_t BitWidth)
-{
-    auto Inst = std::make_unique<UnaryInstruction>(Instruction::Mov,
-                                                   IRType::CreateInt(BitWidth),
-                                                   Operand,
-                                                   GetCurrentBB());
-
-    Inst->SetId(ID++);
-    auto InstPtr = Inst.get();
-
-    Insert(std::move(Inst));
-
-    return InstPtr;
-}
-
-UnaryInstruction *IRFactory::CreateMovF(Value *Operand, uint8_t BitWidth)
-{
-    auto Inst = std::make_unique<UnaryInstruction>(Instruction::MovF,
-                                                   IRType::CreateFloat(BitWidth),
-                                                   Operand,
-                                                   GetCurrentBB());
-
-    Inst->SetId(ID++);
-    auto InstPtr = Inst.get();
-
-    Insert(std::move(Inst));
-
-    return InstPtr;
 }
 
 UnaryInstruction *IRFactory::CreateSExt(Value *Operand, uint8_t BitWidth)
@@ -347,10 +426,39 @@ MemoryCopyInstruction *
     return InstPtr;
 }
 
-CompareInstruction *IRFactory::CreateCmp(CompareInstruction::CompareRelation Relation,
-                                         Value *LHS,
-                                         Value *RHS)
+Value *IRFactory::CreateCmp(CompareInstruction::CompareRelation Relation,
+                            Value *LHS,
+                            Value *RHS)
 {
+    // If both operand is constant, then evaluate them
+    if (LHS->IsConstant() && RHS->IsConstant())
+    {
+        assert(LHS->IsFPType() == RHS->IsFPType());
+        assert(LHS->GetBitWidth() == RHS->GetBitWidth());
+
+        auto ConstLHS = dynamic_cast<Constant *>(LHS);
+        auto ConstRHS = dynamic_cast<Constant *>(RHS);
+
+        auto TrueVal  = GetConstant((uint64_t)1);
+        auto FalseVal = GetConstant((uint64_t)0);
+
+        // Integer comparison
+        if (!LHS->IsFPType() && !RHS->IsFPType())
+        {
+            const auto L = ConstLHS->GetIntValue();
+            const auto R = ConstRHS->GetIntValue();
+
+            return EvaluateComparison<uint64_t>(L, R, Relation, TrueVal, FalseVal);
+        }
+        else
+        {    // Float comparison
+            const auto L = ConstLHS->GetFloatValue();
+            const auto R = ConstRHS->GetFloatValue();
+
+            return EvaluateComparison<double>(L, R, Relation, TrueVal, FalseVal);
+        }
+    }
+
     auto Inst = std::make_unique<CompareInstruction>(LHS, RHS, Relation, GetCurrentBB());
     auto InstPtr = Inst.get();
 
@@ -464,6 +572,28 @@ void IRFactory::Insert(std::unique_ptr<FunctionParameter> FP)
     GetCurrentFunction()->Insert(std::move(FP));
 }
 
+void IRFactory::EraseLastBB() { GetCurrentFunction()->GetBasicBlocks().pop_back(); }
+
+void IRFactory::EraseLastInst()
+{
+    GetCurrentFunction()->GetBasicBlocks().back()->GetInstructions().pop_back();
+}
+
+void IRFactory::EraseInst(Instruction *I)
+{
+    for (auto &BB : GetCurrentFunction()->GetBasicBlocks())
+    {
+        for (std::size_t i = 0; i < BB->GetInstructions().size(); i++)
+        {
+            if (BB->GetInstructions()[i].get() == I)
+            {
+                BB->GetInstructions().erase(BB->GetInstructions().begin() + i);
+                return;
+            }
+        }
+    }
+}
+
 void IRFactory::AddToSymbolTable(std::string &Identifier, Value *V)
 {
     SymbolTable[Identifier] = V;
@@ -485,7 +615,7 @@ Constant *IRFactory::GetConstant(uint64_t C, uint8_t BW)
     return IntConstantPool[RequestedConstant].get();
 }
 
-Constant *IRFactory::GetConstant(double C, unsigned BW)
+Constant *IRFactory::GetConstant(double C, uint8_t BW)
 {
     if (auto ConstVal = FloatConstantPool[C].get(); ConstVal != nullptr)
         return ConstVal;
