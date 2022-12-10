@@ -76,6 +76,26 @@ auto MachineBasicBlock::InsertAfter(MachineInstruction MI, MachineInstruction *A
     return InsertInstr(MI, i + 1);
 }
 
+
+
+auto MachineBasicBlock::InsertAfter(InstructionList MIs, MachineInstruction *AfterMI)
+    -> MachineBasicBlock::InstructionList::iterator
+{
+    std::size_t i = 0;
+    for (; i < Instructions.size(); i++)
+    {
+        if (&Instructions[i] == AfterMI)
+            break;
+    }
+
+    assert(i < Instructions.size() && "Instruction not found in the list.");
+
+    for (auto &MI : MIs)
+        InsertInstr(MI, 1 + i++);
+
+    return Instructions.begin() + i;
+}
+
 auto MachineBasicBlock::ReplaceInstr(MachineInstruction MI,
                                      MachineInstruction *Replacable)
     -> MachineBasicBlock::InstructionList::iterator

@@ -55,7 +55,8 @@ namespace AArch64
 
         MachineInstruction *MaterializeConstant(MachineInstruction *MI,
                                                 const uint64_t Constant,
-                                                MachineOperand &VReg);
+                                                MachineOperand &VReg,
+                                                const bool UseVRegAndMI = false);
 
         bool SelectThreeAddressInstruction(MachineInstruction *MI,
                                            const Opcodes rrr,
