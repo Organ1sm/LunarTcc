@@ -95,6 +95,7 @@ const std::unordered_map<Token::TokenKind, std::string> Token::Token2Str = {
     {Double,             "double"           },
     {Void,               "void"             },
     {Char,               "char"             },
+    {Signed,             "signed"           },
     {Unsigned,           "unsigned"         },
     {Struct,             "struct"           },
     {Enum,               "enum"             },

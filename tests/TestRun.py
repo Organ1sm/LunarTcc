@@ -215,7 +215,7 @@ def executeTests(fileName, context: Context):
          # reached this point and had CHECKs -> did not found all check
         # print the next check which was not found
         if hadChecks:
-            print("Have not found int the output: ", context.CheckList[0])
+            print("Have not found in the output: ", context.CheckList[0])
             return False
 
         # reached this point with CHECK-NOTS -> success

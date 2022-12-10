@@ -38,6 +38,7 @@ bool Parser::IsTypeSpecifier(Token T)
         case Token::Long:
         case Token::Float:
         case Token::Double:
+        case Token::Signed:
         case Token::Unsigned:
         case Token::Struct: return true;
 
@@ -163,6 +164,24 @@ Type Parser::ParseType(Token::TokenKind tk)
             Result.SetTypeVariant(Type::Long);
             break;
         }
+
+        case Token::Signed: {
+            Lex();
+            auto CurrentToken = lexer.GetCurrentToken();
+            Result            = ParseType(CurrentToken.GetKind());
+
+            // TODO: Move this into semantics. For now here is the most appropriate
+            // to handle it.
+            if (Result.IsUnsigned())
+            {
+                std::string Msg =
+                    "both 'signed' and 'unsigned' in declaration specifiers";
+                DiagPrinter.AddError(Msg, CurrentToken);
+            }
+
+            break;
+        }
+
         case Token::Unsigned: {
             auto NextTokenKind = lexer.LookAhead(2).GetKind();
             if (NextTokenKind == Token::Int || NextTokenKind == Token::Char ||

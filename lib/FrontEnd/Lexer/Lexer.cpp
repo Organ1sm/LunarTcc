@@ -13,6 +13,7 @@ std::unordered_map<std::string, Token::TokenKind> Lexer::KeyWords =
         {"double",         Token::Double      },
         {"void",           Token::Void        },
         {"char",           Token::Char        },
+        {"signed",         Token::Signed      },
         {"unsigned",       Token::Unsigned    },
 
         {"const",          Token::Const       },
