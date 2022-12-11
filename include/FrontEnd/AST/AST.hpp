@@ -105,7 +105,7 @@ class MemberDeclaration : public Statement
     Token GetNameToken() const { return Name; }
 
     Type GetType() const { return AType; }
-    void SetType(Type t) { AType = t; }
+    void SetType(const Type &t) { AType = t; }
 
     void Accept(ASTVisitor *Visitor) const override;
     Value *IRCodegen(IRFactory *IRF) override;

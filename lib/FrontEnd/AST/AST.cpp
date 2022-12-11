@@ -1257,6 +1257,15 @@ Value *StructMemberReference::IRCodegen(IRFactory *IRF)
     // Ex:
     //    referred member is an i32 than an i32*.
     auto ResultType = ExprType.GetMemberTypes()[MemberIndex];
+
+    // If the struct member is a pointer to this very same struct type, then
+    // set its result type to this struct type. This needed because in this case
+    // the type is incomplete, so it does not contain the member types. This way
+    // it will.
+    if (ResultType.IsStruct() && ResultType.IsPointer() &&
+        (ResultType.GetStructName() == ExprType.GetStructName()))
+        ResultType = ExprType;
+
     ResultType.IncrementPointerLevel();
 
     auto BaseType = BaseValue->GetType();
@@ -1271,7 +1280,7 @@ Value *StructMemberReference::IRCodegen(IRFactory *IRF)
     if (GetLValueness())
         return GEP;
 
-    auto ResultIRType = GetIRTypeFromASTType(this->GetResultType());
+    auto ResultIRType = ResultType;
     ResultIRType.SetPointerLevel(GEP->GetTypeRef().GetPointerLevel());
 
     return IRF->CreateLoad(ResultIRType, GEP);
