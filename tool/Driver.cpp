@@ -1,5 +1,6 @@
 #include "FrontEnd/AST/ASTPrint.hpp"
 #include "FrontEnd/AST/Semantics.hpp"
+#include "MiddleEnd/Transforms/PassManager.hpp"
 #include "Utils/DiagnosticPrinter.hpp"
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include "FrontEnd/AST/AST.hpp"
@@ -39,6 +40,7 @@ int main(int argc, char *argv[])
     bool Wall                 = false;
     bool ShowColor            = true;
 
+    std::set<Optimization> RequestedOptimizations;
     std::string TargetArch = "aarch64";
 
     for (auto i = 1; i < argc; ++i)
@@ -96,6 +98,14 @@ int main(int argc, char *argv[])
                 DumpAst           = true;
                 DumpIR            = true;
                 PrintBeforePasses = true;
+            }
+            else if (!option.compare("cse"))
+            {
+                RequestedOptimizations.insert(Optimization::CSE);
+            }
+            else if (!option.compare("O"))
+            {
+                RequestedOptimizations.insert(Optimization::CSE);
             }
             else
             {
@@ -167,6 +177,13 @@ int main(int argc, char *argv[])
     }
 
     AST->IRCodegen(&IRF);
+
+    const bool Optimize = !RequestedOptimizations.empty();
+    if (Optimize)
+    {
+        PassManager PM(&IRModule, RequestedOptimizations);
+        PM.RunAll();
+    }
 
     if (DumpIR)
         IRModule.Print(ShowColor);

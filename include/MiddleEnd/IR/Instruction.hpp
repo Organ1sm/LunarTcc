@@ -341,6 +341,7 @@ class StoreInstruction : public Instruction
     Value *Get2ndUse() override { return Destination; }
 
     void Set1stUse(Value *v) override { Source = v; }
+    void Set2ndUse(Value *v) override { Destination = v; }
 
     void Print(bool ShowColor = false) const override;
 

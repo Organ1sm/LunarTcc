@@ -5,6 +5,7 @@ class Module;
 
 enum class Optimization {
     None,
+    CSE,    // common subexpression elimination
 };
 
 class PassManager
