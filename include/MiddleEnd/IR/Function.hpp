@@ -49,6 +49,8 @@ class Function
     Value *GetReturnValue() const { return ReturnValue; }
     void SetReturnValue(Value *V) { ReturnValue = V; }
 
+    std::size_t GetNumOfInstructions() const;
+
     void CreateBasicBlock();
 
     void Insert(std::unique_ptr<BasicBlock> BB);

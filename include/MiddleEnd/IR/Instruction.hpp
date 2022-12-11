@@ -57,19 +57,35 @@ class Instruction : public Value
         Store,
         MemCopy,
         StackAlloc,
-        GetELemPtr,
+        GetElemPtr,
     };
 
     static std::string AsString(InstructionKind IK);
 
     Instruction(InstructionKind K, BasicBlock *P, IRType V)
-        : InstKind(K), Parent(P), Value(std::move(V))
+        : InstKind(K), Parent(P), Value(std::move(V)),
+          BasicBlockTerminator(InstKind == Ret || InstKind == Jump)
     {}
 
     InstructionKind GetInstructionKind() { return InstKind; }
 
     bool IsStackAllocation() const { return InstKind == StackAlloc; }
     bool IsTerminator() const { return BasicBlockTerminator; }
+    bool IsReturn() const { return InstKind == Ret; }
+    bool IsLoad() const { return InstKind == Load; }
+    bool IsCall() const { return InstKind == Call; }
+    bool IsJump() const { return InstKind == Jump; }
+    bool IsGEP() const { return InstKind == GetElemPtr; }
+
+
+    /// Is this instruction define a value ? For example Jump instruction is not.
+    virtual bool IsDefine() const { return true; }
+
+    virtual Value *Get1stUse() { return nullptr; }
+    virtual Value *Get2ndUse() { return nullptr; }
+
+    virtual void Set1stUse(Value *v) {}
+    virtual void Set2ndUse(Value *v) {}
 
     virtual void Print(bool ShowColor = false) const
     {
@@ -90,6 +106,12 @@ class BinaryInstruction : public Instruction
     BinaryInstruction(InstructionKind IK, Value *L, Value *R, BasicBlock *P)
         : Instruction(IK, P, L->GetType()), LHS(L), RHS(R)
     {}
+
+    Value *Get1stUse() override { return LHS; }
+    Value *Get2ndUse() override { return RHS; }
+
+    void Set1stUse(Value *v) override { LHS = v; }
+    void Set2ndUse(Value *v) override { RHS = v; }
 
     Value *GetLHS() { return LHS; }
     Value *GetRHS() { return RHS; }
@@ -116,6 +138,9 @@ class UnaryInstruction : public Instruction
 
     void Print(bool ShowColor = false) const override;
 
+    Value *Get1stUse() override { return Op; }
+    void Set1stUse(Value *v) override { Op = v; }
+
   private:
     Value *Op;
 };
@@ -139,6 +164,12 @@ class CompareInstruction : public Instruction
     Value *GetLHS() { return LHS; }
     Value *GetRHS() { return RHS; }
     unsigned GetRelation() { return Relation; }
+
+    Value *Get1stUse() override { return LHS; }
+    Value *Get2ndUse() override { return RHS; }
+
+    void Set1stUse(Value *v) override { LHS = v; }
+    void Set2ndUse(Value *v) override { RHS = v; }
 
     void Print(bool ShowColor = false) const override;
 
@@ -170,6 +201,8 @@ class CallInstruction : public Instruction
     std::vector<Value *> &GetArgs() { return Arguments; }
     int GetImplicitStructArgIndex() const { return ImplicitStructArgIndex; }
 
+    bool IsDefine() const override { return !GetType().IsVoid(); }
+
     void Print(bool ShowColor = false) const override;
 
   private:
@@ -189,6 +222,7 @@ class JumpInstruction : public Instruction
     void SetTargetBB(BasicBlock *T) { Target = T; }
 
     std::string &GetTargetLabelName();
+    bool IsDefine() const override { return false; }
 
     void Print(bool ShowColor = false) const override;
 
@@ -210,6 +244,11 @@ class BranchInstruction : public Instruction
     std::string &GetTrueLabelName();
     std::string &GetFalseLabelName();
 
+    bool IsDefine() const override { return false; }
+
+    Value *Get1stUse() override { return Condition; }
+    void Set1stUse(Value *v) override { Condition = v; }
+
     void Print(bool ShowColor = false) const override;
 
   private:
@@ -229,6 +268,11 @@ class ReturnInstruction : public Instruction
     }
 
     Value *GetRetVal() const { return ReturnVal; }
+
+    bool IsDefine() const override { return false; }
+
+    Value *Get1stUse() override { return ReturnVal; }
+    void Set1stUse(Value *v) override { ReturnVal = v; }
 
     void Print(bool ShowColor = false) const override;
 
@@ -258,12 +302,18 @@ class GetElemPointerInstruction : public Instruction
                               Value *CompositeObject,
                               Value *AccessIndex,
                               BasicBlock *P)
-        : Instruction(Instruction::GetELemPtr, P, std::move(T)), Source(CompositeObject),
+        : Instruction(Instruction::GetElemPtr, P, std::move(T)), Source(CompositeObject),
           Index(AccessIndex)
     {}
 
     Value *GetSource() const { return Source; }
     Value *GetIndex() { return Index; }
+
+    Value *Get1stUse() override { return Source; }
+    Value *Get2ndUse() override { return Index; }
+
+    void Set1stUse(Value *v) override { Source = v; }
+    void Set2ndUse(Value *v) override { Index = v; }
 
     void Print(bool ShowColor = false) const override;
 
@@ -284,6 +334,13 @@ class StoreInstruction : public Instruction
 
     Value *GetMemoryLocation() { return Destination; }
     Value *GetSavedValue() { return Source; }
+
+    bool IsDefine() const override { return false; }
+
+    Value *Get1stUse() override { return Source; }
+    Value *Get2ndUse() override { return Destination; }
+
+    void Set1stUse(Value *v) override { Source = v; }
 
     void Print(bool ShowColor = false) const override;
 
@@ -310,6 +367,12 @@ class LoadInstruction : public Instruction
     void ConstructorHelper();
     Value *GetMemoryLocation() { return Source; }
 
+    Value *Get1stUse() override { return Source; }
+    Value *Get2ndUse() override { return Offset; }
+
+    void Set1stUse(Value *v) override { Source = v; }
+    void Set2ndUse(Value *v) override { Offset = v; }
+
     void Print(bool ShowColor = false) const override;
 
   private:
@@ -332,7 +395,13 @@ class MemoryCopyInstruction : public Instruction
     Value *GetSource() { return Source; }
     std::size_t GetSize() const { return N; }
 
-    void Print(bool ShowColor = false) const;
+    Value *Get1stUse() override { return Dest; }
+    Value *Get2ndUse() override { return Source; }
+
+    void Set1stUse(Value *v) override { Dest = v; }
+    void Set2ndUse(Value *v) override { Source = v; }
+
+    void Print(bool ShowColor = false) const override;
 
   private:
     Value *Dest;

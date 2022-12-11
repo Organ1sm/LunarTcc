@@ -85,3 +85,13 @@ void Function::Print(bool ShowColor) const
         for (auto &BB : BasicBlocks)
             BB->Print(ShowColor);
 }
+
+std::size_t Function::GetNumOfInstructions() const
+{
+    std::size_t Sum = 0;
+
+    for (auto &BB : BasicBlocks)
+        Sum += BB->GetInstructions().size();
+
+    return Sum;
+}
