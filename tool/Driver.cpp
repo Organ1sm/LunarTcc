@@ -178,6 +178,9 @@ int main(int argc, char *argv[])
 
     AST->IRCodegen(&IRF);
 
+    if (DumpIR)
+        IRModule.Print(ShowColor);
+
     const bool Optimize = !RequestedOptimizations.empty();
     if (Optimize)
     {
@@ -185,8 +188,11 @@ int main(int argc, char *argv[])
         PM.RunAll();
     }
 
-    if (DumpIR)
+    if (DumpIR && Optimize)
+    {
+        fmt::print(FMT_STRING("{:*^60}\n\n"), " After Pass Optimize ");
         IRModule.Print(ShowColor);
+    }
 
     MachineIRModule LLIRModule;
     IRtoLLIR I2LLIR(IRModule, &LLIRModule, TM.get());

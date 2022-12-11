@@ -4,6 +4,8 @@
 #include "MiddleEnd/IR/Instruction.hpp"
 #include "MiddleEnd/IR/Value.hpp"
 #include "MiddleEnd/Transforms/Utils.hpp"
+#include "fmt/core.h"
+#include "fmt/format.h"
 #include <map>
 #include <memory>
 
@@ -27,14 +29,13 @@ Instruction *AliveDefinitions::GetAlreadyComputedExpression(Instruction *I)
     return nullptr;
 }
 
-static void ProcessBB(std::unique_ptr<BasicBlock> &BB)
+static bool ProcessBB(std::unique_ptr<BasicBlock> &BB)
 {
     std::map<Value *, Value *> Renamables;
     AliveDefinitions AliveDefs;
+    bool IsChanged = false;
 
     auto &InstList = BB->GetInstructions();
-
-
     for (auto &Instr : InstList)
     {
         // Nothing to do with stack allocations or jumps.
@@ -64,14 +65,26 @@ static void ProcessBB(std::unique_ptr<BasicBlock> &BB)
     }
 
     if (!Renamables.empty())
+    {
+        IsChanged = true;
         RenameRegisters(Renamables, InstList);
+    }
+
+    return IsChanged;
 }
 
 
 bool CSEPass::RunOnFunction(Function &F)
 {
+    bool IsChanged = false;
     for (auto &BB : F.GetBasicBlocks())
-        ProcessBB(BB);
+        IsChanged = ProcessBB(BB);
+
+    if (IsChanged)
+    {
+        fmt::print(FMT_STRING("{:*^60}\n\n"), " After CES Pass ");
+        F.Print(true);
+    }
 
     return true;
 }

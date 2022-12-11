@@ -2,6 +2,8 @@
 #include "MiddleEnd/IR/BasicBlock.hpp"
 #include "MiddleEnd/IR/Instruction.hpp"
 #include "MiddleEnd/Transforms/DeadCodeEliminationPass.hpp"
+#include "fmt/core.h"
+#include "fmt/format.h"
 #include <memory>
 #include <set>
 
@@ -56,18 +58,20 @@ void DeleteInstructions(const std::unique_ptr<BasicBlock> &BB,
 bool DeadCodeEliminationPass::RunOnFunction(Function &F)
 {
     std::vector<std::size_t> DeadInstrIndexes;
+    bool IsChanged = false;
 
     for (auto &BB : F.GetBasicBlocks())
     {
         DeadInstrIndexes.clear();
-
-        auto &Instructions = BB->GetInstructions();
-
         FindDeadInstructions(BB, DeadInstrIndexes);
 
         if (!DeadInstrIndexes.empty())
+        {
+            IsChanged = true;
             DeleteInstructions(BB, DeadInstrIndexes);
+        }
 
+        auto &Instructions = BB->GetInstructions();
         for (std::size_t i = 0; i < Instructions.size(); i++)
         {
             // If a basic block terminator instruction has been found And it is a JUMP
@@ -91,12 +95,21 @@ bool DeadCodeEliminationPass::RunOnFunction(Function &F)
                 }
 
                 if (CanDeleteTheRest)
+                {
+                    IsChanged = true;
                     Instructions.erase(Instructions.begin() + i + 1, Instructions.end());
+                }
+
                 break;
             }
         }
     }
 
+    if (IsChanged)
+    {
+        fmt::print(FMT_STRING("{:*^60}\n\n"), " After DCE Pass ");
+        F.Print(true);
+    }
 
     return false;
 }
