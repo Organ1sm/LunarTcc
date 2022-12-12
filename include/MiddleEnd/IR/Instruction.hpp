@@ -73,6 +73,7 @@ class Instruction : public Value
     bool IsTerminator() const { return BasicBlockTerminator; }
     bool IsReturn() const { return InstKind == Ret; }
     bool IsLoad() const { return InstKind == Load; }
+    bool IsStore() const { return InstKind == Store; }
     bool IsCall() const { return InstKind == Call; }
     bool IsJump() const { return InstKind == Jump; }
     bool IsGEP() const { return InstKind == GetElemPtr; }

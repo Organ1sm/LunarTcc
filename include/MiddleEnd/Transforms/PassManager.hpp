@@ -5,7 +5,8 @@ class Module;
 
 enum class Optimization {
     None,
-    CSE,    // common subexpression elimination
+    CSE,        // common subexpression elimination
+    CopyProp,    // Copy Propagation
 };
 
 class PassManager

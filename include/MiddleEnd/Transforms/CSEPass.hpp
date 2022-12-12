@@ -1,3 +1,5 @@
+#pragma once
+
 #include "MiddleEnd/Transforms/FunctionPass.hpp"
 #include <vector>
 
@@ -8,12 +10,12 @@ class Instruction;
 /// Below is a snippet of a part of IR basic block.
 ///
 ///  ...
-/// 	ld	$5<i32>, [$0<i32*>]
-/// 	ld	$6<i32>, [$2<i32*>]
-/// 	add	$7<i32>, $5<i32>, $6<i32>
-/// 	str	[$4<i32*>], $7<i32>
-/// 	add	$11<i32>, $5<i32>, $6<i32>
-/// 	str	[$8<i32*>], $11<i32>
+/// 	loadd	$5<i32>, [$0<i32*>]
+/// 	load	$6<i32>, [$2<i32*>]
+/// 	add	  $7<i32>, $5<i32>, $6<i32>
+/// 	store	[$4<i32*>], $7<i32>
+/// 	add	  $11<i32>, $5<i32>, $6<i32>
+/// 	store	[$8<i32*>], $11<i32>
 ///   ...
 ///
 /// It can bee seen, that the 2nd add instruction using the same source

@@ -98,14 +98,24 @@ int main(int argc, char *argv[])
                 DumpAst           = true;
                 DumpIR            = true;
                 PrintBeforePasses = true;
+                continue;
+            }
+            else if (!option.compare("copy-prop"))
+            {
+                RequestedOptimizations.insert(Optimization::CopyProp);
+                continue;
             }
             else if (!option.compare("cse"))
             {
+                RequestedOptimizations.insert(Optimization::CopyProp);
                 RequestedOptimizations.insert(Optimization::CSE);
+                continue;
             }
             else if (!option.compare("O"))
             {
+                RequestedOptimizations.insert(Optimization::CopyProp);
                 RequestedOptimizations.insert(Optimization::CSE);
+                continue;
             }
             else
             {
