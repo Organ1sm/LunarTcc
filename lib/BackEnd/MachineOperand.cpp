@@ -173,3 +173,34 @@ void MachineOperand::Print(TargetMachine *TM) const
         fmt::print("({})", LLT.ToString() + output);
     }
 }
+
+bool MachineOperand::operator==(const MachineOperand &RHS)
+{
+    if (Type != RHS.Type)
+        return false;
+
+    switch (Type)
+    {
+        case Register:
+            return (IntVal == RHS.IntVal && Virtual == RHS.Virtual &&
+                    RegisterClass == RHS.RegisterClass);
+
+        case IntImmediate: return IntVal == RHS.IntVal;
+        case FPImmediate: return FloatVal == RHS.FloatVal;
+        case MemoryAddress:
+        case StackAccess:
+            return (IntVal == RHS.IntVal && Virtual == RHS.Virtual &&
+                    RegisterClass == RHS.RegisterClass && Offset);
+
+        // TODO:
+        case Paramter: return false;
+
+        case Label:
+        case FunctionName:
+            return std::string(BelongToLabel) == std::string(RHS.BelongToLabel);
+
+        case GlobalSymbol: return GlobalSym == RHS.GlobalSym;
+
+        default: assert(!"Unreachable");
+    }
+}

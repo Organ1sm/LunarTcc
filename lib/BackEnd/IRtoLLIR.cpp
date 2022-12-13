@@ -616,6 +616,9 @@ MachineInstruction IRtoLLIR::HandleGetElemPtrInstruction(GetElemPointerInstructi
 
     MachineInstruction GoalInst;
 
+    // Used for to look up GoalInstr if it was inserted
+    int GoalInstrIdx = -1;
+
     auto SourceID       = GetIDFromValue(I->GetSource());
     const bool IsGlobal = I->GetSource()->IsGlobalVar();
     const bool IsStack  = ParentFunction->IsStackSlot(SourceID);
@@ -668,7 +671,10 @@ MachineInstruction IRtoLLIR::HandleGetElemPtrInstruction(GetElemPointerInstructi
         if (!SourceType.IsStruct())
         {
             if (!GoalInst.IsInvalid())
+            {
                 CurrentBB->InsertInstr(GoalInst);
+                GoalInstrIdx = CurrentBB->GetInstructions().size() - 1;
+            }
 
             auto Multiplier = SourceType.CalcElemSize(0);
 
@@ -725,7 +731,20 @@ MachineInstruction IRtoLLIR::HandleGetElemPtrInstruction(GetElemPointerInstructi
         }
         else    // its a struct and has to determine the offset other way
             assert(!"TODO");
-        // ConstantIndexPart = SourceType.GetElemByteOffset(Index);
+    }
+
+    // Since the result of gep will be Add instruction's destination operand,
+    // therefore the GoalInstr definition must be renamed to make it unique.
+    // This only requires if the GoalInstr is a stack or a global address instruction.
+
+    if (IsGlobal)
+    {
+        if (!IndexIsInReg)
+            GoalInst.GetDefine()->SetReg(
+                ParentFunction->GetNextAvailableVirtualRegister());
+        else
+            CurrentBB->GetInstructions()[GoalInstrIdx].GetDefine()->SetReg(
+                ParentFunction->GetNextAvailableVirtualRegister());
     }
 
     if (!GoalInst.IsInvalid() && !IndexIsInReg)
@@ -739,7 +758,10 @@ MachineInstruction IRtoLLIR::HandleGetElemPtrInstruction(GetElemPointerInstructi
     else
         // Otherwise (stack or global case) the base address is loaded in Dest by
         // the preceding STACK_ADDRESS or GLOBAL_ADDRESS instruction
-        ADD.AddOperand(Dest);
+        // the Def of the GoalInstruction to use the updated destination.
+        ADD.AddOperand(GoalInstrIdx != -1 ?
+                           *CurrentBB->GetInstructions()[GoalInstrIdx].GetDefine() :
+                           *GoalInst.GetDefine());
 
     if (IndexIsInReg)
         ADD.AddVirtualRegister(MULResVReg, TM->GetPointerSize());
