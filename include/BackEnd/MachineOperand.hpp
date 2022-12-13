@@ -73,6 +73,7 @@ class MachineOperand
     void SetGlobalSymbol(const std::string &GS) { GlobalSym = GS; }
 
     unsigned GetSize() const { return LLT.GetBitWidth(); }
+    void SetSize(unsigned s) { LLT.SetBitWidth(s); }
 
     bool IsVirtual() const { return Virtual; }
     void SetVirtual(bool v) { Virtual = v; }
@@ -102,6 +103,8 @@ class MachineOperand
 
     /// To be able to use this class in a set
     bool operator<(const MachineOperand &RHS) const { return IntVal < RHS.IntVal; }
+    bool operator!=(const MachineOperand &RHS) { return !(*this == RHS); }
+    bool operator==(const MachineOperand &RHS);
 
     void Print(TargetMachine *TM) const;
 

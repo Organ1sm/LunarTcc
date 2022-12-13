@@ -49,6 +49,8 @@ void MachineInstruction::UpdateAttributes()
         case Load: AddAttribute(IsLOAD); break;
         case Store: AddAttribute(IsSTORE); break;
         case Ret: AddAttribute(IsRETURN); break;
+        case Jump: AddAttribute(IsJUMP); break;
+        case Call: AddAttribute(IsCALL); break;
 
         default: break;
     }
@@ -168,4 +170,39 @@ void MachineInstruction::Print(TargetMachine *TM) const
     }
 
     fmt::print("\n");
+}
+
+MachineOperand *MachineInstruction::GetDefine()
+{
+    if (Opcode == Ret || Opcode == Jump || Opcode == Branch || IsStore())
+        return nullptr;
+
+    assert(!Operands.empty());
+
+    return GetOperand(0);
+}
+
+MachineOperand *MachineInstruction::GetNthUse(std::size_t N)
+{
+    // Ret only has operands, no define
+    if (Opcode != Ret && Opcode != Jump && Opcode != Branch && !IsStore())
+        N++;    // Others first operand is usually a define, so skip it
+
+    if (Operands.size() <= N)
+        return nullptr;
+
+    return GetOperand(N);
+}
+
+void MachineInstruction::SetNthUse(std::size_t N, MachineOperand *Use)
+{
+    // Ret only has operands, no define
+    if (Opcode != Ret && Opcode != Jump && Opcode != Branch && !IsStore())
+        N++;    // Others first operand is usually a define, so skip it
+
+
+    if (Operands.size() <= N)
+        return;
+
+    ReplaceOperand(*Use, N);
 }

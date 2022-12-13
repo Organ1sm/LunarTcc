@@ -36,6 +36,7 @@ add_executable(
   ../lib/BackEnd/MachineOperand.cpp
   ../lib/BackEnd/MachineFunction.cpp
   ../lib/BackEnd/MachineInstruction.cpp
+  ../lib/BackEnd/LLIROptimizer.cpp
   ../lib/BackEnd/MachineInstructionLegalizer.cpp
   ../lib/BackEnd/PrologueEpilogInsertion.cpp
   ../lib/BackEnd/RegisterAllocator.cpp

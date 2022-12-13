@@ -73,7 +73,9 @@ class MachineInstruction
         IsLOAD     = 1,
         IsSTORE    = 1 << 1,
         IsEXPANDED = 1 << 2,
-        IsRETURN   = 1 << 3
+        IsRETURN   = 1 << 3,
+        IsJUMP     = 1 << 4,
+        IsCALL     = 1 << 5,
     };
 
     MachineInstruction() {}
@@ -107,6 +109,10 @@ class MachineInstruction
     void InsertOperand(std::size_t Index, MachineOperand Operand);
 
     void RemoveMemOperand();
+    MachineOperand *GetDefine();
+
+    MachineOperand *GetNthUse(std::size_t N);
+    void SetNthUse(std::size_t N, MachineOperand *Use);
 
     void AddRegister(uint64_t Reg, unsigned BitWidth = 32);
     void AddVirtualRegister(uint64_t Reg, unsigned BitWidth = 32);
@@ -124,6 +130,11 @@ class MachineInstruction
     bool IsLoadOrStore() const { return IsLoad() || IsStore(); }
     bool IsInvalid() const { return Opcode == InvalidOp; }
     bool IsReturn() const { return OtherAttributes & IsRETURN; }
+    bool IsCall() const { return OtherAttributes & IsCALL; }
+    bool IsJump() const { return OtherAttributes & IsJUMP; }
+    bool IsDefine() { return GetDefine(); }
+
+    bool IsThreeAddrArithmetic() const { return Opcode >= Add && Opcode <= CmpF; }
 
     bool IsAlreadySelected() const { return Opcode < 65536; }
     bool IsAlreadyExpanded() const { return OtherAttributes & IsEXPANDED; }

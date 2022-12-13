@@ -1,3 +1,4 @@
+#include "BackEnd/LLIROptimizer.hpp"
 #include "FrontEnd/AST/ASTPrint.hpp"
 #include "FrontEnd/AST/Semantics.hpp"
 #include "MiddleEnd/Transforms/PassManager.hpp"
@@ -39,6 +40,7 @@ int main(int argc, char *argv[])
     bool PrintBeforePasses    = false;
     bool Wall                 = false;
     bool ShowColor            = true;
+    bool RunLLIROpt           = false;
 
     std::set<Optimization> RequestedOptimizations;
     std::string TargetArch = "aarch64";
@@ -115,6 +117,11 @@ int main(int argc, char *argv[])
             {
                 RequestedOptimizations.insert(Optimization::CopyProp);
                 RequestedOptimizations.insert(Optimization::CSE);
+                continue;
+            }
+            else if (!option.compare("llir-opt"))
+            {
+                RunLLIROpt = true;
                 continue;
             }
             else
@@ -210,9 +217,26 @@ int main(int argc, char *argv[])
 
     if (PrintBeforePasses)
     {
-        fmt::print(FMT_STRING("{:*^60}\n\n"), " Before Legalizer ");
+        if (RunLLIROpt)
+            fmt::print(FMT_STRING("{:*^60}\n\n"), " Before LLIR Optimizer ");
+        else
+            fmt::print(FMT_STRING("{:*^60}\n\n"), " Before Legalizer ");
+
         LLIRModule.Print(TM.get());
         fmt::print("\n");
+    }
+
+    if (RunLLIROpt)
+    {
+        LLIROptimizer LLIROpt(&LLIRModule, TM.get());
+        LLIROpt.Run();
+
+        if (PrintBeforePasses)
+        {
+            fmt::print(FMT_STRING("{:*^60}\n\n"), " Before Legalizer ");
+            LLIRModule.Print(TM.get());
+            fmt::print("\n");
+        }
     }
 
     MachineInstructionLegalizer Legalizer(&LLIRModule, TM.get());
