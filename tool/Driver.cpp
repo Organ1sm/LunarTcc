@@ -1,5 +1,6 @@
 #include "FrontEnd/AST/ASTPrint.hpp"
 #include "FrontEnd/AST/Semantics.hpp"
+#include "MiddleEnd/Transforms/PassManager.hpp"
 #include "Utils/DiagnosticPrinter.hpp"
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include "FrontEnd/AST/AST.hpp"
@@ -39,6 +40,7 @@ int main(int argc, char *argv[])
     bool Wall                 = false;
     bool ShowColor            = true;
 
+    std::set<Optimization> RequestedOptimizations;
     std::string TargetArch = "aarch64";
 
     for (auto i = 1; i < argc; ++i)
@@ -96,6 +98,24 @@ int main(int argc, char *argv[])
                 DumpAst           = true;
                 DumpIR            = true;
                 PrintBeforePasses = true;
+                continue;
+            }
+            else if (!option.compare("copy-prop"))
+            {
+                RequestedOptimizations.insert(Optimization::CopyProp);
+                continue;
+            }
+            else if (!option.compare("cse"))
+            {
+                RequestedOptimizations.insert(Optimization::CopyProp);
+                RequestedOptimizations.insert(Optimization::CSE);
+                continue;
+            }
+            else if (!option.compare("O"))
+            {
+                RequestedOptimizations.insert(Optimization::CopyProp);
+                RequestedOptimizations.insert(Optimization::CSE);
+                continue;
             }
             else
             {
@@ -170,6 +190,19 @@ int main(int argc, char *argv[])
 
     if (DumpIR)
         IRModule.Print(ShowColor);
+
+    const bool Optimize = !RequestedOptimizations.empty();
+    if (Optimize)
+    {
+        PassManager PM(&IRModule, RequestedOptimizations);
+        PM.RunAll();
+    }
+
+    if (DumpIR && Optimize)
+    {
+        fmt::print(FMT_STRING("{:*^60}\n\n"), " After Pass Optimize ");
+        IRModule.Print(ShowColor);
+    }
 
     MachineIRModule LLIRModule;
     IRtoLLIR I2LLIR(IRModule, &LLIRModule, TM.get());

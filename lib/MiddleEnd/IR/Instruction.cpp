@@ -62,7 +62,7 @@ std::string Instruction::AsString(Instruction::InstructionKind IK)
         case Store: return "store";
         case MemCopy: return "memcopy";
         case StackAlloc: return "salloc";
-        case GetELemPtr: return "gep";
+        case GetElemPtr: return "gep";
         case Cmp: return "cmp";
         case CmpF: return "cmpf";
 
@@ -95,8 +95,8 @@ void BinaryInstruction::Print(bool ShowColor) const
     PrintInst(ShowColor);
     fmt::print(Format,
                fmt::arg("Dest", ValueString()),
-               fmt::arg("L", LHS->ValueString()),
-               fmt::arg("R", RHS->ValueString()));
+               fmt::arg("L", LHS ? LHS->ValueString() : "null"),
+               fmt::arg("R", RHS ? RHS->ValueString() : "null"));
 }
 
 void UnaryInstruction::Print(bool ShowColor) const
@@ -192,7 +192,7 @@ void BranchInstruction::Print(bool ShowColor) const
 
     PrintInst(ShowColor);
     fmt::print(Format,
-               fmt::arg("Condition", Condition->ValueString()),
+               fmt::arg("Condition", Condition ? Condition->ValueString() : "null"),
                fmt::arg("TrueTarget", TrueTarget->GetName()),
                fmt::arg("FalseTarget", FTStr));
 }
@@ -231,7 +231,7 @@ void StoreInstruction::Print(bool ShowColor) const
 
     PrintInst(ShowColor);
     fmt::print(Format,
-               fmt::arg("Dest", Destination->ValueString()),
+               fmt::arg("Dest", Destination ? Destination->ValueString() : "null"),
                fmt::arg("Source", Source->ValueString()));
 }
 

@@ -22,6 +22,11 @@ add_executable(
   ../lib/MiddleEnd/IR/Value.cpp
   ../lib/MiddleEnd/IR/Instruction.cpp
   ../lib/MiddleEnd/IR/IRFactory.cpp
+  ../lib/MiddleEnd/Transforms/PassManager.cpp
+  ../lib/MiddleEnd/Transforms/CSEPass.cpp
+  ../lib/MiddleEnd/Transforms/CopyPropagationPass.cpp
+  ../lib/MiddleEnd/Transforms/DeadCodeEliminationPass.cpp
+  ../lib/MiddleEnd/Transforms/Utils.cpp
   ../lib/BackEnd/AssemblyEmitter.cpp
   ../lib/BackEnd/Support.cpp
   ../lib/BackEnd/IRtoLLIR.cpp
