@@ -817,31 +817,28 @@ MachineInstruction IRtoLLIR::HandleReturnInstruction(ReturnInstruction *I)
 
     const bool IsFP = I->GetRetVal()->GetTypeRef().IsFP();
 
-    // insert load to load in the return val to the return registers
+    // insert moves to move in the return val to the return registers
+    // TODO: Maybe make a backward search in the BB for the load instructions
+    // which defines these IDs and change them to the right physical registers
+    // this way the moves does not needed. Although if good enough copy
+    // propagation were implemented, then this would be handled by it
     auto &TargetRetRegs = TM->GetABI()->GetReturnRegisters();
-    if (I->GetRetVal()->GetTypeRef().IsStruct())
+    if (I->GetRetVal()->GetTypeRef().IsStruct() &&
+        !I->GetRetVal()->GetTypeRef().IsPointer())
     {
-        // how many register are used to pass this struct
-        // clang-format off
-        const unsigned StructBitSize = (I->GetRetVal()->GetTypeRef().GetBaseTypeByteSize() * 8);
-        const unsigned MaxRegSize    = TM->GetPointerSize();
-        const unsigned RegsCount     = GetNextAlignedValue(StructBitSize, MaxRegSize) / MaxRegSize;
-        // clang-format on
+        assert(StructByIDToRegMap[I->GetRetVal()->GetID()].size() <= 2);
 
-        auto RetID = GetIDFromValue(I->GetRetVal());
-        for (size_t i = 0; i < RegsCount; i++)
+        std::size_t RetRegCounter = 0;
+        for (auto VReg : StructByIDToRegMap[I->GetRetVal()->GetID()])
         {
-            auto Instr = MachineInstruction(MachineInstruction::Load, CurrentBB);
-            auto Index = i;
+            auto Instr = MachineInstruction(MachineInstruction::Mov, CurrentBB);
 
-            if (IsFP)
-                Index += TM->GetABI()->GetFirstFPRetRegIdx();
-
-            Instr.AddRegister(TargetRetRegs[Index]->GetID(),
-                              TargetRetRegs[Index]->GetBitWidth());
-            Instr.AddStackAccess(RetID, i * (TM->GetPointerSize() / 8));
+            Instr.AddRegister(TargetRetRegs[RetRegCounter]->GetID(),
+                              TargetRetRegs[RetRegCounter]->GetBitWidth());
+            Instr.AddVirtualRegister(VReg, TM->GetPointerSize());
 
             CurrentBB->InsertInstr(Instr);
+            RetRegCounter++;
         }
     }
     else if (I->GetRetVal()->IsConstant())
