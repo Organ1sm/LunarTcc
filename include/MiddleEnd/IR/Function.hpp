@@ -31,7 +31,13 @@ class Function
     BasicBlockList &GetBasicBlocks() { return BasicBlocks; }
     ParameterList &GetParameters() { return Parameters; }
 
-    bool IsReturnTypeVoid() { return ReturnType.IsVoid(); }
+    const IRType &GetReturnType() const { return ReturnType; }
+
+    bool IsReturnTypeVoid() const { return ReturnType.IsVoid(); }
+    bool IsReturnTypeStruct() const
+    {
+        return ReturnType.IsStruct() && !ReturnType.IsPointer();
+    }
 
     std::string &GetIgnorableStructVarName() { return IgnorableStructName; }
     void SetIgnorableStructName(std::string &Name) { IgnorableStructName = Name; }
