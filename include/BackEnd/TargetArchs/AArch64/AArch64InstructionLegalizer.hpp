@@ -10,7 +10,7 @@ namespace AArch64
     class AArch64InstructionLegalizer : public TargetInstructionLegalizer
     {
       public:
-        AArch64InstructionLegalizer(TargetMachine *TM) : TM(TM) {}
+        AArch64InstructionLegalizer(TargetMachine *TM) : TargetInstructionLegalizer(TM) {}
         ~AArch64InstructionLegalizer() override {}
 
         bool Check(MachineInstruction *MI) override;
@@ -23,8 +23,5 @@ namespace AArch64
         bool ExpandDivU(MachineInstruction *MI) override;
         bool ExpandStore(MachineInstruction *MI) override;
         bool ExpandGlobalAddress(MachineInstruction *MI) override;
-
-      private:
-        TargetMachine *TM {nullptr};
     };
 }    // namespace AArch64
