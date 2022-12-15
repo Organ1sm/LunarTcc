@@ -19,50 +19,56 @@ class TargetMachine
     RegisterInfo *GetRegInfo() { return RegInfo.get(); }
     TargetInstructionLegalizer *GetLegalizer() { return Legalizer.get(); }
 
-    // default = 32
-    virtual uint8_t GetPointerSize() { return 32; }
+    virtual uint8_t GetPointerSize() { return ~0; }
+    virtual uint8_t GetIntSize() { return ~0; }
+    virtual uint8_t GetLongSize() { return ~0; }
 
     bool SelectInstruction(MachineInstruction *MI);
 
-    virtual bool SelectAnd(MachineInstruction *MI) { return false; }
-    virtual bool SelectOr(MachineInstruction *MI) { return false; }
-    virtual bool SelectXOR(MachineInstruction *MI) { return false; }
-    virtual bool SelectLSL(MachineInstruction *MI) { return false; }
-    virtual bool SelectLSR(MachineInstruction *MI) { return false; }
-    virtual bool SelectAdd(MachineInstruction *MI) { return false; }
-    virtual bool SelectSub(MachineInstruction *MI) { return false; }
-    virtual bool SelectMul(MachineInstruction *MI) { return false; }
-    virtual bool SelectDiv(MachineInstruction *MI) { return false; }
-    virtual bool SelectDivU(MachineInstruction *MI) { return false; }
-    virtual bool SelectMod(MachineInstruction *MI) { return false; }
-    virtual bool SelectModU(MachineInstruction *MI) { return false; }
-    virtual bool SelectCmp(MachineInstruction *MI) { return false; }
+    virtual bool SelectAnd(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectOr(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectXOR(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectLSL(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectLSR(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectAdd(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectSub(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectMul(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectDiv(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectDivU(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectMod(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectModU(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectCmp(MachineInstruction *MI) { assert(!"Unimplemented"); }
 
-    virtual bool SelectCmpF(MachineInstruction *MI) { return false; }
-    virtual bool SelectAddF(MachineInstruction *MI) { return false; }
-    virtual bool SelectSubF(MachineInstruction *MI) { return false; }
-    virtual bool SelectMulF(MachineInstruction *MI) { return false; }
-    virtual bool SelectDivF(MachineInstruction *MI) { return false; }
+    virtual bool SelectCmpF(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectAddF(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectSubF(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectMulF(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectDivF(MachineInstruction *MI) { assert(!"Unimplemented"); }
 
-    virtual bool SelectIntToFloat(MachineInstruction *MI) { return false; }
-    virtual bool SelectFloatToInt(MachineInstruction *MI) { return false; }
+    virtual bool SelectIntToFloat(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectFloatToInt(MachineInstruction *MI) { assert(!"Unimplemented"); }
 
-    virtual bool SelectSExt(MachineInstruction *MI) { return false; }
-    virtual bool SelectZExt(MachineInstruction *MI) { return false; }
-    virtual bool SelectSExtLoad(MachineInstruction *MI) { return false; }
-    virtual bool SelectZExtLoad(MachineInstruction *MI) { return false; }
-    virtual bool SelectTrunc(MachineInstruction *MI) { return false; }
-    virtual bool SelectMov(MachineInstruction *MI) { return false; }
-    virtual bool SelectMovF(MachineInstruction *MI) { return false; }
-    virtual bool SelectLoadImm(MachineInstruction *MI) { return false; }
-    virtual bool SelectLoad(MachineInstruction *MI) { return false; }
-    virtual bool SelectStore(MachineInstruction *MI) { return false; }
-    virtual bool SelectStackAddress(MachineInstruction *MI) { return false; }
-    virtual bool SelectGlobalAddress(MachineInstruction *MI) { return false; }
-    virtual bool SelectCall(MachineInstruction *MI) { return false; }
-    virtual bool SelectBranch(MachineInstruction *MI) { return false; }
-    virtual bool SelectJump(MachineInstruction *MI) { return false; }
-    virtual bool SelectRet(MachineInstruction *MI) { return false; }
+    virtual bool SelectSExt(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectZExt(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectTrunc(MachineInstruction *MI) { assert(!"Unimplemented"); }
+
+    virtual bool SelectSExtLoad(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectZExtLoad(MachineInstruction *MI) { assert(!"Unimplemented"); }
+
+    virtual bool SelectMov(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectMovF(MachineInstruction *MI) { assert(!"Unimplemented"); }
+
+    virtual bool SelectLoadImm(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectLoad(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectStore(MachineInstruction *MI) { assert(!"Unimplemented"); }
+
+    virtual bool SelectStackAddress(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectGlobalAddress(MachineInstruction *MI) { assert(!"Unimplemented"); }
+
+    virtual bool SelectCall(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectBranch(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectJump(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectRet(MachineInstruction *MI) { assert(!"Unimplemented"); }
 
   protected:
     std::unique_ptr<TargetABI> ABI                        = nullptr;

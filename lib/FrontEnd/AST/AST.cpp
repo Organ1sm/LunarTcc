@@ -91,7 +91,7 @@ Value *Node::IRCodegen(IRFactory *IRF)
     return nullptr;
 }
 
-static IRType GetIRTypeFromVK(Type::VariantKind VK)
+static IRType GetIRTypeFromVK(Type::VariantKind VK, TargetMachine *TM)
 {
     // the standard says this (6.2.5.27)
     // "A pointer to void shall have the same representation and alignment
@@ -107,10 +107,10 @@ static IRType GetIRTypeFromVK(Type::VariantKind VK)
         case Type::UnsignedChar: return IRType(IRType::UInt, 8);
         case Type::Short: return IRType(IRType::SInt, 16);
         case Type::UnsignedShort: return IRType(IRType::UInt, 16);
-        case Type::Int: return IRType(IRType::SInt);
-        case Type::UnsignedInt: return IRType(IRType::UInt);
-        case Type::Long: return IRType(IRType::SInt, 64);
-        case Type::UnsignedLong: return IRType(IRType::UInt, 64);
+        case Type::Int: return IRType(IRType::SInt, TM->GetIntSize());
+        case Type::UnsignedInt: return IRType(IRType::UInt, TM->GetIntSize());
+        case Type::Long: return IRType(IRType::SInt, TM->GetLongSize());
+        case Type::UnsignedLong: return IRType(IRType::UInt, TM->GetLongSize());
         case Type::LongLong: return IRType(IRType::SInt, 64);
         case Type::UnsignedLongLong: return IRType(IRType::UInt, 64);
         case Type::Float: return IRType(IRType::FP, 32);
@@ -120,12 +120,12 @@ static IRType GetIRTypeFromVK(Type::VariantKind VK)
     }
 }
 
-static IRType GetIRTypeFromASTType(Type CT)
+static IRType GetIRTypeFromASTType(Type CT, TargetMachine *TM)
 {
     // TODO: This should be in the semantic check.
     assert((CT.GetTypeVariant() != Type::Void || CT.GetPointerLevel() != 0) &&
            "void type is only allowed to be a pointer");
-    IRType Result = GetIRTypeFromVK(CT.GetTypeVariant());
+    IRType Result = GetIRTypeFromVK(CT.GetTypeVariant(), TM);
 
     if (Result.IsStruct())
     {
@@ -134,7 +134,7 @@ static IRType GetIRTypeFromASTType(Type CT)
 
         // convert each member AST type to IRType (recursive)
         for (auto &MemberASTType : CT.GetTypeList())
-            Result.GetMemberTypes().push_back(GetIRTypeFromASTType(MemberASTType));
+            Result.GetMemberTypes().push_back(GetIRTypeFromASTType(MemberASTType, TM));
     }
 
     if (CT.IsArray())
@@ -612,7 +612,7 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
         case Type::Composite:
             if (FuncType.IsStruct())
             {
-                ReturnType = GetIRTypeFromASTType(FuncType);
+                ReturnType = GetIRTypeFromASTType(FuncType, IRF->GetTargetMachine());
 
                 // incase the struct is too big to pass by value
                 auto ReturnTypeSize = ReturnType.GetByteSize() * 8;
@@ -641,16 +641,30 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
 
         case Type::Char: ReturnType = IRType(IRType::SInt, 8); break;
         case Type::UnsignedChar: ReturnType = IRType(IRType::UInt, 8); break;
+
         case Type::Short: ReturnType = IRType(IRType::SInt, 16); break;
         case Type::UnsignedShort: ReturnType = IRType(IRType::UInt, 16); break;
-        case Type::Int: ReturnType = IRType(IRType::SInt); break;
-        case Type::UnsignedInt: ReturnType = IRType(IRType::UInt); break;
-        case Type::Long: ReturnType = IRType(IRType::SInt, 64); break;
-        case Type::UnsignedLong: ReturnType = IRType(IRType::UInt, 64); break;
+
+        case Type::Int:
+            ReturnType = IRType(IRType::SInt, IRF->GetTargetMachine()->GetIntSize());
+            break;
+        case Type::UnsignedInt:
+            ReturnType = IRType(IRType::UInt, IRF->GetTargetMachine()->GetIntSize());
+            break;
+
+        case Type::Long:
+            ReturnType = IRType(IRType::SInt, IRF->GetTargetMachine()->GetLongSize());
+            break;
+        case Type::UnsignedLong:
+            ReturnType = IRType(IRType::UInt, IRF->GetTargetMachine()->GetLongSize());
+            break;
+
         case Type::LongLong: ReturnType = IRType(IRType::SInt, 64); break;
         case Type::UnsignedLongLong: ReturnType = IRType(IRType::UInt, 64); break;
+
         case Type::Float: ReturnType = IRType(IRType::FP, 32); break;
         case Type::Double: ReturnType = IRType(IRType::FP, 64); break;
+
         case Type::Void: ReturnType = IRType(IRType::None); break;
 
         default: assert(!"Invalid function return type."); break;
@@ -735,7 +749,7 @@ Value *FunctionDeclaration::IRCodegen(IRFactory *IRF)
 
 Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF)
 {
-    auto ParamType     = GetIRTypeFromASTType(Ty);
+    auto ParamType     = GetIRTypeFromASTType(Ty, IRF->GetTargetMachine());
     auto ParamName     = Name.GetString();
     auto ParamTypeSize = ParamType.GetByteSize() * 8;
     auto ABIMaxStructSize =
@@ -761,7 +775,7 @@ Value *FunctionParameterDeclaration::IRCodegen(IRFactory *IRF)
 
 Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
 {
-    auto VarType = GetIRTypeFromASTType(AType);
+    auto VarType = GetIRTypeFromASTType(AType, IRF->GetTargetMachine());
     auto VarName = Name.GetString();
 
     // If an array type, then change type to reflect this.
@@ -901,8 +915,15 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
                                               SA,
                                               IRF->GetConstant((uint64_t)LoopCounter));
 
+                    const auto SizeOfConstExpr =
+                        GetIRTypeFromASTType(ConstantExpr->GetResultType(),
+                                             IRF->GetTargetMachine())
+                            .GetBaseTypeByteSize(IRF->GetTargetMachine()) *
+                        8;
+
                     IRF->CreateStore(
-                        IRF->GetConstant((uint64_t)ConstantExpr->GetUIntValue()),
+                        IRF->GetConstant((uint64_t)ConstantExpr->GetUIntValue(),
+                                         SizeOfConstExpr),
                         GEP);
                 }
 
@@ -977,12 +998,23 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
 
     switch (ReturnType)
     {
-        case Type::Int: ReturnIRType = IRType(IRType::SInt); break;
-        case Type::UnsignedInt: ReturnIRType = IRType(IRType::UInt); break;
-        case Type::Long: ReturnIRType = IRType(IRType::SInt, 64); break;
-        case Type::UnsignedLong: ReturnIRType = IRType(IRType::UInt, 64); break;
+        case Type::Int:
+            ReturnIRType = IRType(IRType::SInt, IRF->GetTargetMachine()->GetIntSize());
+            break;
+        case Type::UnsignedInt:
+            ReturnIRType = IRType(IRType::UInt, IRF->GetTargetMachine()->GetIntSize());
+            break;
+
+        case Type::Long:
+            ReturnIRType = IRType(IRType::SInt, IRF->GetTargetMachine()->GetLongSize());
+            break;
+        case Type::UnsignedLong:
+            ReturnIRType = IRType(IRType::UInt, IRF->GetTargetMachine()->GetLongSize());
+            break;
+
         case Type::LongLong: ReturnIRType = IRType(IRType::SInt, 64); break;
         case Type::UnsignedLongLong: ReturnIRType = IRType(IRType::UInt, 64); break;
+
         case Type::Float: ReturnIRType = IRType(IRType::FP, 32); break;
         case Type::Double: ReturnIRType = IRType(IRType::FP, 64); break;
 
@@ -990,13 +1022,14 @@ Value *CallExpression::IRCodegen(IRFactory *IRF)
             if (!GetResultType().IsPointerType())
                 ReturnIRType = IRType(IRType::None, 0);
             else
-                ReturnIRType = GetIRTypeFromASTType(GetResultType());
+                ReturnIRType =
+                    GetIRTypeFromASTType(GetResultType(), IRF->GetTargetMachine());
 
             break;
         }
 
         case Type::Composite: {
-            ReturnIRType = GetIRTypeFromASTType(GetResultType());
+            ReturnIRType = GetIRTypeFromASTType(GetResultType(), IRF->GetTargetMachine());
 
             // If the return type is a struct, then also make a stack allocation
             // to use that as a temporary, where the result would be copied to after
@@ -1131,8 +1164,8 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
 
     auto SourceTypeVariant = SourceType.GetTypeVariant();
     auto DestTypeVariant   = DestType.GetTypeVariant();
-    auto SourceIRType      = GetIRTypeFromASTType(SourceType);
-    auto DestIRType        = GetIRTypeFromASTType(DestType);
+    auto SourceIRType      = GetIRTypeFromASTType(SourceType, IRF->GetTargetMachine());
+    auto DestIRType        = GetIRTypeFromASTType(DestType, IRF->GetTargetMachine());
 
     assert(SourceType != DestType && "Pointless cast");
 
@@ -1160,9 +1193,7 @@ Value *ImplicitCastExpression::IRCodegen(IRFactory *IRF)
             Val = IRF->GetGlobalVar(ReferredSymbol);
         assert(Val);
 
-        auto GEP = IRF->CreateGEP(GetIRTypeFromASTType(GetResultType()),
-                                  Val,
-                                  IRF->GetConstant((uint64_t)0));
+        auto GEP = IRF->CreateGEP(DestIRType, Val, IRF->GetConstant((uint64_t)0));
 
         return GEP;
     }
@@ -1332,7 +1363,7 @@ Value *StructMemberReference::IRCodegen(IRFactory *IRF)
 Value *StructInitExpression::IRCodegen(IRFactory *IRF)
 {
     /// Allocate stack for struct first
-    auto IRResultType = GetIRTypeFromASTType(this->ResultType);
+    auto IRResultType = GetIRTypeFromASTType(this->ResultType, IRF->GetTargetMachine());
     auto StructTemp   = IRF->CreateSA(ResultType.GetName() + ".temp", IRResultType);
 
     unsigned LoopIndex = 0;
@@ -1357,13 +1388,15 @@ Value *StructInitExpression::IRCodegen(IRFactory *IRF)
 
 Value *IntegerLiteralExpression::IRCodegen(IRFactory *IRF)
 {
-    const auto BW = GetIRTypeFromASTType(GetResultType()).GetBitSize();
+    const auto BW =
+        GetIRTypeFromASTType(GetResultType(), IRF->GetTargetMachine()).GetBitSize();
     return IRF->GetConstant(IntValue, BW);
 }
 
 Value *FloatLiteralExpression::IRCodegen(IRFactory *IRF)
 {
-    const auto BW = GetIRTypeFromASTType(GetResultType()).GetBitSize();
+    const auto BW =
+        GetIRTypeFromASTType(GetResultType(), IRF->GetTargetMachine()).GetBitSize();
     return IRF->GetConstant(FPValue, BW);
 }
 
@@ -1374,7 +1407,7 @@ Value *StringLiteralExpression::IRCodegen(IRFactory *IRF)
 
     std::string Name = fmt::format(".L.str{}", Counter++);
 
-    auto Ty = GetIRTypeFromASTType(ResultType);
+    auto Ty = GetIRTypeFromASTType(ResultType, IRF->GetTargetMachine());
 
     // the pointer to global variable data.
     Ty.IncrementPointerLevel();
@@ -1552,7 +1585,7 @@ Value *UnaryExpression::IRCodegen(IRFactory *IRF)
             else    // else use given type.
                 TypeToBeExamined = SizeOfType.value();
 
-            size = GetIRTypeFromASTType(TypeToBeExamined)
+            size = GetIRTypeFromASTType(TypeToBeExamined, IRF->GetTargetMachine())
                        .GetByteSize(IRF->GetTargetMachine());
 
             assert(size != 0 && "sizeof should not result in 0");

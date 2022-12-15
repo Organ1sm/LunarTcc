@@ -1,5 +1,6 @@
 #pragma once
 
+class TargetMachine;
 class MachineInstruction;
 
 /// Instruction legalization interface for targets to implement if. If a target
@@ -9,7 +10,7 @@ class MachineInstruction;
 class TargetInstructionLegalizer
 {
   public:
-    TargetInstructionLegalizer() {}
+    TargetInstructionLegalizer(TargetMachine *TM) : TM(TM) {}
     virtual ~TargetInstructionLegalizer() {}
 
     /// Predicate to decide which instructions are legal and which not.
@@ -32,4 +33,7 @@ class TargetInstructionLegalizer
     /// Expandin the instruction into other ones which are compute the same
     /// value, but usually takes more instructions.
     bool Expand(MachineInstruction *MI);
+
+  protected:
+    TargetMachine *TM = nullptr;
 };
