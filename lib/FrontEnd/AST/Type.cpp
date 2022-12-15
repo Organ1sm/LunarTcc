@@ -3,6 +3,7 @@
 //
 
 #include "FrontEnd/AST/Type.hpp"
+#include <cassert>
 
 Type::Type(Type::TypeKind tk) : Kind(tk)
 {
@@ -59,6 +60,18 @@ void Type::SetDimensions(std::vector<unsigned> D)
 {
     Kind       = Type::Array;
     Dimensions = std::move(D);
+}
+
+void Type::RemoveFirstDimension()
+{
+    assert(IsArray() && "Must be an Array type to access Dimensions.");
+    assert(!Dimensions.empty());
+
+    Dimensions.erase(Dimensions.begin());
+
+    // TODO: what if its an array of struct objects?
+    if (Dimensions.empty())
+        Kind = Simple;
 }
 
 std::vector<Type> &Type::GetArgTypes() { return ParamList; }

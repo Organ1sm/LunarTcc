@@ -13,6 +13,7 @@
 #include <cassert>
 #include <cstdint>
 #include <memory>
+#include <type_traits>
 
 //=--------------------------------------------------------------------------=//
 //=------------------------- Constructor  -----------------------------------=//
@@ -767,25 +768,48 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
     if (AType.IsArray())
         VarType.SetDimensions(AType.GetDimensions());
 
+    auto HandleExprWithNull = [](auto &&Expr, auto &&Result, auto *ToConvertedExpr) {
+        if (!Result)
+        {
+            auto CastedExpr = dynamic_cast<ImplicitCastExpression *>(Expr.get())
+                                  ->GetCastableExpression()
+                                  .get();
+
+            if (std::is_same_v<decltype(ToConvertedExpr), IntegerLiteralExpression *>)
+                assert(instanceof <IntegerLiteralExpression>(CastedExpr) &&
+                                      "Only support int literals for now.");
+
+            Result = dynamic_cast<decltype(ToConvertedExpr)>(CastedExpr);
+        }
+    };
+
     // If we are in global scope, then its a global variable Declaration
     std::vector<uint64_t> InitList;
     if (IRF->IsGlobalScope())
     {
         // if the initialization is done by an initializer.
-        // FIXME: assuming 2 dimensional init list like
-        // int a[3][2] =  "{{ 1, 2 }, {3, 4}, {5, 6}}",
+        // TODO: assuming 2 dimensional init list like
+        // '''
+        //    int a[3][2] =  "{{ 1, 2 }, {3, 4}, {5, 6}}",
+        // '''
         // add support aribitrary dimension.
         // There code should be more simplicity.
-
-        auto HandleConstantExpr = [](auto &&Expr, auto &&InitList) {
+        auto HandleConstantExpr = [&](auto &&Expr, auto &&InitList) {
             if (auto ConstantExpr = dynamic_cast<IntegerLiteralExpression *>(Expr.get());
-                ConstantExpr != nullptr)
+                ConstantExpr != nullptr ||
+                instanceof
+                <ImplicitCastExpression>(Expr.get()))
             {
+                IntegerLiteralExpression *To {nullptr};
+                HandleExprWithNull(Expr, ConstantExpr, To);
+
                 InitList.push_back(ConstantExpr->GetUIntValue());
             }
         };
+
         auto HandleIntegerLiteralExpr = [&](auto &&Expr, auto &&InitList) {
             HandleConstantExpr(Expr, InitList);
+
             if (auto InitListExpr = dynamic_cast<InitializerListExpression *>(Expr.get());
                 InitListExpr != nullptr)
             {
@@ -800,12 +824,15 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
         };
 
         if (auto InitListExpr = dynamic_cast<InitializerListExpression *>(Init.get());
-            InitListExpr != nullptr)
+            InitListExpr != nullptr ||
+            instanceof
+            <ImplicitCastExpression>(Init.get()))
         {
+            InitializerListExpression *To {nullptr};
+            HandleExprWithNull(Init, InitListExpr, To);
+
             for (auto &Expr : InitListExpr->GetExprList())
-            {
                 HandleIntegerLiteralExpr(Expr, InitList);
-            }
         }
         else
         {
@@ -842,6 +869,7 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
     /// Allocate space on stack and update the local symbol Table.
     auto SA = IRF->CreateSA(VarName, VarType);
 
+    // TODO: clean up there
     if (Init)
     {
         if (auto InitListExpr = dynamic_cast<InitializerListExpression *>(Init.get());
@@ -852,11 +880,16 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
             {
                 if (auto ConstantExpr =
                         dynamic_cast<IntegerLiteralExpression *>(Expr.get());
-                    ConstantExpr != nullptr)
+                    ConstantExpr != nullptr ||
+                    instanceof
+                    <ImplicitCastExpression>(Expr.get()))
                 {
                     // basically storing each entry to the right stack area
                     // TODO: problematic for big arrays, Clang and GCC create a global
                     // array to store there the initial values and use memcopy
+
+                    IntegerLiteralExpression *To {nullptr};
+                    HandleExprWithNull(Expr, ConstantExpr, To);
 
                     auto ResultType = SA->GetType();
                     ResultType.ReduceDimension();
