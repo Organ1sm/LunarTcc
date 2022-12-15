@@ -149,11 +149,18 @@ int main()
             cleanCacheFiles()
             return False
 
-        ret = subprocess.run([context.RunCommand, "test"], capture_output=True)
+        try:
+            ret = subprocess.run([context.RunCommand, "test"], capture_output=True, timeout=5)
+        except subprocess.TimeoutExpired:
+            print(f"Timeout for {context.RunCommand} (5s) expired")
+            cleanCacheFiles()
+            return False;
+
         if len(ret.stdout.decode()):
             print(ret.stdout.decode())
         if ret.returncode != 0 and not context.RunFailTest:
             print(ret.stderr.decode())
+            print("Case '", case, " -> ", expectedResult, "' has failed")
             return False
 
         return True
@@ -175,7 +182,12 @@ def executeTests(fileName, context: Context):
         command.extend(context.ExtraCompileFlags.split())
 
     # run the compile process
-    result = subprocess.run(command, capture_output=True, timeout=10)
+    try:
+        result = subprocess.run(command, capture_output=True, timeout=3)
+    except subprocess.TimeoutExpired:
+        print(f"Timeout for {command} (3s) expired")
+        cleanCacheFiles();
+        return False
 
     # if the compilation failed
     if result.returncode != 0:
