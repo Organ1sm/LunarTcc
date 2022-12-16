@@ -1,4 +1,5 @@
 #include "BackEnd/TargetArchs/RISCV/RISCVRegisterInfo.hpp"
+#include "BackEnd/TargetArchs/RISCV/RISCVInstructionDefinitions.hpp"
 #include <cassert>
 
 using namespace RISCV;
@@ -38,20 +39,59 @@ RISCVRegisterInfo::RISCVRegisterInfo()
     Registers[29] = TargetRegister::Create(T4, 32, "x29", "t4");
     Registers[30] = TargetRegister::Create(T5, 32, "x30", "t5");
     Registers[31] = TargetRegister::Create(T6, 32, "x31", "t6");
+
+    RegClassEnumStrings = {"gpr", "gpr32"};
 }
 
 TargetRegister *RISCVRegisterInfo::GetRegister(unsigned i)
 {
-    assert(i < 32 && "Out of bound access");
+    assert(i < RegisterEnd - 1 && "Out of bound access");
     return &Registers[i];
 }
 
 TargetRegister *RISCVRegisterInfo::GetRegisterByID(unsigned i)
 {
-    assert(i - 1 < 32 && i > 0 && "Out of bound access");
+    assert(i != 0 && i < RegisterEnd && "Out of bound access");
     return &Registers[i - 1];
 }
+
+TargetRegister *RISCVRegisterInfo::GetParentReg(unsigned ID) { return nullptr; }
 
 unsigned RISCVRegisterInfo::GetFrameRegister() { return S0; }
 
 unsigned RISCVRegisterInfo::GetStackRegister() { return SP; }
+
+unsigned RISCVRegisterInfo::GetLinkRegister() { return RA; }
+
+unsigned RISCVRegisterInfo::GetStructPtrRegister() { return A0; }
+
+unsigned RISCVRegisterInfo::GetZeroRegister(const unsigned BitWidth) { return ZERO; }
+
+unsigned RISCVRegisterInfo::GetRegisterClass(const unsigned BitWidth, const bool IsFP)
+{
+    if (IsFP)
+    {
+        assert(!"Unimplemented");
+    }
+    else
+    {
+        if (BitWidth <= 32)
+            return GPR32;
+        else
+            assert(!"Not Supported.");
+    }
+}
+
+
+std::string RISCVRegisterInfo::GetRegClassString(const unsigned RegClass)
+{
+    assert(RegClass < RegClassEnumStrings.size());
+    return RegClassEnumStrings[RegClass];
+}
+
+unsigned RISCVRegisterInfo::GetRegClassFromReg(const unsigned int Reg) { return GPR32; }
+
+unsigned RISCVRegisterInfo::GetRegClassRegsSize(const unsigned int RegClass)
+{
+    return 32;
+}
