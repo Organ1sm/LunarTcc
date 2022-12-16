@@ -64,6 +64,14 @@ class MachineInstruction
         // Combined load and sign/zero extension
         SExtLoad,
         ZExtLoad,
+
+        // Others
+        AddS,     // Add with carry set
+        AddC,     // Add with carry
+        MulHU,    // Mul unsigned return upper part
+        Merge,
+        Split,
+
         InvalidOp,
     };
 
@@ -132,7 +140,9 @@ class MachineInstruction
     bool IsReturn() const { return OtherAttributes & IsRETURN; }
     bool IsCall() const { return OtherAttributes & IsCALL; }
     bool IsJump() const { return OtherAttributes & IsJUMP; }
-    bool IsDefine() { return GetDefine(); }
+    bool IsDefine() { return GetDefine() != nullptr; }
+    bool IsMerge() const { return Opcode == Merge; }
+    bool IsSplit() const { return Opcode == Split; }
 
     bool IsThreeAddrArithmetic() const { return Opcode >= Add && Opcode <= CmpF; }
 

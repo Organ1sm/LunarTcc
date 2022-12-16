@@ -18,6 +18,7 @@ void MachineInstruction::ReplaceOperand(MachineOperand MO, std::size_t Index)
 
 void MachineInstruction::RemoveOperand(std::size_t Index)
 {
+    assert(Index < GetOperandsNumber());
     Operands.erase(Operands.begin() + Index);
 }
 
@@ -32,6 +33,7 @@ void MachineInstruction::RemoveMemOperand()
     {
         if (Operands[i].IsStackAccess() || Operands[i].IsMemory())
         {
+            assert(i < GetOperandsNumber());
             Operands.erase(Operands.begin() + i--);
             return;
         }
@@ -162,6 +164,12 @@ void MachineInstruction::Print(TargetMachine *TM) const
         case OperationCode::Jump: OpcodeStr = "Jump"; break;
         case OperationCode::Branch: OpcodeStr = "Branch"; break;
         case OperationCode::Ret: OpcodeStr = "Ret"; break;
+        case OperationCode::AddS: OpcodeStr = "AddS"; break;
+        case OperationCode::AddC: OpcodeStr = "AddC"; break;
+        case OperationCode::MulHU: OpcodeStr = "MulHU"; break;
+        case OperationCode::Merge: OpcodeStr = "Merge"; break;
+        case OperationCode::Split: OpcodeStr = "Split"; break;
+
         case OperationCode::InvalidOp: OpcodeStr = "InvalidOp"; break;
 
         default: OpcodeStr = TM->GetInstrDefs()->GetInstrString(Opcode); break;
