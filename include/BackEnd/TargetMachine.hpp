@@ -39,6 +39,10 @@ class TargetMachine
     virtual bool SelectModU(MachineInstruction *MI) { assert(!"Unimplemented"); }
     virtual bool SelectCmp(MachineInstruction *MI) { assert(!"Unimplemented"); }
 
+    virtual bool SelectAddS(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectAddC(MachineInstruction *MI) { assert(!"Unimplemented"); }
+    virtual bool SelectMulHU(MachineInstruction *MI) { assert(!"Unimplemented"); }
+
     virtual bool SelectCmpF(MachineInstruction *MI) { assert(!"Unimplemented"); }
     virtual bool SelectAddF(MachineInstruction *MI) { assert(!"Unimplemented"); }
     virtual bool SelectSubF(MachineInstruction *MI) { assert(!"Unimplemented"); }
