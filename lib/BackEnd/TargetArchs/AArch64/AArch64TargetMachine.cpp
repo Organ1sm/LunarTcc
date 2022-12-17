@@ -22,7 +22,7 @@ AArch64TargetMachine::AArch64TargetMachine()
     this->Legalizer = std::make_unique<AArch64InstructionLegalizer>(this);
 }
 
-void ExtendRegSize(MachineOperand *MO, uint8_t BitWidth = 32)
+static void ExtendRegSize(MachineOperand *MO, uint8_t BitWidth = 32)
 {
     if (MO->GetSize() < 32)
         MO->GetTypeRef().SetBitWidth(BitWidth);
