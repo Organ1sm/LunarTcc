@@ -133,9 +133,14 @@ int main()
 
         creatFiles("testMain.c", currentTestMain)
 
+        GCC = context.Arch
+        if context.Arch == "riscv32":
+            GCC += "-unknown-elf-gcc"
+        else:
+            GCC += "-linux-gnu-gcc"
         # compile and link the C file with the generated assembly
         LinkCommand = [
-            context.Arch + "-linux-gnu-gcc",
+            GCC,
             "testMain.c",
             "test.s",
             "-o",
@@ -150,11 +155,12 @@ int main()
             return False
 
         try:
-            ret = subprocess.run([context.RunCommand, "test"], capture_output=True, timeout=5)
+            ret = subprocess.run([context.RunCommand, "test"],
+                                 capture_output=True, timeout=5)
         except subprocess.TimeoutExpired:
             print(f"Timeout for {context.RunCommand} (5s) expired")
             cleanCacheFiles()
-            return False;
+            return False
 
         if len(ret.stdout.decode()):
             print(ret.stdout.decode())
@@ -177,7 +183,7 @@ def executeTests(fileName, context: Context):
         return False
 
     # Create the full command to call the LunarTcc Compiler
-    command = [CompilerPath, fileName]
+    command = [CompilerPath, "-arch=" + context.Arch, fileName]
     if context.ExtraCompileFlags != "":
         command.extend(context.ExtraCompileFlags.split())
 
@@ -186,7 +192,7 @@ def executeTests(fileName, context: Context):
         result = subprocess.run(command, capture_output=True, timeout=3)
     except subprocess.TimeoutExpired:
         print(f"Timeout for {command} (3s) expired")
-        cleanCacheFiles();
+        cleanCacheFiles()
         return False
 
     # if the compilation failed
