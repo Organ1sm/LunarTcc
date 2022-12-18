@@ -48,9 +48,16 @@ void PreAllocateParameters(MachineFunction &Func,
 
         // allocate the parameter to the CurrentParamReg -th param register
         if (ParamLowLevelType.GetBitWidth() <= 32)
-            AllocatedRegisters[ParamID] = CurrentArgReg->GetSubRegs()[0];
+        {
+            if (CurrentArgReg->GetBitWidth() > 32 && !CurrentArgReg->GetSubRegs().empty())
+                AllocatedRegisters[ParamID] = CurrentArgReg->GetSubRegs()[0];
+            else
+                AllocatedRegisters[ParamID] = CurrentArgReg->GetID();
+        }
         else
+        {
             AllocatedRegisters[ParamID] = CurrentArgReg->GetID();
+        }
     }
 }
 
