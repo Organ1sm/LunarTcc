@@ -34,8 +34,8 @@ void MachineInstructionLegalizer::Run()
                         else
                         {
                             Legalizer->Expand(MI);
-                            // fmt::print("{}", MI->GetParent()->GetName());
-                            // MI->Print(TM);
+                            fmt::print("{}", MI->GetParent()->GetName());
+                            MI->Print(TM);
                             assert(!"Expandable instruction should be expandable");
                         }
 
