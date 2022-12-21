@@ -129,20 +129,13 @@ void MachineInstruction::Print(TargetMachine *TM) const
         case OperationCode::Mul: OpcodeStr = "Mul"; break;
         case OperationCode::Div: OpcodeStr = "Div"; break;
         case OperationCode::Mod: OpcodeStr = "Mod"; break;
-        case OperationCode::Cmp:
-            OpcodeStr = fmt::format("Cmp.{}", GetRelationString());
-            break;
-
+        case OperationCode::Cmp: OpcodeStr = "Cmp"; break;
         case OperationCode::ModU: OpcodeStr = "ModU"; break;
         case OperationCode::DivU: OpcodeStr = "DivU"; break;
         case OperationCode::AddF: OpcodeStr = "AddF"; break;
         case OperationCode::SubF: OpcodeStr = "SubF"; break;
         case OperationCode::MulF: OpcodeStr = "MulF"; break;
         case OperationCode::DivF: OpcodeStr = "DivF"; break;
-        case OperationCode::CmpF:
-            OpcodeStr = fmt::format("CmpF.{}", GetRelationString());
-            break;
-
         case OperationCode::SExt: OpcodeStr = "SEXT"; break;
         case OperationCode::ZExt: OpcodeStr = "ZExt"; break;
         case OperationCode::ZExtLoad: OpcodeStr = "ZExtLoad"; break;
@@ -212,19 +205,4 @@ void MachineInstruction::SetNthUse(std::size_t N, MachineOperand *Use)
         return;
 
     ReplaceOperand(*Use, N);
-}
-
-const char *MachineInstruction::GetRelationString() const
-{
-    switch (Attributes)
-    {
-        case EQ: return "EQ";
-        case NE: return "NE";
-        case LT: return "LT";
-        case GT: return "GT";
-        case LE: return "LE";
-        case GE: return "GE";
-
-        default: assert(!"Should not be invalid");
-    }
 }

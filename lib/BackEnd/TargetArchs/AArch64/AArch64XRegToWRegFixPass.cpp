@@ -5,7 +5,6 @@
 #include "BackEnd/TargetMachine.hpp"
 #include "BackEnd/TargetArchs/AArch64/AArch64XRegToWRegFixPass.hpp"
 #include "BackEnd/TargetArchs/AArch64/AArch64InstructionDefinitions.hpp"
-#include <cassert>
 
 
 void AArch64XRegToWRegFixPass::Run()
@@ -22,8 +21,6 @@ void AArch64XRegToWRegFixPass::Run()
                     Instr.GetOperand(1)->GetSize() == 64)
                 {
                     auto SrcXReg = Instr.GetOperand(1)->GetReg();
-                    assert(!TM->GetRegInfo()->GetRegisterByID(SrcXReg)->GetSubRegs().empty());
-
                     auto WReg =
                         TM->GetRegInfo()->GetRegisterByID(SrcXReg)->GetSubRegs()[0];
 

@@ -142,8 +142,6 @@ class MachineInstruction
     /// flag the MachineInstruction as expanded, so the legalizer can ignore it
     void FlagAsExpanded() { OtherAttributes |= IsEXPANDED; }
 
-    const char *GetRelationString() const;
-
     void Print(TargetMachine *TM) const;
 
   private:
