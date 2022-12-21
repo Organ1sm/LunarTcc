@@ -77,14 +77,10 @@ class IRtoLLIR
     /// The Function to which the currently processed basic block belongs
     MachineFunction *ParentFunction;
 
-    /// to keep track in which registers the struct is currently living
     std::map<std::string, std::vector<unsigned>> StructToRegMap;
 
     /// to keep track in which registers the struct is currently living
     std::map<unsigned, std::vector<unsigned>> StructByIDToRegMap;
-
-    /// to keep track in which registers the parameter is currently in
-    std::map<unsigned, std::vector<unsigned>> ParamByIDToRegMap;
 
     /// Keep track what IR virtual registers were mapped to what LLIR virtual
     /// registers. This needed since while translating from IR to LLIR occasionally
@@ -93,5 +89,5 @@ class IRtoLLIR
 
     /// To keep track which stack slots are used for spilling the return values
     /// of functions calls.
-    std::map<unsigned, unsigned> SpilledReturnValuesIDToStackID;
+    std::set<unsigned> SpilledReturnValuesStackIDs;
 };

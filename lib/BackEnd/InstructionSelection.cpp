@@ -2,7 +2,6 @@
 #include "BackEnd/MachineIRModule.hpp"
 #include "BackEnd/MachineBasicBlock.hpp"
 #include "BackEnd/TargetMachine.hpp"
-#include <cassert>
 
 void InstructionSelection::InstrSelect()
 {
@@ -14,11 +13,7 @@ void InstructionSelection::InstrSelect()
             {
                 // Skip selection if already selected
                 if (!MBB.GetInstructions()[i].IsAlreadySelected())
-                {
                     TM->SelectInstruction(&MBB.GetInstructions()[i]);
-
-                    assert(MBB.GetInstructions()[i].IsAlreadySelected());
-                }
             }
         }
     }
