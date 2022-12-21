@@ -110,7 +110,7 @@ class Parser
     ExprPtr ParseUnaryExpression();
     ExprPtr ParseBinaryExpression();
     ExprPtr ParsePrimaryExpression();
-    ExprPtr ParseInitializerListExpression(const Type &ExpectedType);
+    ExprPtr ParseInitializerListExpression();
     ExprPtr ParseIdentifierExpression();
     ExprPtr ParseConstantExpression();
     ExprPtr ParseTernaryExpression(ExprPtr Condition);

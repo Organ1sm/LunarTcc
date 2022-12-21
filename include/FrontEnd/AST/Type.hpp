@@ -64,8 +64,6 @@ class Type
     std::vector<unsigned> &GetDimensions();
     void SetDimensions(std::vector<unsigned> D);
 
-    void RemoveFirstDimension();
-
     void IncrementPointerLevel() { PointerLevel++; }
     void DecrementPointerLevel();
 
