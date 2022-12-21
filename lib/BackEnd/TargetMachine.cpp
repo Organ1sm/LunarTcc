@@ -1,5 +1,4 @@
 #include <cassert>
-#include "BackEnd/MachineInstruction.hpp"
 #include "BackEnd/TargetMachine.hpp"
 
 bool TargetMachine::SelectInstruction(MachineInstruction *MI)
@@ -21,10 +20,6 @@ bool TargetMachine::SelectInstruction(MachineInstruction *MI)
         case MachineInstruction::Mod: return SelectMod(MI);
         case MachineInstruction::DivU: return SelectDivU(MI);
         case MachineInstruction::ModU: return SelectModU(MI);
-
-        case MachineInstruction::AddS: return SelectAddS(MI);
-        case MachineInstruction::AddC: return SelectAddC(MI);
-        case MachineInstruction::MulHU: return SelectMulHU(MI);
 
         case MachineInstruction::CmpF: return SelectCmpF(MI);
         case MachineInstruction::AddF: return SelectAddF(MI);
