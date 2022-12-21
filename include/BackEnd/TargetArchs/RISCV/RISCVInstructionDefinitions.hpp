@@ -7,58 +7,18 @@
 namespace RISCV
 {
     enum Opcodes : unsigned {
-        LB,
-        LH,
-        LW,
-        LBU,
-        LHU,
-        SB,
-        SH,
-        SW,
-        SLL,
-        SLLI,
-        SRL,
-        SRLI,
-        SRA,
-        SRAI,
         ADD,
         ADDI,
-        SUB,
-        LUI,
-        AUIPC,
-        XOR,
-        XORI,
-        OR,
-        ORI,
-        AND,
-        ANDI,
+        REM,
         SLT,
         SLTI,
-        SLTU,
-        SLTIU,
+        LW,
+        SW,
         BEQ,
-        BNE,
         BLT,
-        BGE,
-        BLTU,
-        BGEU,
-        MUL,
-        MULH,
-        MULHSU,
-        MULHU,
-        DIV,
-        DIVU,
-        REM,
-        REMU,
-        NOT,
-        MV,
-        SEQZ,
-        SNEZ,
         BNEZ,
         J,
-        CALL,
         RET,
-        LI,
     };
 
     enum OperandTypes : unsigned {
@@ -78,14 +38,11 @@ namespace RISCV
         using IRToTargetInstrMap = std::map<unsigned, TargetInstruction>;
 
       public:
-        RISCVInstructionDefinitions();
+        RISCVInstructionDefinitions() {}
         ~RISCVInstructionDefinitions() override {}
-
         TargetInstruction *GetTargetInstr(unsigned Opcode) override;
-        std::string GetInstrString(unsigned index) override;
 
       private:
         static IRToTargetInstrMap Instructions;
-        std::vector<std::string> InstrEnumStrings;
     };
 }    // namespace RISCV
