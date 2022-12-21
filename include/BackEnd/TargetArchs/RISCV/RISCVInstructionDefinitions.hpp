@@ -23,13 +23,9 @@ namespace RISCV
 
     enum OperandTypes : unsigned {
         GPR,
-        GPR32,
         SIMM12,
-        UIMM12,
         SIMM13_LSB0,
-        UIMM20,
-        SIMM21_LSB0,
-        UIMM32,
+        SIMM21_LSB0
     };
 
 
