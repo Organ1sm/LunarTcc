@@ -52,7 +52,6 @@ add_executable(
   ../lib/BackEnd/TargetArchs/AArch64/AArch64InstructionLegalizer.cpp
   ../lib/BackEnd/TargetArchs/AArch64/AArch64InstructionDefinitions.cpp
   ../lib/BackEnd/TargetArchs/RISCV/RISCVRegisterInfo.cpp
-  ../lib/BackEnd/TargetArchs/RISCV/RISCVInstructionLegalizer.cpp
   ../lib/BackEnd/TargetArchs/RISCV/RISCVInstructionDefinitions.cpp
   ../lib/BackEnd/TargetArchs/RISCV/RISCVTargetABI.cpp
   ../lib/BackEnd/TargetArchs/RISCV/RISCVTargetMachine.cpp

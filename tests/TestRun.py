@@ -10,7 +10,6 @@ WorkDir = os.path.dirname(__file__)
 CompilerPath = os.path.dirname(WorkDir) + "/bin/LunarTcc"
 console = Console()
 SaveTemps = False
-DefaultArch = ""
 testSet = []
 failedTests = []
 testsCount = 0
@@ -54,10 +53,7 @@ def checkFile(fileName):
         for line in file:
             m = re.search(r"(?:/{2}|#) *RUN: (.*)", line)
             if m:
-                if len(DefaultArch) == 0:
-                    context.Arch = m.group(1).lower()
-                else:
-                    context.Arch = "riscv32"
+                context.Arch = m.group(1).lower()
                 context.RunCommand = "qemu-" + context.Arch
                 context.RunTest = True
                 continue
@@ -112,11 +108,11 @@ def linkFiles(context: Context):
     for funcDecl in context.FunctionDeclarations:
         CMainTemplate += funcDecl + ";\n"
 
-    printLine = r'printf("\nExpected: %lld, Actual: %lld\n", @, res);'
+    printLine = r'printf("\nExpected: %d, Actual: %d\n", @, res);'
     MainFunction = """
 int main()
 {
-    long long res = $;
+    int res = $;
 
     if(res != @)
     {
@@ -143,16 +139,6 @@ int main()
         else:
             GCC += "-linux-gnu-gcc"
         # compile and link the C file with the generated assembly
-        GCC = ""
-        if (context.Arch == "aarch64"):
-            GCC = context.Arch + "-linux-gnu-gcc"
-        elif context.Arch == "riscv32":
-            GCC = "riscv32-unknown-elf-gcc"
-        else:
-            print("Unkown architecture")
-            cleanCacheFiles()
-            return False
-
         LinkCommand = [
             GCC,
             "testMain.c",
@@ -261,14 +247,10 @@ def executeTests(fileName, context: Context):
 
 
 def HandleCommandLineArgs():
-    global DefaultArch
     for i, arg in enumerate(sys.argv):
         if i == 0:
             continue
-        elif arg == "-arch=riscv-32":
-            DefaultArch = "riscv32"
-        else:
-            testSet.append(arg)
+        testSet.append(arg)
 
 
 HandleCommandLineArgs()
