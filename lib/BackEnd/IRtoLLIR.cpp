@@ -9,6 +9,7 @@
 #include "BackEnd/IRtoLLIR.hpp"
 #include "BackEnd/LowLevelType.hpp"
 #include "BackEnd/Support.hpp"
+#include "BackEnd/TargetArchs/RISCV/RISCVTargetMachine.hpp"
 #include "BackEnd/TargetMachine.hpp"
 #include "BackEnd/TargetInstructionLegalizer.hpp"
 #include "FrontEnd/AST/AST.hpp"
@@ -894,14 +895,21 @@ MachineInstruction IRtoLLIR::HandleReturnInstruction(ReturnInstruction *I)
                 LoadImm.AddRegister(RetRegs[RetRegIdx]->GetID(),
                                     RetRegs[RetRegIdx]->GetBitWidth());
             }
-            else if (I->GetRetVal()->GetTypeRef().GetBitSize() <= TM->GetPointerSize() &&
-                     !RetRegs[RetRegIdx]->GetSubRegs().empty())
+            else if (I->GetRetVal()->GetTypeRef().GetBitSize() <= TM->GetPointerSize())
             {
-                LoadImm.AddRegister(
-                    RetRegs[RetRegIdx]->GetSubRegs()[0],
-                    TM->GetRegInfo()
-                        ->GetRegisterByID(RetRegs[RetRegIdx]->GetSubRegs()[0])
-                        ->GetBitWidth());
+                if (!RetRegs[RetRegIdx]->GetSubRegs().empty())
+                {
+                    LoadImm.AddRegister(
+                        RetRegs[RetRegIdx]->GetSubRegs()[0],
+                        TM->GetRegInfo()
+                            ->GetRegisterByID(RetRegs[RetRegIdx]->GetSubRegs()[0])
+                            ->GetBitWidth());
+                }
+                else if (dynamic_cast<RISCV::RISCVTargetMachine *>(TM))
+                {
+                    LoadImm.AddRegister(RetRegs[RetRegIdx]->GetID(),
+                                        RetRegs[RetRegIdx]->GetBitWidth());
+                }
             }
             else
             {
