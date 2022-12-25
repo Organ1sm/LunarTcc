@@ -799,7 +799,7 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
 
     // If we are in global scope, then its a global variable Declaration
     std::vector<uint64_t> InitList;
-    if (IRF->IsGlobalScope())
+    if (IRF->IsGlobalScope() || AType.IsArray())
     {
         // if the initialization is done by an initializer.
         // TODO: assuming 2 dimensional init list like
@@ -866,7 +866,31 @@ Value *VariableDeclaration::IRCodegen(IRFactory *IRF)
             }
         }
 
-        return IRF->CreateGlobalVar(VarName, VarType, std::move(InitList));
+        if (IRF->IsGlobalScope())
+        {
+            return IRF->CreateGlobalVar(VarName, VarType, std::move(InitList));
+        }
+        else if (Init)
+        {
+            assert(AType.IsArray());
+
+            auto InitializerName = "__const." + IRF->GetCurrentFunction()->GetName() +
+                                   "." + Name.GetString();
+            auto InitializerGV =
+                IRF->CreateGlobalVar(InitializerName, VarType, std::move(InitList));
+
+            IRF->AddGlobalVariable(InitializerGV);
+
+            auto SA = IRF->CreateSA(VarName, VarType);
+
+            IRF->CreateMemCopy(
+                SA,
+                InitializerGV,
+                InitializerGV->GetTypeRef().GetByteSize(IRF->GetTargetMachine()));
+
+            IRF->AddToSymbolTable(VarName, SA);
+            return SA;
+        }
     }
 
     if (IRF->GetCurrentFunction()->GetIgnorableStructVarName() == VarName)
