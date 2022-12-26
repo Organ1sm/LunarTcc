@@ -8,6 +8,7 @@ AArch64TargetABI::AArch64TargetABI(RegisterInfo *RI)
 {
     this->StackAlignment = 16;
     this->MaxStructSize  = 128;
+    this->CLib           = true;
 
     /////// ----- Argument Registers. ----- ///////
     // x0 - x7 regs

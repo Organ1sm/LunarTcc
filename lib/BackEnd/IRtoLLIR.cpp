@@ -47,7 +47,8 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, bool IsDef)
         // then load the value in first into a VReg and return this VReg as LLIR VReg.
         // TODO: Investigate if this is the appropriate place and way to do this
         if (ParentFunction->IsStackSlot(Val->GetID()) && !IsDef &&
-            IRVregToLLIRVreg.count(Val->GetID()) == 0)
+            IRVregToLLIRVreg.count(Val->GetID()) == 0 &&
+            SpilledReturnValuesIDToStackID.count(Val->GetID()) == 0)
         {
             auto Instr = MachineInstruction(MachineInstruction::Load, CurrentBB);
 
@@ -60,7 +61,8 @@ MachineOperand IRtoLLIR::GetMachineOperandFromValue(Value *Val, bool IsDef)
         // If the IR VReg is mapped already to an LLIR VReg then use that
         else if (IRVregToLLIRVreg.count(Val->GetID()) > 0)
         {
-            if (!IsDef && ParentFunction->IsStackSlot(IRVregToLLIRVreg[Val->GetID()]))
+            if (!IsDef && ParentFunction->IsStackSlot(IRVregToLLIRVreg[Val->GetID()]) &&
+                SpilledReturnValuesIDToStackID.count(IRVregToLLIRVreg[Val->GetID()]) == 0)
             {
                 auto Instr = MachineInstruction(MachineInstruction::Load, CurrentBB);
                 NextVReg   = ParentFunction->GetNextAvailableVirtualRegister();
@@ -154,6 +156,42 @@ unsigned IRtoLLIR::GetIDFromValue(Value *Val)
                        Val->GetID();
 
     return Ret;
+}
+
+MachineOperand IRtoLLIR::MaterializeAddress(Value *Val)
+{
+    auto ValID          = GetIDFromValue(Val);
+    const bool IsGlobal = Val->IsGlobalVar();
+    const bool IsStack  = ParentFunction->IsStackSlot(ValID);
+    const bool IsReg    = !IsGlobal && !IsStack;
+
+    if (!IsReg)
+    {
+        MachineInstruction Addr;
+
+        if (IsGlobal)
+            Addr = MachineInstruction(MachineInstruction::GlobalAddress, CurrentBB);
+        else
+            Addr = MachineInstruction(MachineInstruction::StackAddress, CurrentBB);
+
+        auto AddrDest = MachineOperand::CreateVirtualRegister(
+            ParentFunction->GetNextAvailableVirtualRegister(),
+            TM->GetPointerSize());
+
+        Addr.AddOperand(AddrDest);
+
+        if (IsGlobal)
+            Addr.AddGlobalSymbol(((GlobalVariable *)Val)->GetName());
+        else
+            Addr.AddStackAccess(ValID);
+
+        CurrentBB->InsertInstr(Addr);
+        return AddrDest;
+    }
+    else
+    {
+        return GetMachineOperandFromValue(Val, CurrentBB);
+    }
 }
 
 MachineInstruction IRtoLLIR::HandleBinaryInstruction(BinaryInstruction *I)
@@ -827,7 +865,7 @@ MachineInstruction IRtoLLIR::HandleCompareInstruction(CompareInstruction *I)
     auto Operation = I->GetInstructionKind();
     auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
 
-    auto Result      = GetMachineOperandFromValue((Value *)I);
+    auto Result      = GetMachineOperandFromValue((Value *)I, true);
     auto FirstSrcOp  = GetMachineOperandFromValue(I->GetLHS());
     auto SecondSrcOp = GetMachineOperandFromValue(I->GetRHS());
 
@@ -1015,6 +1053,67 @@ MachineInstruction IRtoLLIR::HandleMemoryCopyInstruction(MemoryCopyInstruction *
     // lower this into load and store pairs if used with structs lower then
     // a certain size (for now be it the size which can be passed by value)
     // otherwise create a call maybe to an intrinsic memcopy function
+
+    // If the copy size is greater then 32 byte call memcpy
+    if (I->GetSize() >= 32 && TM->IsMemcopySupported())
+    {
+        ParentFunction->SetToCaller();
+
+        ResultMI.SetOpcode(MachineInstruction::Call);
+        auto &TargetArgRegs = TM->GetABI()->GetArgumentRegisters();
+
+        MachineOperand Dest = MaterializeAddress(I->GetDestination());
+
+        auto Param1 = MachineInstruction(MachineInstruction::Mov, CurrentBB);
+
+        Param1.AddRegister(TargetArgRegs[0]->GetID(), TargetArgRegs[0]->GetBitWidth());
+
+        Param1.AddOperand(Dest);
+        CurrentBB->InsertInstr(Param1);
+
+        MachineOperand Src = MaterializeAddress(I->GetSource());
+
+        auto Param2 = MachineInstruction(MachineInstruction::Mov, CurrentBB);
+
+        Param2.AddRegister(TargetArgRegs[1]->GetID(), TargetArgRegs[1]->GetBitWidth());
+
+        Param2.AddOperand(Src);
+        CurrentBB->InsertInstr(Param2);
+
+        auto Param3 = MachineInstruction(MachineInstruction::Mov, CurrentBB);
+
+        // TODO: request a 32 bit width parameter register in a target independent
+        // way
+        Param3.AddRegister(TargetArgRegs[2]->GetSubRegs()[0],
+                           TargetArgRegs[2]->GetBitWidth());
+
+        Param3.AddImmediate(I->GetSize());
+        CurrentBB->InsertInstr(Param3);
+
+        ResultMI.AddFunctionName("memcpy");
+        return ResultMI;
+    }
+
+    // Else do not emit memcpy, but achieve it by load/store pairs
+    MachineOperand Src;
+    MachineOperand Dest;
+
+    // If it was not mapped yet then it must mean it was not converted to MO yet
+    // (TODO: at least I think so, well see...)
+    if (IRVregToLLIRVreg.count(I->GetSource()->GetID()) == 0)
+        Src = MaterializeAddress(I->GetSource());
+
+    if (IRVregToLLIRVreg.count(I->GetDestination()->GetID()) == 0)
+        Dest = MaterializeAddress(I->GetDestination());
+
+    auto SrcId  = IRVregToLLIRVreg.count(I->GetSource()->GetID()) == 0 ?
+                      Src.GetReg() :
+                      GetIDFromValue(I->GetSource());
+    auto DestId = IRVregToLLIRVreg.count(I->GetDestination()->GetID()) == 0 ?
+                      Dest.GetReg() :
+                      GetIDFromValue(I->GetDestination());
+
+
     for (size_t i = 0; i < (I->GetSize() / /* TODO: use alignment here */ 4); i++)
     {
         auto Load    = MachineInstruction(MachineInstruction::Load, CurrentBB);

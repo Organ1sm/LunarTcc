@@ -37,6 +37,8 @@ class TargetABI
     std::size_t GetFirstFPArgRegIdx() const { return FirstFPArgRegIdx; }
     std::size_t GetFirstFPRetRegIdx() const { return FirstFPRetRegIdx; }
 
+    bool HasCLib() const { return CLib; }
+
   protected:
     unsigned StackAlignment = ~0;
     unsigned MaxStructSize  = ~0;
@@ -46,6 +48,8 @@ class TargetABI
     /// Then fill floating point values with the floating point registers.
     unsigned FirstFPArgRegIdx = 0;
     unsigned FirstFPRetRegIdx = 0;
+
+    bool CLib = false;
 
     RegList ArgumentRegisters;
     RegList CalleeSavedRegisters;

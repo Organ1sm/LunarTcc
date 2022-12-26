@@ -23,6 +23,8 @@ class TargetMachine
     virtual uint8_t GetIntSize() { return ~0; }
     virtual uint8_t GetLongSize() { return ~0; }
 
+    bool IsMemcopySupported() const { return ABI->HasCLib(); }
+
     bool SelectInstruction(MachineInstruction *MI);
 
     virtual bool SelectAnd(MachineInstruction *MI) { assert(!"Unimplemented"); }

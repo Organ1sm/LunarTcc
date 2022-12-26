@@ -58,6 +58,7 @@ class IRtoLLIR
     MachineInstruction HandleBranchInstruction(BranchInstruction *I,
                                                std::vector<MachineBasicBlock> &BBs);
 
+  private:
     /// return the ID of the Value, but checks if it was mapped and if so then
     /// returning the mapped value
     unsigned GetIDFromValue(Value *Val);
@@ -65,6 +66,15 @@ class IRtoLLIR
     void HandleFunctionParams(Function &F, MachineFunction *Func);
     MachineInstruction ConvertToMachineInstr(Instruction *Instr,
                                              std::vector<MachineBasicBlock> &BBs);
+
+    /// Checks whether the Val is
+    ///     - on the stack
+    ///     - a global value
+    ///     - in a register
+    /// If it is on the stack or a global value then a stack-address or
+    /// global-address will be emitted to materialize the address. Otherwise
+    /// GetMachineOperandFromValue is called.
+    MachineOperand MaterializeAddress(Value *Val);
 
   private:
     Module &IRM;
