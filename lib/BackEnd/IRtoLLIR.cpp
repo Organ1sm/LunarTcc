@@ -1047,9 +1047,6 @@ MachineInstruction IRtoLLIR::HandleMemoryCopyInstruction(MemoryCopyInstruction *
     auto Operation = I->GetInstructionKind();
     auto ResultMI  = MachineInstruction((unsigned)Operation + (1 << 16), CurrentBB);
 
-    auto SrcID  = GetIDFromValue(I->GetSource());
-    auto DestID = GetIDFromValue(I->GetDestination());
-
     // lower this into load and store pairs if used with structs lower then
     // a certain size (for now be it the size which can be passed by value)
     // otherwise create a call maybe to an intrinsic memcopy function
@@ -1106,10 +1103,10 @@ MachineInstruction IRtoLLIR::HandleMemoryCopyInstruction(MemoryCopyInstruction *
     if (IRVregToLLIRVreg.count(I->GetDestination()->GetID()) == 0)
         Dest = MaterializeAddress(I->GetDestination());
 
-    auto SrcId  = IRVregToLLIRVreg.count(I->GetSource()->GetID()) == 0 ?
+    auto SrcID  = IRVregToLLIRVreg.count(I->GetSource()->GetID()) == 0 ?
                       Src.GetReg() :
                       GetIDFromValue(I->GetSource());
-    auto DestId = IRVregToLLIRVreg.count(I->GetDestination()->GetID()) == 0 ?
+    auto DestID = IRVregToLLIRVreg.count(I->GetDestination()->GetID()) == 0 ?
                       Dest.GetReg() :
                       GetIDFromValue(I->GetDestination());
 
@@ -1130,7 +1127,7 @@ MachineInstruction IRtoLLIR::HandleMemoryCopyInstruction(MemoryCopyInstruction *
 
         auto Store = MachineInstruction(MachineInstruction::Store, CurrentBB);
 
-        if (ParentFunction->IsStackSlot(I->GetDestination()->GetID()))
+        if (ParentFunction->IsStackSlot(DestID))
         {
             Store.AddStackAccess(DestID, i * 4);    /// TODO: use alignment here
         }
