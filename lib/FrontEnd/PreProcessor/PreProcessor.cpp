@@ -111,7 +111,7 @@ void PreProcessor::ParseDirective(std::string &Line, std::size_t LineIdx)
             Path.remove_filename();
 
             FilePath = Path;
-            FilePath += "includes/";
+            FilePath += "runtimes/";
         }
 
         std::vector<std::string> FileContent;

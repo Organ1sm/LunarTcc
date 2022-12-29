@@ -1,7 +1,5 @@
-#include "BackEnd/LLIROptimizer.hpp"
 #include "FrontEnd/AST/ASTPrint.hpp"
 #include "FrontEnd/AST/Semantics.hpp"
-#include "MiddleEnd/Transforms/PassManager.hpp"
 #include "Utils/DiagnosticPrinter.hpp"
 #include "FrontEnd/Lexer/Lexer.hpp"
 #include "FrontEnd/AST/AST.hpp"
@@ -10,6 +8,7 @@
 #include "MiddleEnd/IR/Function.hpp"
 #include "MiddleEnd/IR/IRFactory.hpp"
 #include "MiddleEnd/IR/Module.hpp"
+#include "MiddleEnd/Transforms/PassManager.hpp"
 #include "BackEnd/IRtoLLIR.hpp"
 #include "BackEnd/TargetMachine.hpp"
 #include "BackEnd/InstructionSelection.hpp"
@@ -20,6 +19,7 @@
 #include "BackEnd/Support.hpp"
 #include "BackEnd/RegisterClassSelection.hpp"
 #include "BackEnd/AssemblyEmitter.hpp"
+#include "BackEnd/LLIROptimizer.hpp"
 #include "BackEnd/TargetArchs/AArch64/AArch64XRegToWRegFixPass.hpp"
 #include "BackEnd/TargetArchs/AArch64/AArch64TargetMachine.hpp"
 #include "BackEnd/TargetArchs/RISCV/RISCVTargetMachine.hpp"
@@ -28,9 +28,33 @@
 #include "fmt/format.h"
 #include <fmt/color.h>
 
+
+static void Usage()
+{
+    constexpr auto s = R"LCC(Usage: LunarTCC [options] [files]
+    General Options:
+        -Wall               Enable whole warnings
+        -no-color           Disable colored ir 
+        -O                  Enable optimize pass
+
+    Dump Options: 
+        -E                  Print PreProcessed Files
+        -dump-tokens        Print tokens
+        -dump-ast           Print Abstract Syntax Tree
+        -dump-ir            Print IR
+        -P                  Print the processing status of each stage of the backend
+
+    )LCC";
+
+    std::cout << s << std::endl;
+}
+
 // TODO: finish a better driver.
 int main(int argc, char *argv[])
 {
+    if (argc < 2)
+        Usage();
+
     std::string FilePath = "../tests/test.c";
 
     bool DumpTokens           = false;
@@ -79,7 +103,7 @@ int main(int argc, char *argv[])
                 TargetArch = std::string(&argv[i][6]);
                 continue;
             }
-            else if (!option.compare("print-before-passes"))
+            else if (!option.compare("P"))
             {
                 PrintBeforePasses = true;
                 continue;
