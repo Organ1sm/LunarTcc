@@ -28,6 +28,19 @@
 #include "fmt/format.h"
 #include <fmt/color.h>
 
+static std::string FilePath;
+
+static bool DumpTokens           = false;
+static bool DumpAst              = false;
+static bool DumpIR               = false;
+static bool DumpPreProcessedFile = false;
+static bool PrintBeforePasses    = false;
+static bool Wall                 = false;
+static bool ShowColor            = true;
+static bool RunLLIROpt           = false;
+
+static std::set<Optimization> RequestedOptimizations;
+static std::string TargetArch = "aarch64";
 
 static void Usage()
 {
@@ -47,37 +60,20 @@ static void Usage()
     )LCC";
 
     std::cout << s << std::endl;
+    exit(1);
 }
 
-// TODO: finish a better driver.
-int main(int argc, char *argv[])
+static void ParseArgs(int Argc, char **Argv)
 {
-    if (argc < 2)
-        Usage();
-
-    std::string FilePath = "../tests/test.c";
-
-    bool DumpTokens           = false;
-    bool DumpAst              = false;
-    bool DumpIR               = false;
-    bool DumpPreProcessedFile = false;
-    bool PrintBeforePasses    = false;
-    bool Wall                 = false;
-    bool ShowColor            = true;
-    bool RunLLIROpt           = false;
-
-    std::set<Optimization> RequestedOptimizations;
-    std::string TargetArch = "aarch64";
-
-    for (auto i = 1; i < argc; ++i)
+    for (auto i = 1; i < Argc; ++i)
     {
-        if (argv[i][0] != '-')
+        if (Argv[i][0] != '-')
         {
-            FilePath = std::string(argv[i]);
+            FilePath = std::string(Argv[i]);
         }
         else
         {
-            std::string option {&argv[i][1]};
+            std::string option {&Argv[i][1]};
             if (!option.compare("dump-tokens"))
             {
                 DumpTokens = true;
@@ -100,7 +96,7 @@ int main(int argc, char *argv[])
             }
             else if (!option.compare(0, 5, "arch="))
             {
-                TargetArch = std::string(&argv[i][6]);
+                TargetArch = std::string(&Argv[i][6]);
                 continue;
             }
             else if (!option.compare("P"))
@@ -150,14 +146,22 @@ int main(int argc, char *argv[])
             }
             else
             {
-                PrintError("Error: Unknown argument `{}`\n", argv[i]);
-                return -1;
+                PrintError("Error: Unknown argument `{}`\n", Argv[i]);
+                return;
             }
         }
     }
+}
+
+// TODO: finish a better driver.
+int main(int argc, char *argv[])
+{
+    if (argc < 2)
+        Usage();
+
+    ParseArgs(argc, argv);
 
     std::vector<std::string> src;
-
     if (DumpTokens)
     {
         Filer::getFileContent(FilePath, src);
