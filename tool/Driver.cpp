@@ -23,7 +23,6 @@
 #include "BackEnd/TargetArchs/AArch64/AArch64XRegToWRegFixPass.hpp"
 #include "BackEnd/TargetArchs/AArch64/AArch64TargetMachine.hpp"
 #include "BackEnd/TargetArchs/RISCV/RISCVTargetMachine.hpp"
-#include <memory>
 #include <fmt/core.h>
 #include "fmt/format.h"
 #include <fmt/color.h>

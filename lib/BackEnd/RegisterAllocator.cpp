@@ -11,7 +11,7 @@
 #include <cassert>
 #include <map>
 #include <tuple>
-#include <vector>
+#include <algorithm>
 
 using VirtualReg     = unsigned;
 using PhysicalReg    = unsigned;
